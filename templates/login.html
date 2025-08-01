@@ -4,9 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
+    <style>
+        .error{
+            color: red;
+            list-style: none;
+            font-weight: bold;
+        }
+        .success{
+            color: green;
+            list-style: none;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
+    
+
     <h1>Login</h1>
-    <p>Depois fazer um formulário aqui para Login</p>
+    <form action="/login" method="post">
+        <label for="username">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <br>
+        <label for="password">Senha:</label>
+        <input type="password" id="password" name="password" required>
+        <br>
+        <button type="submit">Entrar</button>
+    </form>
+
+    <p>Não tem uma conta? <a href="/register">Registre-se</a></p>
+
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+        <ul>
+            {% for category, message in messages %}
+                <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    {% endwith %}
 </body>
 </html>
