@@ -94,13 +94,32 @@ PorVoce/
 - **TriageLog**: Logs de triagem de risco
 - **AdminLog**: Logs administrativos
 
+
+## 🤖 Inteligência Artificial com Fallback LLM
+
+O sistema de IA do PorVocê utiliza um fluxo de fallback para garantir respostas automáticas mesmo em caso de falha de algum provedor:
+
+1. **OpenAI** (GPT-3.5-turbo ou outro modelo configurado)
+2. **Gemini** (Google, modelo gratuito gemini-1.5-flash)
+3. **BERT** (modelo neuralmind/bert-base-portuguese-cased)
+4. **Respostas fixas** (mensagens empáticas pré-definidas)
+
+O fallback é automático: se o provedor principal estiver indisponível, o sistema tenta o próximo da lista, garantindo robustez e disponibilidade.
+
+Para usar Gemini, configure as variáveis no seu `.env`:
+
+```
+GEMINI_API_KEY=...sua chave...
+GEMINI_MODEL=gemini-1.5-flash
+```
+
 ## 🔧 Tecnologias
 
 - **Backend**: Flask, SQLAlchemy, PostgreSQL
 - **Migrações**: Flask-Migrate (Alembic)
 - **Autenticação**: Werkzeug Security
 - **Frontend**: HTML, CSS, JavaScript
-- **IA**: Integração preparada para análise de risco
+- **IA**: OpenAI, Gemini, BERT, fallback automático
 
 ## 📝 Desenvolvimento
 
