@@ -29,3 +29,7 @@ python-dotenv==1.0.0
 PyYAML==6.0.2
 APScheduler==3.10.4
 gunicorn==21.2.0
+pip>=23.0
+pytest
+transformers
+google-generativeai
