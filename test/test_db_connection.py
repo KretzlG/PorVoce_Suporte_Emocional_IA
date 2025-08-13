@@ -69,25 +69,3 @@ def test_sqlalchemy_connection():
         print(f"❌ Erro SQLAlchemy: {e}")
         assert False, f"Erro SQLAlchemy: {e}"
 
-if __name__ == "__main__":
-    print("=" * 50)
-    print("🧪 TESTE DE CONEXÃO COM BANCO DE DADOS")
-    print("=" * 50)
-    
-    # Teste básico
-    pg_ok = test_postgresql_connection()
-    
-    # Teste SQLAlchemy
-    sql_ok = test_sqlalchemy_connection()
-    
-    print("\n" + "=" * 50)
-    if pg_ok and sql_ok:
-        print("🎉 Todos os testes passaram!")
-        print("✅ Banco pronto para migrações")
-    else:
-        print("⚠️  Alguns testes falharam")
-        print("📋 Verifique:")
-        print("   • PostgreSQL está rodando?")
-        print("   • Credenciais estão corretas?")
-    print("   • Banco 'porvoce_dev' existe?")
-    print("=" * 50)
