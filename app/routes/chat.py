@@ -108,34 +108,43 @@ def api_chat_send():
             )
             
             # Gerar resposta da IA (OpenAI only)
-            # --- OPENAI (comentado, pode ser reativado) ---
-            # if AI_AVAILABLE and ai_service and ai_service.openai_client:
-            #     recent_messages = chat_session.get_recent_messages(10)
-            #     ai_response = ai_service.generate_response(
-            #         user_message=message_content,
-            #         risk_level='low',
-            #         user_context={'name': current_user.first_name}
-            #     )
-            #     ai_message = chat_session.add_message(
-            #         content=ai_response['message'],
-            #         message_type=ChatMessageType.AI
-            #     )
-            #     db.session.commit()
-            #     return jsonify({
-            #         'success': True,
-            #         'user_message': {
-            #             'content': message_content,
-            #             'timestamp': user_message.created_at.isoformat(),
-            #             'sender_type': 'user'
-            #         },
-            #         'ai_response': {
-            #             'content': ai_response['message'],
-            #             'timestamp': ai_message.created_at.isoformat(),
-            #             'sender_type': 'ai'
-            #         }
-            #     })
-            # --- FIM OPENAI ---
-            # Sempre responder, mesmo sem IA
+            print(f"[DEBUG] AI_AVAILABLE: {AI_AVAILABLE}")
+            print(f"[DEBUG] ai_service: {ai_service}")
+            if ai_service:
+                print(f"[DEBUG] ai_service.openai_client: {getattr(ai_service, 'openai_client', None)}")
+            if AI_AVAILABLE and ai_service and ai_service.openai_client:
+                print("[DEBUG] IA disponível, chamando generate_response...")
+                recent_messages = chat_session.get_recent_messages(10) if hasattr(chat_session, 'get_recent_messages') else []
+                try:
+                    ai_response = ai_service.generate_response(
+                        user_message=message_content,
+                        risk_level='low',
+                        user_context={'name': getattr(current_user, 'first_name', '')}
+                    )
+                    print(f"[DEBUG] ai_response: {ai_response}")
+                    ai_message = chat_session.add_message(
+                        content=ai_response['message'],
+                        message_type=ChatMessageType.AI
+                    )
+                    db.session.commit()
+                    return jsonify({
+                        'success': True,
+                        'user_message': {
+                            'content': message_content,
+                            'timestamp': user_message.created_at.isoformat(),
+                            'sender_type': 'user'
+                        },
+                        'ai_response': {
+                            'content': ai_response['message'],
+                            'timestamp': ai_message.created_at.isoformat(),
+                            'sender_type': 'ai'
+                        }
+                    })
+                except Exception as exc:
+                    print(f"[DEBUG][ERRO] Falha ao chamar IA: {exc}")
+            else:
+                print("[DEBUG] IA NÃO disponível, usando resposta padrão.")
+            # Fallback caso IA não esteja disponível
             resposta_padrao = "Desculpe, a IA não está disponível no momento. Mas estou aqui para ouvir você!"
             ai_message = chat_session.add_message(
                 content=resposta_padrao,
