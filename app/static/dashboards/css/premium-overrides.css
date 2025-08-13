@@ -1,0 +1,13 @@
+/* Premium dashboard visual tweaks for ForYou */
+.bg-light-primary { background: #ffe3f3 !important; }
+.bg-light-success { background: #e6f7ee !important; }
+.bg-light-info { background: #e3f3ff !important; }
+.bg-light-danger { background: #ffe3e3 !important; }
+.text-primary { color: #be0049 !important; }
+.text-success { color: #1bc98e !important; }
+.text-info { color: #3b8beb !important; }
+.text-danger { color: #ff348e !important; }
+.card { border-radius: 18px !important; }
+.fw-bold { font-weight: 700 !important; }
+.fw-semibold { font-weight: 600 !important; }
+.display-6 { font-size: 2.2rem; }

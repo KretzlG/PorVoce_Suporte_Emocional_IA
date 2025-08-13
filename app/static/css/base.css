@@ -1,0 +1,398 @@
+/* Header moderno com sombra e animação */
+.navbar {
+    box-shadow: 0 4px 24px var(--shadow-light);
+    transition: box-shadow 0.4s cubic-bezier(.4,0,.2,1), background 0.4s;
+    z-index: 10;
+    position: relative;
+    background: var(--background-secondary) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+.navbar.scrolled {
+    box-shadow: 0 8px 32px var(--shadow-medium);
+    background: var(--background-dark) !important;
+}
+body {
+    padding-top: 70px;
+}
+/* ForYou - Base Styles */
+
+:root {
+    /* Nova Paleta ForYou - Delicada e Profissional */
+    --white: #ffffff;
+    --rose-light: #ff97ca;
+    --rose-medium: #ff348e;
+    --rose-dark: #be0049;
+    --rose-darker: #770021;
+    
+    /* Cores principais baseadas na nova paleta */
+    --primary-color: #be0049;
+    --secondary-color: #ff348e;
+    --accent-color: #ff97ca;
+    --light-color: #ffffff;
+    --dark-color: #770021;
+    
+    /* Cores do sistema */
+    --success-color: #ff97ca;
+    --danger-color: #be0049;
+    --warning-color: #ff348e;
+    --info-color: #ff97ca;
+    
+    /* Variações para uso */
+    --background-primary: linear-gradient(135deg, #ffffff 0%, #ff97ca 100%);
+    --background-secondary: linear-gradient(135deg, #ff97ca 0%, #ff348e 100%);
+    --background-dark: linear-gradient(135deg, #be0049 0%, #770021 100%);
+    
+    /* Sombras */
+    --shadow-light: rgba(190, 0, 73, 0.1);
+    --shadow-medium: rgba(190, 0, 73, 0.2);
+    --shadow-dark: rgba(119, 0, 33, 0.3);
+    
+    /* Transparências */
+    --overlay-light: rgba(255, 255, 255, 0.9);
+    --overlay-medium: rgba(255, 151, 202, 0.8);
+    --overlay-dark: rgba(190, 0, 73, 0.9);
+}
+
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    background: var(--background-primary);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    color: var(--dark-color);
+}
+
+/* Utilitários de Background */
+.bg-gradient {
+    background: var(--background-secondary);
+}
+
+.bg-gradient-reverse {
+    background: var(--background-dark);
+}
+
+/* Container principal */
+.main-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Cards */
+.card-custom {
+    background: var(--overlay-light);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 151, 202, 0.2);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px var(--shadow-light);
+}
+
+.card-header-custom {
+    background: var(--background-secondary);
+    color: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 25px 30px;
+    border: none;
+}
+
+/* Botões Modernos */
+.btn-modern {
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-modern:hover::before {
+    left: 100%;
+}
+
+.btn-primary-modern {
+    background: var(--background-secondary);
+    color: var(--white);
+    box-shadow: 0 4px 15px var(--shadow-medium);
+}
+
+.btn-primary-modern:hover {
+    background: var(--background-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-dark);
+    color: var(--white);
+}
+
+.btn-secondary-modern {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+    border: 2px solid var(--accent-color);
+    backdrop-filter: blur(10px);
+}
+
+.btn-secondary-modern:hover {
+    background: var(--accent-color);
+    color: var(--white);
+    transform: translateY(-2px);
+}
+
+/* Navbar e Footer customizados */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--white) !important;
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    margin: 0 5px;
+    transition: color 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--white) !important;
+}
+
+/* Footer com mesmo estilo do header */
+footer.navbar {
+    background: var(--background-secondary) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 -4px 24px var(--shadow-light);
+    margin-top: auto;
+}
+
+footer .container {
+    justify-content: center;
+}
+
+/* Animações */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem;
+    }
+    
+    .btn-modern {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        margin: 5px;
+        display: block;
+        text-align: center;
+    }
+    
+    .modern-features {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .modern-feature-card {
+        max-width: 90%;
+    }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 151, 202, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-color);
+}
+.btn-primary-custom {
+    background: linear-gradient(135deg, var(--rosa-escuro) 0%, var(--rosa-medio) 100%);
+    border: none;
+    border-radius: 50px;
+    padding: 12px 30px;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px var(--shadow);
+}
+
+.btn-primary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow);
+    color: white;
+}
+
+.btn-secondary-custom {
+    background: linear-gradient(135deg, var(--ciano) 0%, var(--rosa-medio) 100%);
+    border: none;
+    border-radius: 50px;
+    padding: 12px 30px;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(82, 199, 195, 0.3);
+}
+
+.btn-secondary-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(82, 199, 195, 0.5);
+    color: white;
+}
+
+/* Alertas */
+.alert-custom {
+    border-radius: 15px;
+    border: none;
+    padding: 15px 20px;
+    margin: 15px 0;
+}
+
+.alert-danger-custom {
+    background: rgba(229, 27, 97, 0.1);
+    color: var(--rosa-escuro);
+    border-left: 4px solid var(--rosa-escuro);
+}
+
+.alert-success-custom {
+    background: rgba(82, 199, 195, 0.1);
+    color: var(--ciano);
+    border-left: 4px solid var(--ciano);
+}
+
+/* Forms */
+.form-control {
+    border-radius: 10px;
+    border: 2px solid rgba(229, 27, 97, 0.2);
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--rosa-escuro);
+    box-shadow: 0 0 0 0.2rem rgba(229, 27, 97, 0.25);
+}
+
+/* Navbar customizado */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+    background: linear-gradient(135deg, #52c7c3 0%, #45b0ac 100%) !important;
+    min-height: 32px;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .card-custom {
+        margin: 10px;
+        border-radius: 15px;
+    }
+    
+    .btn-primary-custom, .btn-secondary-custom {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animações */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.6s ease;
+}
+
+/* Utility classes */
+.text-primary-custom {
+    color: var(--rosa-escuro) !important;
+}
+
+.text-secondary-custom {
+    color: var(--rosa-medio) !important;
+}
+
+.text-accent-custom {
+    color: var(--ciano) !important;
+}

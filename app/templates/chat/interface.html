@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Chat de Apoio - ForYou{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+{% endblock %}
+{% block content %}
+<div class="chat-container">
+  <div class="chat-header">
+  <img src="{{ url_for('static', filename='img/rastreamento.png') }}" alt="ForYou" style="width:32px;height:32px;border-radius:8px;margin-right:10px;">
+    Chat de Apoio Emocional
+    <button id="clear-btn" title="Limpar chat" style="margin-left:auto;background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;"><i class="fas fa-broom"></i></button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <!-- Mensagens renderizadas dinamicamente -->
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" />
+    <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://kit.fontawesome.com/1c2e0b1e2e.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

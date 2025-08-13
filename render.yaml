@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: foryou-app
+    env: python
+    buildCommand: |
+      pip install --upgrade pip && 
+      pip install -r requirements.txt
+    startCommand: |
+      export FLASK_APP=wsgi.py &&
+      flask db upgrade || echo "Migration failed or not needed" &&
+      gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 wsgi:app
+    plan: free
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: wsgi.py
+      - key: DATABASE_URL
+        fromDatabase:
+          name: foryou-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+
+  - type: pserv
+    name: foryou-db
+    env: postgresql
+    plan: free
+    databaseName: foryou
+    databaseUser: foryou_user
