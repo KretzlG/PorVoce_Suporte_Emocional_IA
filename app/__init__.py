@@ -27,6 +27,16 @@ def create_app():
     login_manager.init_app(app)
     CORS(app)
 
+
+    # Tornar ai_service e AI_AVAILABLE globais
+    from app.services.ai_service import AIService
+    ai_service = AIService()
+    AI_AVAILABLE = ai_service.openai_client is not None
+    # Disponibilizar no pacote app
+    import sys
+    sys.modules['app'].ai_service = ai_service
+    sys.modules['app'].AI_AVAILABLE = AI_AVAILABLE
+
     # Importar e registrar blueprints
     from app.routes.main import main as main_blueprint
     app.register_blueprint(main_blueprint)

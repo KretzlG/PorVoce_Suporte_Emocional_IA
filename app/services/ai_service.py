@@ -3,14 +3,12 @@ Serviço de IA para análise de sentimentos e geração de respostas usando apen
 """
 
 import json
+import os
 from datetime import datetime
 
-try:
-	from openai import OpenAI
-	OPENAI_AVAILABLE = True
-except ImportError:
-	OPENAI_AVAILABLE = False
-	print("OpenAI não disponível. Configure a biblioteca corretamente.")
+
+import openai
+OPENAI_AVAILABLE = True
 
 class AIService:
 	"""Serviço principal de IA para análise emocional e geração de respostas usando apenas OpenAI"""
@@ -18,28 +16,13 @@ class AIService:
 	def __init__(self, app=None):
 		self.openai_client = None
 		self.app = app
-		self.openai_model = "gpt-3.5-turbo"
-		self.max_tokens = 500
-		self.temperature = 0.7
-		self.openai_api_key = None
-		if app is not None:
-			self.init_app(app)
-
-	def init_app(self, app):
-		self.app = app
-		self.openai_api_key = app.config.get('OPENAI_API_KEY')
-		self.openai_model = app.config.get('OPENAI_MODEL', 'gpt-3.5-turbo')
-		self.max_tokens = app.config.get('OPENAI_MAX_TOKENS', 500)
-		self.temperature = app.config.get('OPENAI_TEMPERATURE', 0.7)
-		self._initialize_openai()
-
-	def _initialize_openai(self):
-		if OPENAI_AVAILABLE and self.openai_api_key:
-			try:
-				self.openai_client = OpenAI(api_key=self.openai_api_key)
-			except Exception as e:
-				print(f"Erro ao inicializar OpenAI: {e}")
-				self.openai_client = None
+		self.openai_model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+		self.max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", 256))
+		self.temperature = float(os.getenv("OPENAI_TEMPERATURE", 0.7))
+		openai_api_key = os.getenv("OPENAI_API_KEY")
+		if openai_api_key:
+			self.openai_client = openai
+			self.openai_client.api_key = openai_api_key
 		else:
 			self.openai_client = None
 
@@ -85,22 +68,15 @@ class AIService:
 			'critical': "Seja extremamente empático mas firme. Enfatize a urgência de buscar ajuda IMEDIATA."
 		}
 		system_prompt = (
-			f"Você é uma IA especializada em apoio emocional e suporte psicológico em português brasileiro.\n\n"
-			f"CONTEXTO: Usuário está em nível de risco {risk_level.upper()}.\n\n"
-			f"INSTRUÇÕES:\n- {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
-			"- Seja empático, acolhedor e nunca julgue\n"
-			"- Use uma linguagem natural e humana\n"
-			"- Evite conselhos médicos específicos\n"
-			"- Foque em validar emoções e oferecer apoio\n"
-			"- Mantenha a resposta entre 50-150 palavras\n"
-			f"- {'Use o nome ' + user_name + ' quando apropriado' if user_name else 'Não use nomes próprios'}\n\n"
-			f"NÍVEL DE RISCO {risk_level.upper()}:\n"
-			f"{'- Resposta deve ser URGENTE e diretiva para buscar ajuda IMEDIATA' if risk_level == 'critical' else ''}"
-			f"{'- Encoraje fortemente buscar ajuda profissional' if risk_level == 'high' else ''}"
-			f"{'- Sugira estratégias de enfrentamento e apoio' if risk_level == 'moderate' else ''}"
-			f"{'- Ofereça validação e apoio emocional' if risk_level == 'low' else ''}\n\n"
-			"SEMPRE inclua recursos de ajuda se o risco for moderate ou superior.\n"
-			"NUNCA minimize sentimentos ou dê conselhos superficiais tipo 'vai melhorar'."
+			f"Você é uma IA de apoio emocional em português brasileiro.\n"
+			f"Nível de risco: {risk_level.upper()}.\n"
+			f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
+			"Seja empático, acolhedor, objetivo e nunca julgue.\n"
+			"Use linguagem natural e humana.\n"
+			"Evite conselhos médicos.\n"
+			"Valide emoções e ofereça apoio.\n"
+			"Responda em até 80 palavras.\n"
+			f"{'Use o nome ' + user_name if user_name else ''}"
 		)
 		response = self.openai_client.chat.completions.create(
 			model=self.openai_model,
