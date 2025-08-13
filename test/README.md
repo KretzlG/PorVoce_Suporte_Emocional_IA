@@ -2,10 +2,17 @@
 
 Este arquivo documenta o propósito de cada teste presente na pasta `test/` do projeto PorVocê.
 
+
 ## test_ai_service_fallback.py
 Testa o fallback do serviço de IA:
 - Garante que, se OpenAI, Gemini ou BERT estiverem indisponíveis, o sistema retorna respostas fixas.
 - Valida o fluxo de fallback entre as LLMs e a robustez do serviço de IA.
+
+## test_ai_service_llms.py
+Testa o status e as respostas reais das LLMs disponíveis no sistema:
+- Verifica se OpenAI, Gemini e BERT estão corretamente configurados e ativos ou inativos.
+- Garante que o sistema reconhece corretamente o status de cada LLM.
+- Testa se cada LLM retorna uma resposta real para um prompt de exemplo, validando que não retorna erro nem resposta vazia.
 
 ## test_db_connection.py
 Testa a conexão com o banco de dados:
