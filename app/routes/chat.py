@@ -108,42 +108,53 @@ def api_chat_send():
             )
             
             # Gerar resposta da IA (OpenAI only)
-            if AI_AVAILABLE and ai_service and ai_service.openai_client:
-                # OTIMIZAÇÃO: Buscar apenas mensagens recentes
-                recent_messages = chat_session.get_recent_messages(10)
-                
-                ai_response = ai_service.generate_response(
-                    user_message=message_content,
-                    risk_level='low',  # Ajustar se necessário
-                    user_context={'name': current_user.first_name}
-                )
-                
-                # Adicionar resposta da IA
-                ai_message = chat_session.add_message(
-                    content=ai_response['message'], 
-                    message_type=ChatMessageType.AI
-                )
-                
-                # OTIMIZAÇÃO: Commit único para ambas as mensagens
-                db.session.commit()
-                
-                return jsonify({
-                    'success': True,
-                    'user_message': {
-                        'content': message_content,
-                        'timestamp': user_message.created_at.isoformat(),
-                        'sender_type': 'user'
-                    },
-                    'ai_response': {
-                        'content': ai_response['message'],
-                        'timestamp': ai_message.created_at.isoformat(),
-                        'sender_type': 'ai'
-                    }
-                })
-            else:
-                # Só mensagem do usuário
-                db.session.commit()
-                return jsonify({'success': False, 'error': 'OpenAI não configurado ou indisponível'}), 503
+            # --- OPENAI (comentado, pode ser reativado) ---
+            # if AI_AVAILABLE and ai_service and ai_service.openai_client:
+            #     recent_messages = chat_session.get_recent_messages(10)
+            #     ai_response = ai_service.generate_response(
+            #         user_message=message_content,
+            #         risk_level='low',
+            #         user_context={'name': current_user.first_name}
+            #     )
+            #     ai_message = chat_session.add_message(
+            #         content=ai_response['message'],
+            #         message_type=ChatMessageType.AI
+            #     )
+            #     db.session.commit()
+            #     return jsonify({
+            #         'success': True,
+            #         'user_message': {
+            #             'content': message_content,
+            #             'timestamp': user_message.created_at.isoformat(),
+            #             'sender_type': 'user'
+            #         },
+            #         'ai_response': {
+            #             'content': ai_response['message'],
+            #             'timestamp': ai_message.created_at.isoformat(),
+            #             'sender_type': 'ai'
+            #         }
+            #     })
+            # --- FIM OPENAI ---
+            # Sempre responder, mesmo sem IA
+            resposta_padrao = "Desculpe, a IA não está disponível no momento. Mas estou aqui para ouvir você!"
+            ai_message = chat_session.add_message(
+                content=resposta_padrao,
+                message_type=ChatMessageType.AI
+            )
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'user_message': {
+                    'content': message_content,
+                    'timestamp': user_message.created_at.isoformat(),
+                    'sender_type': 'user'
+                },
+                'ai_response': {
+                    'content': resposta_padrao,
+                    'timestamp': ai_message.created_at.isoformat(),
+                    'sender_type': 'ai'
+                }
+            })
                 
         except Exception as e:
             db.session.rollback()

@@ -33,7 +33,7 @@ def create_app():
     from app.routes.auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint)
     from app.routes.chat import chat as chat_blueprint
-    app.register_blueprint(chat_blueprint)
+    app.register_blueprint(chat_blueprint, url_prefix='/chat')
     from app.routes.api import api as api_blueprint
     app.register_blueprint(api_blueprint)
     from app.routes.admin import admin as admin_blueprint
