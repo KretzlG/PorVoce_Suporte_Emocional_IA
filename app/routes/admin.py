@@ -6,7 +6,7 @@ Rotas administrativas
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from flask_login import login_required, current_user
-from app.models import User, ChatSession, DiaryEntry
+from app.models import User, ChatSession
 from app import db
 from datetime import datetime, timedelta
 from functools import wraps
@@ -36,8 +36,7 @@ def dashboard():
         'total_users': User.query.count(),
         'active_users': User.query.filter_by(is_active=True).count(),
         'total_sessions': ChatSession.query.count(),
-        'total_entries': DiaryEntry.query.count(),
-    'critical_alerts': 0
+        'critical_alerts': 0
     }
     
     # Usuários recentes
@@ -99,8 +98,7 @@ def user_details(user_id):
     # Estatísticas do usuário
     user_stats = {
         'total_sessions': ChatSession.query.filter_by(user_id=user.id).count(),
-        'total_entries': DiaryEntry.query.filter_by(user_id=user.id).count(),
-    'risk_assessments': 0
+        'risk_assessments': 0
     }
     
     # Sessões recentes
@@ -202,22 +200,10 @@ def analytics():
     # Distribuição de níveis de risco
     risk_distribution = {level: 0 for level in ['low', 'moderate', 'high', 'critical']}
     
-    # Top emoções detectadas
-    emotions_query = db.session.query(DiaryEntry.primary_emotion, db.func.count(DiaryEntry.id))\
-        .filter(
-            DiaryEntry.created_at >= start_date,
-            DiaryEntry.primary_emotion.isnot(None)
-        )\
-        .group_by(DiaryEntry.primary_emotion)\
-        .order_by(db.func.count(DiaryEntry.id).desc())\
-        .limit(10).all()
-    
-    top_emotions = [{'emotion': emotion, 'count': count} for emotion, count in emotions_query]
-    
+    # Top emoções removido
     return render_template('admin/analytics.html',
                          daily_stats=daily_stats,
                          risk_distribution=risk_distribution,
-                         top_emotions=top_emotions,
                          start_date=start_date,
                          end_date=end_date)
 
@@ -268,7 +254,7 @@ def export_analytics():
         'active_users': User.query.filter_by(is_active=True).count(),
         'total_sessions': ChatSession.query.count(),
         'total_messages': sum(len(session.get_messages()) for session in ChatSession.query.all()),
-        'total_diary_entries': DiaryEntry.query.count(),
+    # 'total_diary_entries' removido
         'total_risk_assessments': 0
     }
     # Distribuição de risco

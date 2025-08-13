@@ -5,7 +5,7 @@ Rotas principais da aplicação ForYou
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for
 from flask_login import login_required, current_user
 from app.models import User
-from app.models import ChatSession, DiaryEntry
+from app.models import ChatSession
 from app import db
 
 main = Blueprint('main', __name__)
@@ -84,7 +84,6 @@ def dashboard():
         try:
             user_stats = {
                 'total_chats': db.session.query(User).filter_by(id=current_user.id).count(),
-                'total_diary_entries': db.session.query(User).filter_by(id=current_user.id).count(),
                 'total_assessments': 0,
                 'last_activity': getattr(current_user, 'last_seen', None)
             }
@@ -92,11 +91,6 @@ def dashboard():
             last_assessment = None
             if 'ChatSession' in globals():
                 user_stats['total_chats'] = ChatSession.query.filter_by(user_id=current_user.id).count()
-            if 'DiaryEntry' in globals():
-                user_stats['total_diary_entries'] = DiaryEntry.query.filter_by(user_id=current_user.id).count()
-                recent_entries = DiaryEntry.query.filter_by(user_id=current_user.id)\
-                                            .order_by(DiaryEntry.created_at.desc())\
-                                            .limit(3).all()
             return render_template('dashboards/client/dashboard.html', 
                                  user_stats=user_stats,
                                  recent_entries=recent_entries,
@@ -105,7 +99,6 @@ def dashboard():
             current_app.logger.error(f"Erro no dashboard: {e}")
             user_stats = {
                 'total_chats': 0,
-                'total_diary_entries': 0,
                 'total_assessments': 0,
                 'last_activity': None
             }

@@ -106,5 +106,5 @@ if __name__ == "__main__":
         print("📋 Verifique:")
         print("   • PostgreSQL está rodando?")
         print("   • Credenciais estão corretas?")
-        print("   • Banco 'foryou_dev' existe?")
+    print("   • Banco 'porvoce_dev' existe?")
     print("=" * 50)

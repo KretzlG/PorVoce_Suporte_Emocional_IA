@@ -1,6 +1,6 @@
-// ForYou - Base JavaScript Functions
+// Por Você - Base JavaScript Functions
 
-class ForYouBase {
+class PorVoceBase {
     constructor() {
         this.init();
     }
@@ -241,11 +241,11 @@ class ForYouBase {
     // Theme methods
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('foryou-theme', theme);
+    localStorage.setItem('porvoce-theme', theme);
     }
 
     getTheme() {
-        return localStorage.getItem('foryou-theme') || 'light';
+    return localStorage.getItem('porvoce-theme') || 'light';
     }
 
     initTheme() {
@@ -256,10 +256,10 @@ class ForYouBase {
 
 // Initialize base functionality when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    window.ForYouBase = new ForYouBase();
+    window.PorVoceBase = new PorVoceBase();
 });
 
 // Export for module use
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ForYouBase;
+    module.exports = PorVoceBase;
 }

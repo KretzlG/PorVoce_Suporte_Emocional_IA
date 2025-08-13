@@ -297,7 +297,7 @@ def settings():
 @login_required
 def export_data():
     """Exportar dados do usuário (LGPD)"""
-    from app.services.anonymization import DataAnonymizer
+    # from app.services.anonymization import DataAnonymizer
     import json
     from flask import make_response
     
@@ -305,7 +305,7 @@ def export_data():
     user_data = {
         'user_info': current_user.to_dict(),
         'chat_sessions': [session.to_dict() for session in current_user.chat_sessions],
-        'diary_entries': [entry.to_dict() for entry in current_user.diary_entries],
+    # 'diary_entries': [entry.to_dict() for entry in current_user.diary_entries],
         'risk_assessments': [assessment.to_dict() for assessment in current_user.risk_assessments]
     }
     
@@ -333,32 +333,18 @@ def delete_account():
             flash('Digite "EXCLUIR" para confirmar', 'error')
             return render_template('auth/delete_account.html')
         
-        # Anonimizar dados antes de excluir (conformidade LGPD)
-        from app.services.anonymization import DataAnonymizer
-        anonymizer = DataAnonymizer()
-        
-        # Anonimizar dados em chat sessions
-        for session in current_user.chat_sessions:
-            for message in session.messages:
-                message.content = anonymizer.anonymize_text_content(message.content)
-        
-        # Anonimizar entradas do diário
-        for entry in current_user.diary_entries:
-            entry.title = anonymizer.anonymize_text_content(entry.title)
-            entry.content = anonymizer.anonymize_text_content(entry.content)
-        
-        # Marcar usuário como deletado em vez de excluir (auditoria)
-        current_user.is_active = False
-        current_user.email = anonymizer.anonymize_email(current_user.email)
-        current_user.username = f"deleted_user_{current_user.id}"
-        current_user.first_name = "Usuário"
-        current_user.last_name = "Excluído"
-        current_user.phone = None
-        
-        db.session.commit()
-        logout_user()
-        
-        flash('Sua conta foi excluída com sucesso. Seus dados foram anonimizados conforme a LGPD.', 'info')
-        return redirect(url_for('main.index'))
+    # Anonimização removida
+    # Marcar usuário como deletado em vez de excluir (auditoria)
+    current_user.is_active = False
+    current_user.username = f"deleted_user_{current_user.id}"
+    current_user.first_name = "Usuário"
+    current_user.last_name = "Excluído"
+    current_user.phone = None
+
+    db.session.commit()
+    logout_user()
+
+    flash('Sua conta foi excluída com sucesso.', 'info')
+    return redirect(url_for('main.index'))
     
     return render_template('auth/delete_account.html')

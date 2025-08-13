@@ -1,5 +1,5 @@
 """
-WSGI entry point for ForYou application
+WSGI entry point for Por Você application
 Ponto de entrada principal para produção
 """
 
@@ -29,7 +29,7 @@ def init_db():
     """Inicializa o banco de dados com dados de teste."""
     try:
         # Verificar se dados já existem
-        if User.query.filter_by(email='admin@foryou.com').first():
+        if User.query.filter_by(email='admin@porvoce.com').first():
             click.echo('⚠️  Dados de teste já existem!')
             click.echo('Para recriar, delete os dados existentes primeiro.')
             return
@@ -38,7 +38,7 @@ def init_db():
 
         # Criar usuário Admin
         admin_user = User(
-            email='admin@foryou.com',
+            email='admin@porvoce.com',
             username='admin',
             password_hash=generate_password_hash('admin123'),
             first_name='Administrador',
@@ -54,7 +54,7 @@ def init_db():
         click.echo('✅ Dados de teste criados com sucesso!')
         click.echo('')
         click.echo('👤 Usuários criados:')
-        click.echo(f'   Admin: admin@foryou.com / admin123')
+        click.echo(f'   Admin: admin@porvoce.com / admin123')
         click.echo('')
         click.echo('🎯 Sistema pronto para uso!')
 
@@ -82,7 +82,7 @@ def make_shell_context():
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
-    
+
     # Para desenvolvimento local
     if debug:
         app.run(
@@ -92,4 +92,4 @@ if __name__ == "__main__":
         )
     else:
         # Para produção, deixar o Gunicorn gerenciar
-        print(f"🚀 ForYou pronto para produção na porta {port}")
+        print(f"🚀 Por Você pronto para produção na porta {port}")

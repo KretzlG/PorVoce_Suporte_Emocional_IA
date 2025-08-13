@@ -1,6 +1,6 @@
-# ForYou - Sistema de Dashboards
+# Por Você - Sistema de Dashboards
 
-Este diretório contém o sistema completo de dashboards para a plataforma ForYou, desenvolvido com base no modelo de dashboard profissional fornecido, mas totalmente adaptado às cores e identidade visual do projeto.
+Este diretório contém o sistema completo de dashboards para a plataforma Por Você, desenvolvido com base no modelo de dashboard profissional fornecido, mas totalmente adaptado às cores e identidade visual do projeto.
 
 ## 📁 Estrutura de Arquivos
 
@@ -24,7 +24,7 @@ app/dashboards/
 
 ## 🎨 Paleta de Cores
 
-O sistema utiliza a paleta rose profissional do ForYou:
+O sistema utiliza a paleta rose profissional do Por Você:
 
 - **Primary**: `#be0049` (Rose Dark)
 - **Secondary**: `#ff348e` (Rose Medium)  
@@ -65,7 +65,7 @@ O sistema utiliza a paleta rose profissional do ForYou:
 
 ## 🚀 Funcionalidades JavaScript
 
-### Classe ForYouDashboard
+### Classe PorVocêDashboard
 - **Toggle Sidebar**: Colapsar/expandir menu lateral
 - **Navigation**: Gerenciamento de navegação ativa
 - **Animations**: Sistema de animações suaves
@@ -244,10 +244,10 @@ Para criar novos componentes, siga o padrão:
 ### Atualização Dinâmica
 ```javascript
 // Atualizar com animação
-window.forYouDashboard.updateStats('uniqueId', 456, true);
+window.porVoceDashboard.updateStats('uniqueId', 456, true);
 
 // Atualizar sem animação
-window.forYouDashboard.updateStats('uniqueId', 456, false);
+window.porVoceDashboard.updateStats('uniqueId', 456, false);
 ```
 
 ## 🌟 Boas Práticas
@@ -315,4 +315,4 @@ window.forYouDashboard.updateStats('uniqueId', 456, false);
 
 ---
 
-**Desenvolvido para ForYou** - Sistema de apoio emocional com foco em design centrado no usuário e acessibilidade.
+**Desenvolvido para Por Você** - Sistema de apoio emocional com foco em design centrado no usuário e acessibilidade.

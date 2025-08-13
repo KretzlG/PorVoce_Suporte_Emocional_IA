@@ -5,7 +5,6 @@ Rotas do chat com IA - Versão corrigida usando mensagens em JSON
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from app.models import ChatSession
-from app.services.risk_analyzer import RiskAnalyzer
 from app import db
 from datetime import datetime, timezone, timedelta
 
@@ -17,7 +16,6 @@ except ImportError:
     AI_AVAILABLE = False
 
 chat = Blueprint('chat', __name__)
-risk_analyzer = RiskAnalyzer()
 
 
 @chat.route('/')

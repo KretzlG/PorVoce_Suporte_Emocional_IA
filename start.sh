@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Script de inicialização para produção no Render
 
-echo "🚀 Iniciando ForYou em produção..."
+echo "🚀 Iniciando Por Você em produção..."
 
 # Definir variável de ambiente Flask
 export FLASK_APP=wsgi.py

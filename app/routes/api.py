@@ -1,12 +1,12 @@
 
 """
-API REST simplificada para ForYou: apenas OpenAI, sem fallback, endpoints essenciais.
+API REST simplificada para Por Você: apenas OpenAI, sem fallback, endpoints essenciais.
 """
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import User, ChatSession, DiaryEntry
-from app import ai_service, db
+from app.models import User, ChatSession
+from app import db
 from datetime import datetime
 
 api = Blueprint('api', __name__)

@@ -1,4 +1,4 @@
-# ForYou - Plataforma de Apoio Emocional
+# Por Você - Plataforma de Apoio Emocional
 
 Uma plataforma web para apoio emocional com chat por IA e voluntários qualificados.
 
@@ -7,8 +7,8 @@ Uma plataforma web para apoio emocional com chat por IA e voluntários qualifica
 ### 1. Clonar e Instalar
 
 ```bash
-git clone https://github.com/GianKretzl/ForYou.git
-cd ForYou
+git clone https://github.com/GianKretzl/PorVoce.git
+cd PorVoce
 
 # Criar ambiente virtual
 python -m venv venv
@@ -60,7 +60,7 @@ flask shell
 
 ## 👥 Usuários de Teste
 
-- **Admin**: `admin@foryou.com` / `admin123`
+- **Admin**: `admin@porvoce.com` / `admin123`
 - **Cliente**: `cliente@teste.com` / `cliente123`
 - **Voluntário**: `voluntario@teste.com` / `voluntario123`
 - **Voluntária**: `ana.voluntaria@teste.com` / `ana123`
@@ -68,7 +68,7 @@ flask shell
 ## 🏗️ Estrutura do Projeto
 
 ```
-ForYou/
+PorVoce/
 ├── app/
 │   ├── models/          # Modelos do banco de dados
 │   ├── routes/          # Rotas da aplicação
@@ -116,8 +116,8 @@ ForYou/
 
 ```bash
 # 1. Clonar repositório
-git clone https://github.com/GianKretzl/ForYou.git
-cd ForYou
+git clone https://github.com/GianKretzl/PorVoce.git
+cd PorVoce
 
 # 2. Configurar ambiente
 python -m venv venv

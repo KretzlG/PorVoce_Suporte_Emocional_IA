@@ -1,4 +1,4 @@
-# Tarefas Pendentes ForYou (por Etapa)
+# Tarefas Pendentes Por Você (por Etapa)
 
 ## Dashboard Administrativo
 - [ ] Implementar frontend para exibir alertas críticos em tempo real usando o novo endpoint `/admin/api/critical-alerts`.

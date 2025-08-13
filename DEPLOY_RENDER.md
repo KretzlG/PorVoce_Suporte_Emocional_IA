@@ -42,9 +42,9 @@ git push origin main
 1. No dashboard do Render, clique em "New +"
 2. Selecione "PostgreSQL"
 3. Configure:
-   - **Name**: `foryou-db`
-   - **Database**: `foryou`
-   - **User**: `foryou_user`
+   - **Name**: `porvoce-db`
+   - **Database**: `porvoce`
+   - **User**: `porvoce_user`
    - **Region**: escolha a mais próxima
    - **Plan**: Free (0$/mês)
 4. Clique em "Create Database"
@@ -56,7 +56,7 @@ git push origin main
 2. Selecione "Web Service"
 3. Conecte ao seu repositório GitHub
 4. Configure:
-   - **Name**: `foryou-app`
+   - **Name**: `porvoce-app`
    - **Environment**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn run:app`
@@ -100,7 +100,7 @@ MAIL_PASSWORD=sua-senha-de-app
 
 ### 9. Acessar a Aplicação
 
-1. O Render fornecerá uma URL como: `https://foryou-app.onrender.com`
+1. O Render fornecerá uma URL como: `https://porvoce-app.onrender.com`
 2. Acesse a URL para verificar se funciona
 3. Teste o login com: `admin@foryou.com` / `admin123`
 
