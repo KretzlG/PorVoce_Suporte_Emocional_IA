@@ -1,0 +1,77 @@
+{% extends "dashboards/dashboard-base.html" %}
+
+{% block title %}Dashboard Cliente - ForYou{% endblock %}
+{% block page_title %}Meu Espaço{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card bg-light-primary shadow-sm border-0 mb-4">
+				<div class="card-body d-flex align-items-center">
+					<div class="me-3 display-6 text-primary"><i class="fas fa-user"></i></div>
+					<div>
+						<div class="fs-5 fw-bold">Bem-vindo(a), {{ current_user.name }}!</div>
+						<div class="text-muted">Este é seu espaço de apoio emocional.</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row mb-4">
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Sessões Realizadas</h6>
+					<div class="fs-2 fw-bold mb-0" data-counter="{{ user_stats.total_chats|default(0) }}">0</div>
+					<div class="text-muted small">Total de conversas</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Diários Preenchidos</h6>
+					<div class="fs-2 fw-bold mb-0" data-counter="{{ user_stats.total_diary_entries|default(0) }}">0</div>
+					<div class="text-muted small">Entradas no diário</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Último Acesso</h6>
+					<div class="fs-2 fw-bold mb-0">{{ user_stats.last_activity|default('N/A') }}</div>
+					<div class="text-muted small">Data/hora</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row mb-4">
+		<div class="col-md-6 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">Ações Rápidas</h6>
+					<a href="{{ url_for('diary.new_entry') }}" class="btn btn-primary me-2 mb-2"><i class="fas fa-pen"></i> Novo Diário</a>
+					<a href="#" class="btn btn-info me-2 mb-2 disabled" title="Funcionalidade indisponível"><i class="fas fa-comments"></i> Nova Conversa</a>
+					<a href="{{ url_for('main.help_page') }}" class="btn btn-outline-secondary mb-2"><i class="fas fa-question-circle"></i> Ajuda</a>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">Últimas Atividades</h6>
+					<ul class="list-group list-group-flush">
+						{% for entry in recent_entries %}
+						<li class="list-group-item">{{ entry.title if entry.title else entry.text[:32] ~ '...' }}</li>
+						{% else %}
+						<li class="list-group-item text-muted">Nenhuma atividade recente.</li>
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

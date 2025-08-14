@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro | ForYou{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/register.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-bg">
+  <div class="auth-center-box">
+    <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
+      <h2 class="auth-title">Criar Conta</h2>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <div class="form-group">
+        <label for="username">Nome de usuário</label>
+        <input type="text" id="username" name="username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirmar Senha</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
+      </div>
+      <div class="form-group">
+        <label for="role">Tipo de usuário</label>
+        <select id="role" name="role" required>
+          <option value="cliente">Cliente</option>
+          <option value="voluntario">Voluntário</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-auth">Cadastrar</button>
+      <p class="auth-link">Já tem conta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

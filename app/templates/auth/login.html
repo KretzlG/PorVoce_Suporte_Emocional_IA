@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Login | Por Você{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-bg">
+  <div class="auth-center-box">
+    <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}">
+      <h2 class="auth-title">Entrar na Plataforma</h2>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      <div class="form-group">
+        <label for="email">
+          <i class="input-icon">📧</i>
+          E-mail
+        </label>
+        <input type="email" id="email" name="email" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="password">
+          <i class="input-icon">🔒</i>
+          Senha
+        </label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit" class="btn-auth">Entrar</button>
+      <p class="auth-link">Não tem conta? <a href="{{ url_for('auth.register') }}">Cadastre-se</a></p>
+    </form>
+  </div>
+</div>
+{% endblock %}

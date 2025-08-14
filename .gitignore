@@ -1,0 +1,81 @@
+
+# ==========================================
+# ARQUIVOS DE CONFIGURAÇÃO SENSÍVEIS
+# ==========================================
+.env
+.env
+.env.*
+!.env.example
+!.env.production
+config_local.py
+local_config.py
+local_settings.py
+
+# ==========================================
+# AMBIENTES VIRTUAIS
+# ==========================================
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# ==========================================
+# CACHE E ARQUIVOS TEMPORÁRIOS
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==========================================
+# LOGS
+# ==========================================
+logs/
+*.log
+
+# ==========================================
+# BANCO DE DADOS
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# IDE
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==========================================
+# SISTEMA OPERACIONAL
+# ==========================================
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# UPLOADS E ARQUIVOS TEMPORÁRIOS
+# ==========================================
+uploads/
+temp/
+tmp/

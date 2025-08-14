@@ -1,0 +1,76 @@
+{% extends "dashboards/dashboard-base.html" %}
+
+{% block title %}Dashboard Voluntário - Por Você{% endblock %}
+{% block page_title %}Painel do Voluntário{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+	<div class="row mb-4">
+		<div class="col-12">
+			<div class="card bg-light-success shadow-sm border-0 mb-4">
+				<div class="card-body d-flex align-items-center">
+					<div class="me-3 display-6 text-success"><i class="fas fa-hands-helping"></i></div>
+					<div>
+						<div class="fs-5 fw-bold">Bem-vindo(a), {{ current_user.name }}!</div>
+						<div class="text-muted">Obrigado por apoiar vidas!</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row mb-4">
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Atendimentos Realizados</h6>
+					<div class="fs-2 fw-bold mb-0" data-counter="{{ stats.sessions|default(0) }}">0</div>
+					<div class="text-muted small">Total de conversas</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Usuários Apoiados</h6>
+					<div class="fs-2 fw-bold mb-0" data-counter="{{ stats.users_helped|default(0) }}">0</div>
+					<div class="text-muted small">Pessoas impactadas</div>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-4 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-1">Último Atendimento</h6>
+					<div class="fs-2 fw-bold mb-0">{{ stats.last_session|default('N/A') }}</div>
+					<div class="text-muted small">Data/hora</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row mb-4">
+		<div class="col-md-6 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">Ações Rápidas</h6>
+					<a href="#" class="btn btn-primary me-2 mb-2 disabled" title="Funcionalidade indisponível"><i class="fas fa-comments"></i> Novo Atendimento</a>
+					<a href="{{ url_for('main.help_page') }}" class="btn btn-outline-secondary mb-2"><i class="fas fa-question-circle"></i> Ajuda</a>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-6 mb-4">
+			<div class="card shadow-sm border-0">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">Últimas Atividades</h6>
+					<ul class="list-group list-group-flush">
+						{% for activity in recent_activities %}
+						<li class="list-group-item">{{ activity }}</li>
+						{% else %}
+						<li class="list-group-item text-muted">Nenhuma atividade recente.</li>
+						{% endfor %}
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
