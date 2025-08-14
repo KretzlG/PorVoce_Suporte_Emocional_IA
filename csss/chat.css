@@ -1,0 +1,442 @@
+body, html {
+    background-image:linear-gradient(45deg, #e51b61, #e51b61, #f784a2  , #f784a2 );
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+
+@font-face {
+    font-family: 'FontePorvoce';
+    src: url('fontes/LilitaOne-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'FonteChat';
+    src: url('fontes/RhodiumLibre-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgb(255, 255, 255);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.rippleSubmit {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.555);
+    transform: scale(0.5);
+    animation: ripplesubmit-animation 0.75s linear;
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes ripplesubmit-animation {
+    to {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+#menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    background-color: #ffccd1;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    z-index: 1;
+    border: 2px solid #e51b61;
+    transition: transform 0.6s ease;
+}
+
+#messages::-webkit-scrollbar { /*largura do scroll*/
+    width: 10px;
+} 
+
+#messages::-webkit-scrollbar-track { /*cor do track e tamanho da borda*/
+    background: #ffe6ea;
+    border-radius: 10px;
+}
+
+#messages::-webkit-scrollbar-thumb { /*cor da parte q arrasta, tamanho da borda e cor dela*/
+    background-color: #e51b61;
+    border-radius: 10px;
+    border: 2px solid #ffe6ea;
+}
+
+#messages::-webkit-scrollbar-thumb:hover { /*muda cor do scroll qnd passa o mouse*/
+    background-color: #b30047;
+}
+
+#menuText{
+    text-align: center;      /*para suportar firefox*/
+    margin-bottom: 20px;
+}
+
+#backgroundHolder {
+    margin-left: 200px;
+    background: transparent;
+    width: calc(100% - 300px    );
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: width 0.7s ease;
+}
+
+#welcomeMessage {
+    font-family: 'FontePorvoce', sans-serif;
+    font-size: 25px;
+    margin: 0;
+    padding: 5px 0;
+    text-align: center;
+    color: #e51b61 !important;
+    background: none;
+    text-shadow: #f784a2 0 1px 1px, #e51b61 0 1px 1px, #e51b61 0 1px 1px;
+}
+
+#messages #welcomeMessage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 0 auto 20px auto;
+    padding: 20px 10px 10px 10px;
+    width: 90%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: #f784a2 0 2px 5px;
+}
+
+#messages #welcomeMessage h1 {
+    font-size: 1.5em;
+    margin: 0 0 8px 0;
+    color: #e51b61;
+    font-family: 'FontePorvoce', sans-serif;
+}
+
+#messages #welcomeMessage h3 {
+    font-size: 1.1em;
+    margin: 0;
+    color: #b30047;
+    font-family: 'FontePorvoce', sans-serif;
+}
+
+#chat-container {
+    background-color: #ffccd1;
+    border-radius: 10px;
+    border: 3px solid #e51b61;
+    width: 75%;
+    /* left: 70px; */
+    max-width: 10000px;
+    height: 100vh;
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-shadow: #f784a2 0 5px 5px, #f784a2 0 10px 10px, #f784a2 0 15px 15px;
+    transition: transform 0.6s ease;
+    overflow: hidden;
+}
+
+#messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 10px 10px 80px 10px; /* as mensagem*/
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: #e51b61 #ffe6ea;
+    top: 1px;
+    bottom: 61px;
+}
+
+.message {
+    font-family: 'FonteChat', sans-serif;
+    max-width: 70%;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 10px;
+    font-size: 15px;
+    word-wrap: break-word;
+    box-shadow: #f784a2 0 2px 5px;
+    scroll-behavior: smooth;
+}
+
+.bot {
+    align-self: flex-start;
+    background-color: #ffffff;
+    color: #000;
+}
+
+.user {
+    align-self: flex-end;
+    background-color: #52c7c3;
+    color: #000;
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    z-index: 0;
+    margin: 0;
+    padding: 0;
+}
+
+#user-input {
+    width: 100%;
+    height: 50px;
+    padding: 10px 85px 10px 15px;
+    border: 1px solid #e51b61 !important;
+    background-color: #ffffff;
+    border-radius: 15px;
+    font-size: 16px;
+    box-sizing: border-box;
+    outline: none;
+    color: #e51b61;
+    box-shadow: #f784a2 0 2px 5px;
+    font-family: 'FonteChat', sans-serif;
+}
+
+#send-button {
+    position: absolute;
+    top: 13%;
+    right: 10px;
+    padding: 8px 16px;
+    background-color: #52c7c3;
+    color: white;
+    border: #3b9696 1.5px solid;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+#menuList {
+    overflow: visible;
+    list-style: none;
+    padding: 0;
+}
+
+#menuList li {
+    margin-bottom: 20px;
+}
+
+#BotaoPaginaInicial {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;
+}
+#BotaoPaginaInicial:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#BotaoCursos {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;
+}
+#BotaoCursos:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#BotaoPorvoce {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;    
+}
+#BotaoPorvoce:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#BotaoContatos {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;
+}
+#BotaoContatos:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#BotaoChats {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;
+}
+#BotaoChats:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#BotaoServicosExt1, #BotaoServicosExt2, #BotaoServicosExt3, #BotaoServicosExt4 {
+    cursor: pointer;
+    box-shadow: #e51b61 0 2px 4px, #e51b61 0 2px 5px, #e51b61 0 2px 2px, #e51b61 0 2px 5px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    text-align: center;
+    padding:10px;
+    font-size:20px;
+    font-family: 'FontePorvoce', sans-serif;
+    width: 100%;
+    transition: 0.3s ease;
+}
+#BotaoServicosExt1:hover, #BotaoServicosExt2:hover, #BotaoServicosExt3:hover, #BotaoServicosExt4:hover {
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+    transform: scale(1.05);
+}
+
+#chat-form{
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;  
+    margin: 0;
+}
+
+.Historico {
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+    background: #ffffff;
+    padding: 0 15px;
+    overflow: visible;
+}
+
+#send-button:hover:not(:disabled) {
+    background-color: #3b9696;
+    transform: scale(1.10);
+}
+
+#send-button:disabled {
+    background-color: #9ad4d4;
+    cursor: not-allowed;
+}
+
+.typing {
+    font-style: italic;
+    color: #999;
+}
+
+#menuText {
+    font-family: 'FontePorvoce', sans-serif;
+    border-bottom: 2px solid #e51b61;
+    padding-bottom: 10px;
+}
+
+#menu-toggle-button {
+    position: fixed;
+    top: 20px;
+    left: 300px; 
+    background-color: #e51b61;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 10;
+    transition: left 0.6s ease;
+    box-shadow: #b30047 0 2px 2px, #b30047 0 2px 2px, #b30047 0 2px 2px;
+}
+
+#menu-toggle-button::before {
+    content: ">>";
+    rotate: 180deg;
+    display: inline-block;
+    transition: transform 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+    font-size: 20px;
+}
+
+#toggle-menu:checked + #menu-toggle-button::before {
+    transform: rotate(0deg) scaleX(-1);
+}
+
+#toggle-menu:checked + #menu-toggle-button {    
+    left: 0; 
+    border-radius: 0 5px 5px 0;
+}
+
+#toggle-menu:checked ~ #menu {
+    transform: translateX(-100%);
+}
+
+#toggle-menu:checked ~ #backgroundHolder #chat-container {
+    transform: translateX(-100px); /* desliza o container pro lado */
+}
+
+#toggle-menu:checked ~ #background {
+    margin-left: 0;
+    width: 100%;
+ }

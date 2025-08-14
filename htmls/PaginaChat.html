@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+    <head>
+
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/imagens/logo.png" type="image/x-icon">
+        <title>Por Você</title>
+        <link rel="stylesheet" href="/csss/chat.css" />
+        <link rel="stylesheet" href="/csss/styleGlobal.css" />
+        
+    </head>
+
+    <body>
+
+        <input type="checkbox" id="toggle-menu" hidden />
+        <label for="toggle-menu" id="menu-toggle-button" title="Abrir/fechar menu lateral"></label>
+
+
+        <div id="conteudo" class="side-menu"></div>
+
+        <div id="menu">
+
+            <h2 id="menuText">Menu</h2>
+
+            <ul class="ripple-button" id="menuList">
+
+                <li aria-hidden='true'><button type="button" id="BotaoPaginaInicial">Página inicial</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoCursos">Cursos</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoPorvoce">Por Você</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoContatos">Contatos</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoChats">Histórico</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoServicosExt1">Serviço Externo1</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoServicosExt2">Serviço Externo2</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoServicosExt3">Serviço Externo3</button></li>
+                <li aria-hidden='true'><button type="button" id="BotaoServicosExt4">Serviço Externo4</button></li>
+
+            </ul>
+
+        </div> 
+
+        <div type="background" id="backgroundHolder">
+            <div class="minimized" id="chat-container">
+                <div id="messages">
+                    <div id="welcomeMessage" >
+                        <h1>Bem-vindo ao Chat de Suporte Emocional !</h1>
+                        <h3>Como você está se sentindo hoje?</h3>
+                    </div>
+                </div> 
+
+                <form id="chat-form" autocomplete="off" class="input-container">
+
+                    <input type="text" id="user-input" placeholder="Digite sua mensagem..." />
+                    <button class="ripple-button2" type="submit" id="send-button">Enviar</button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <script src="/jss/chat.js" defer></script>
+
+    </body>
+</html>

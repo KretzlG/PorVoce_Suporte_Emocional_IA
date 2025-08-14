@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+    <head>
+    
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login</title>
+        <link rel="stylesheet" href="/csss/styleGlobal.css">
+        <link rel="stylesheet" href="/csss/cadastroLogin.css">
+        <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"> <!--uma bootsstrap para os incones de nome e email-->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> <!--uma bootstrap para os icones de mostrar a senha-->
+
+    </head>
+
+    <body>
+
+        <div class="container">
+
+            <form>
+
+                <h1>Login</h1>
+                
+                <div class="input-box">
+
+                    <i class='bx bx-user' aria-hidden='true'></i>
+                    <input placeholder="Email" type="email">
+                
+                    <i class="bi bi-eye-fill" id="btn-senha" onclick="mostrarSenha('senha', 'btn-senha')"></i>
+                    <input placeholder="Senha" type="password" id="senha">
+
+                </div>
+
+                <button type="submit" class="button">Entrar</button>
+
+                <div class="have_an_account">
+
+                    <p>Não tem uma conta? <a href="#">Clique aqui</a></p>
+                    
+
+                </div>
+
+                <script src="/jss/verSenha.js"></script>
+
+            </form>
+
+        </div>
+
+    </body>
+
+</html>
