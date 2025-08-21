@@ -2,7 +2,6 @@
 WSGI entry point for Por Você application
 Ponto de entrada principal para produção
 """
-
 import os
 from dotenv import load_dotenv
 

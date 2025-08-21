@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import uuid
 from functools import wraps
-from wordlists import low_risk, medium_risk, high_risk
+from app.models.wordlists import low_risk, medium_risk, high_risk
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave_secretinha_owo'
