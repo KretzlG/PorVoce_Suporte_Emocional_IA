@@ -230,8 +230,8 @@ class TriageLog(BaseModel):
     def __repr__(self):
         return f"<TriageLog {self.id} - {self.risk_level.value} risk>"
 
+# Vou deixar está tarefa para a Gabizinha.
 # Sistema de verificação
-
 def first_triage(message):
         # Inicializa um objeto TriageLog
         triage_log = TriageLog(
