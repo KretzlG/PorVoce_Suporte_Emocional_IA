@@ -11,16 +11,39 @@ function mostrarSenha(idInput, idBotao) {
     }
 }
 
-document.querySelector('form').addEventListener('submit', function(event) {
-    const senha1 = document.getElementById('senha1').value;
-    const senha2 = document.getElementById('senha2').value;
-    const msgErro = document.getElementById('msg-erro');
-
-    if (senha1 !== senha2) {
-      event.preventDefault(); // impede o envio do form
-      msgErro.textContent = 'As senhas não coincidem. Por favor, verifique.';
-      msgErro.style.display = 'block';
-    } else {
-      msgErro.style.display = 'none'; // esconde a mensagem caso as senhas estejam iguais
+// Adiciona validação apenas se estivermos na página de registro
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (!form) return;
+    
+    // Verifica se é a página de registro (tem campos de radio)
+    const isRegisterPage = document.querySelector('input[name="user_type"]') !== null;
+    
+    if (isRegisterPage) {
+        form.addEventListener('submit', function(event) {
+            const msgErro = document.getElementById('msg-erro');
+            const userType = document.querySelector('input[name="user_type"]:checked');
+            const terms = document.getElementById('terms');
+            
+            // Limpa mensagens anteriores
+            msgErro.style.display = 'none';
+            msgErro.textContent = '';
+            
+            // Valida se um tipo de usuário foi selecionado
+            if (!userType) {
+                event.preventDefault();
+                msgErro.textContent = 'Por favor, selecione se você é paciente ou profissional.';
+                msgErro.style.display = 'block';
+                return;
+            }
+            
+            // Valida se os termos foram aceitos
+            if (!terms.checked) {
+                event.preventDefault();
+                msgErro.textContent = 'Por favor, aceite os termos e condições de serviço.';
+                msgErro.style.display = 'block';
+                return;
+            }
+        });
     }
 });
