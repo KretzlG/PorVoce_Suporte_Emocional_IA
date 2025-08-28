@@ -7,6 +7,7 @@
         <link rel="shortcut icon" type="image/x-icon" href="static/img/logo.png">
         <title>Cadastro</title>
         <link rel="stylesheet" href="static/css/auth/login_register.css">
+        <link rel="stylesheet" href="static/css/auth/error_styles.css">
         <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +26,7 @@
             
             <form method="post" class="register-form">
                 <div class="input-container">
-                    <input type="text" name="name" placeholder="Digite seu nome" required>
+                    <input type="text" name="first_name" placeholder="Digite seu nome" required>
                 </div>
 
                 <div class="input-container">
@@ -33,21 +34,26 @@
                 </div>
 
                 <div class="input-container">
-                    <input type="tel" name="phone" placeholder="Digite seu telefone" required>
+                    <input type="tel" name="phone" placeholder="Digite seu telefone">
                 </div>
 
                 <div class="input-container">
-                    <input type="password" name="password" placeholder="Confirme sua senha" id="senha1" required>
+                    <input type="password" name="password" placeholder="Digite sua senha" id="senha1" required>
                     <i class="bi bi-eye-fill" id="btn-senha1" onclick="mostrarSenha('senha1', 'btn-senha1')"></i>
+                </div>
+
+                <div class="input-container">
+                    <input type="password" name="confirm_password" placeholder="Confirme sua senha" id="senha2" required>
+                    <i class="bi bi-eye-fill" id="btn-senha2" onclick="mostrarSenha('senha2', 'btn-senha2')"></i>
                 </div>
 
                 <div class="radio-group">
                     <div class="radio-option">
-                        <input type="radio" id="paciente" name="user_type" value="paciente" required>
+                        <input type="radio" id="paciente" name="user_type" value="client" required>
                         <label for="paciente">Sou paciente</label>
                     </div>
                     <div class="radio-option">
-                        <input type="radio" id="profissional" name="user_type" value="profissional" required>
+                        <input type="radio" id="profissional" name="user_type" value="volunteer" required>
                         <label for="profissional">Sou profissional</label>
                     </div>
                 </div>
@@ -59,10 +65,19 @@
                     </label>
                 </div>
 
-                <p id="msg-erro" class="error-message"></p>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="error-messages">
+                            {% for category, message in messages %}
+                                <p class="error-message" style="display: block;">{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
                 <button class="button" type="submit">Criar conta</button>
 
-                <p class="login-link">Já tem uma conta? <a href="login.html">Faça login</a></p>
+                <p class="login-link">Já tem uma conta? <a href="{{ url_for('auth.login') }}">Faça login</a></p>
             </form>
         </div>
 
