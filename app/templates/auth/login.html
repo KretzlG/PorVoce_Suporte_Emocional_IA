@@ -1,41 +1,39 @@
-{% extends 'base.html' %}
-{% block title %}Login | Por Você{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-br">
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
-{% endblock %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="shortcut icon" type="image/x-icon" href="/img/logo.png">
+        <title>Login</title>
+        <link rel="stylesheet" href="/css/login_cadastro.css">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    </head>
 
-{% block content %}
-<div class="auth-bg">
-  <div class="auth-center-box">
-    <form class="auth-form" method="POST" action="{{ url_for('auth.login') }}">
-      <h2 class="auth-title">Entrar na Plataforma</h2>
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flash-messages">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-      <div class="form-group">
-        <label for="email">
-          <i class="input-icon">📧</i>
-          E-mail
-        </label>
-        <input type="email" id="email" name="email" required autofocus>
-      </div>
-      <div class="form-group">
-        <label for="password">
-          <i class="input-icon">🔒</i>
-          Senha
-        </label>
-        <input type="password" id="password" name="password" required>
-      </div>
-      <button type="submit" class="btn-auth">Entrar</button>
-      <p class="auth-link">Não tem conta? <a href="{{ url_for('auth.register') }}">Cadastre-se</a></p>
-    </form>
-  </div>
-</div>
-{% endblock %}
+    <body>
+        <div>
+            <img src="/img/fundo.png" alt="fundo" class="background">
+        </div>
+            
+        <div class="container">
+            <h1>Bem Vindo(a)</h1>
+            <hr>
+            <form method="post" style="margin-top: 50px;">
+                <i class='bx bx-street-view'></i>
+                <input type="email" placeholder="Digite seu e-mail" required>
+
+                <i class="bi bi-eye-fill" id="btn-senha2" onclick="mostrarSenha('senha2', 'btn-senha2')"></i>
+                <input type="password" placeholder="Digite sua senha" id="senha2" required>
+
+                <button class="button" type="submit">Login</button>
+            </form>
+
+            <p class="have_an_accont">Não tem uma conta? <a href="/html/cadastro.html">Clique aqui</a></p>
+                    
+        </div>
+
+        <script src="/refazagem/show_password.js"></script>
+    </body>
+
+</html>
