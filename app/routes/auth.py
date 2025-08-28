@@ -45,45 +45,78 @@ def register():
     if request.method == 'POST':
         data = request.form
         email = data.get('email', '').strip().lower()
-        username = data.get('username', '').strip()
+        first_name = data.get('first_name', '').strip()
+        phone = data.get('phone', '').strip() if data.get('phone', '').strip() else None
         password = data.get('password', '')
-        confirm = data.get('confirm_password', '')
-        role = data.get('role', 'cliente')
+        confirm_password = data.get('confirm_password', '')
+        user_type = data.get('user_type', '')
+        terms_accepted = data.get('terms') == 'on'
 
         errors = []
+        
+        # Validações
         if not email or not validate_email(email):
             errors.append('Email inválido')
-        if not username or len(username) < 3:
-            errors.append('Nome de usuário deve ter pelo menos 3 caracteres')
+        if not first_name or len(first_name) < 2:
+            errors.append('Nome deve ter pelo menos 2 caracteres')
         if User.query.filter_by(email=email).first():
             errors.append('Email já está em uso')
-        if User.query.filter_by(username=username).first():
-            errors.append('Nome de usuário já está em uso')
         if len(password) < 6:
             errors.append('A senha deve ter pelo menos 6 caracteres')
-        if password != confirm:
+        if password != confirm_password:
             errors.append('As senhas não coincidem')
-        if role not in ['cliente', 'voluntario']:
+        if user_type not in ['client', 'volunteer']:
             errors.append('Tipo de usuário inválido')
+        if not terms_accepted:
+            errors.append('Você deve aceitar os termos e condições')
 
         if errors:
             for error in errors:
                 flash(error, 'danger')
             return render_template('auth/register.html')
 
+        # Converter user_type para UserRole
+        from app.models.user import UserRole
+        role = UserRole.CLIENT if user_type == 'client' else UserRole.VOLUNTEER
+        
+        # Gerar username único baseado no email
+        username = email.split('@')[0]
+        counter = 1
+        original_username = username
+        while User.query.filter_by(username=username).first():
+            username = f"{original_username}{counter}"
+            counter += 1
+
         from werkzeug.security import generate_password_hash
         user = User(
             email=email,
             username=username,
             password_hash=generate_password_hash(password),
-            role=role
+            first_name=first_name,
+            last_name='',  # Pode ser preenchido depois no perfil
+            phone=phone,
+            role=role,
+            terms_accepted=terms_accepted,
+            terms_accepted_at=db.func.now() if terms_accepted else None,
+            privacy_policy_accepted=terms_accepted,
+            privacy_policy_accepted_at=db.func.now() if terms_accepted else None,
+            data_processing_consent=terms_accepted,
+            data_processing_consent_at=db.func.now() if terms_accepted else None
         )
+        
         try:
             db.session.add(user)
             db.session.commit()
             login_user(user)
-            return redirect(url_for('main.dashboard'))
-        except Exception:
+            flash('Conta criada com sucesso! Bem-vindo(a)!', 'success')
+            
+            # Redirecionar conforme o papel
+            if user.is_volunteer:
+                return redirect(url_for('volunteer.dashboard'))
+            else:
+                return redirect(url_for('main.dashboard'))
+                
+        except Exception as e:
             db.session.rollback()
             flash('Erro ao criar conta. Tente novamente.', 'danger')
             return render_template('auth/register.html')
