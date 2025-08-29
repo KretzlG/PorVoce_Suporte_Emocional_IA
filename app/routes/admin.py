@@ -6,7 +6,8 @@ Rotas administrativas
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from flask_login import login_required, current_user
-from app.models import User, ChatSession
+from app.models import User, ChatSession, UserRole
+from app.models.chat import ChatSessionStatus
 from app import db
 from datetime import datetime, timedelta
 from functools import wraps
@@ -20,13 +21,12 @@ def admin_required(f):
     """Decorator para rotas que requerem privilégios de admin"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != 'admin':
+        if not current_user.is_authenticated or not current_user.is_admin:
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
 
-
-@admin.route('/')
+@admin.route('/dashboard')
 @login_required
 @admin_required
 def dashboard():
@@ -46,7 +46,7 @@ def dashboard():
     critical_alerts = []
     
     # Sessões ativas
-    active_sessions = ChatSession.query.filter_by(status='active')\
+    active_sessions = ChatSession.query.filter_by(status=ChatSessionStatus.ACTIVE)\
         .order_by(ChatSession.started_at.desc()).limit(10).all()
     
     return render_template('dashboards/admin/dashboard.html',

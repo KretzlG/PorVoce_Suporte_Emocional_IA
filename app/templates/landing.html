@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <a href="/"><img src="{{ url_for('static', filename='img/coracao.png') }}" alt="Coração Logo"></a>
+        </div>
+        <nav class="nav">
+            <a href="#contato" class="nav-link">Fale conosco</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-modern btn-primary-modern">
+                <i class="fas fa-user-plus me-2"></i> Começar Agora</a>
+            <a href="{{ url_for('auth.login') }}" class="btn-modern btn-secondary-modern">
+                <i class="fas fa-sign-in-alt me-2"></i>Fazer Login</a>
+        </nav>
+    </header>
+    <section>
+        <main class="main-content">
+            <img src="{{ url_for('static', filename='img/teste.png') }}" alt="" class="background-image">
+            
+            <!-- <div class="background-waves">
+            </div> -->
+            
+            <div class="hero-image">
+                <!-- <img src="{{ url_for('static', filename='img/teste.png') }}" class="background-main" alt="Coração com cérebro"> -->
+                <img src="{{ url_for('static', filename='img/teste2.png') }}" alt="Coração com cérebro">
+            </div>
+            
+        </main>
+    </section>
+
+<section class="modern-features">
+    <div class="modern-feature-card">
+        <div class="modern-feature-icon"><i class="fas fa-comments"></i></div>
+        <div class="modern-feature-title">Chat com IA</div>
+        <div class="modern-feature-desc">Converse com nossa IA treinada para oferecer apoio emocional empático e personalizado.</div>
+    </div>
+    <div class="modern-feature-card">
+        <div class="modern-feature-icon"><i class="fas fa-brain"></i></div>
+        <div class="modern-feature-title">Triagem Inteligente</div>
+        <div class="modern-feature-desc">Análise em tempo real do seu estado emocional para direcionamento adequado.</div>
+    </div>
+    <div class="modern-feature-card">
+        <div class="modern-feature-icon"><i class="fas fa-book"></i></div>
+        <div class="modern-feature-title">Diário Emocional</div>
+        <div class="modern-feature-desc">Registre seus sentimentos e acompanhe sua jornada emocional ao longo do tempo.</div>
+    </div>
+    <div class="modern-feature-card">
+        <div class="modern-feature-icon"><i class="fas fa-hands-helping"></i></div>
+        <div class="modern-feature-title">Encaminhamento</div>
+        <div class="modern-feature-desc">Conexão automática com profissionais quando necessário, garantindo o cuidado adequado.</div>
+    </div>
+</section>
+
+<section class="modern-steps">
+    <div class="modern-step">
+        <div class="modern-step-number">1</div>
+        <div class="modern-step-title">Inicie uma conversa</div>
+        <div class="modern-step-desc">Compartilhe seus sentimentos em um ambiente seguro e confidencial.</div>
+    </div>
+    <div class="modern-step">
+        <div class="modern-step-number">2</div>
+        <div class="modern-step-title">Receba apoio personalizado</div>
+        <div class="modern-step-desc">Nossa IA analisa sua situação e oferece apoio empático e orientações úteis.</div>
+    </div>
+    <div class="modern-step">
+        <div class="modern-step-number">3</div>
+        <div class="modern-step-title">Conecte-se com profissionais</div>
+        <div class="modern-step-desc">Se necessário, você será direcionado para especialistas humanos.</div>
+    </div>
+</section>
+
+<section class="modern-cta">
+    <div class="modern-cta-title"><i class="fas fa-exclamation-triangle me-2"></i> Precisa de ajuda imediata?</div>
+    <div class="modern-cta-desc">Em situações de emergência, entre em contato:</div>
+    <div class="row" style="justify-content: center;">
+        <div class="col-md-3 modern-feature-card" style="max-width: 200px; display: inline-block; margin: 10px;">
+            <div class="modern-feature-icon"><i class="fas fa-phone"></i></div>
+            <div class="modern-feature-title">CVV</div>
+            <div class="modern-feature-desc"><strong>188</strong><br><small>24h - Gratuito</small></div>
+        </div>
+        <div class="col-md-3 modern-feature-card" style="max-width: 200px; display: inline-block; margin: 10px;">
+            <div class="modern-feature-icon"><i class="fas fa-ambulance"></i></div>
+            <div class="modern-feature-title">SAMU</div>
+            <div class="modern-feature-desc"><strong>192</strong><br><small>Emergências médicas</small></div>
+        </div>
+        <div class="col-md-3 modern-feature-card" style="max-width: 200px; display: inline-block; margin: 10px;">
+            <div class="modern-feature-icon"><i class="fas fa-shield-alt"></i></div>
+            <div class="modern-feature-title">Polícia</div>
+            <div class="modern-feature-desc"><strong>190</strong><br><small>Emergências</small></div>
+        </div>
+        <div class="col-md-3 modern-feature-card" style="max-width: 200px; display: inline-block; margin: 10px;">
+            <div class="modern-feature-icon"><i class="fas fa-fire"></i></div>
+            <div class="modern-feature-title">Bombeiros</div>
+            <div class="modern-feature-desc"><strong>193</strong><br><small>Emergências</small></div>
+        </div>
+    </div>
+    <div style="margin-top: 24px;">
+        <i class="fas fa-heart me-2"></i>
+        <strong>Sua vida é valiosa e você merece ajuda!</strong>
+    </div>
+</section>
+
+<section class="info-section">
+        <div class="text-container">
+            <h1 class="info-title">POR VOCÊ</h1>
+            <h2 class="info-subtitle">É referência em terapia online</h2>
+            <p class="info-text">
+                Criamos essa plataforma para facilitar o acesso de pessoas em situação de vulnerabilidade a psicólogos que estão prontos para cuidar da sua saúde mental.
+                <br><br>
+                Encontre um psicólogo de acordo com a demanda que você tem e entre em contato imediatamente para agendar seu atendimento!
+                <br><br>
+                Entre em contato agora mesmo com um dos nossos psicólogos e transforme sua saúde mental!
+            </p>
+            <a href="#" id="contato" class="btn btn-contact">Entre em contato</a>
+        </div>
+        
+            <div class="info-card sobre-nos">
+                <img src="{{ url_for('static', filename='img/balao.png') }}" alt="Balão de conversa">
+                <img src="{{ url_for('static', filename='img/menina.png') }}" alt="Pessoa com a mão levantada">
+            </div>
+            <div class="mood-cards-wrapper">
+                <div class="mood-header">Como você se sente hoje?</div>
+                <div class="mood-cards">
+                    <div class="mood-card" data-mood="muito_bem">
+                        <span class="emoji">😃</span> Muito Bem
+                    </div>
+                    <div class="mood-card" data-mood="bem">
+                        <span class="emoji">🙂</span> Bem
+                    </div>
+                    <div class="mood-card" data-mood="meio_baixo">
+                        <span class="emoji">😌</span> Meio pra baixo
+                    </div>
+                    <div class="mood-card" data-mood="super_mal">
+                        <span class="emoji">😭</span> Super mal
+                    </div>
+                </div>
+            </div>
+        
+    </section>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>

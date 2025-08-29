@@ -2,6 +2,7 @@
 Rotas do chat com IA - Versão corrigida usando mensagens em JSON
 """
 
+import json
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from app.models import ChatSession
@@ -95,12 +96,50 @@ def api_chat_send():
         
         # OTIMIZAÇÃO: Uma única transação para tudo
         try:
-            # Adicionar mensagem do usuário
+            # Analisar sentimento e avaliar risco ANTES de salvar a mensagem
+            sentiment_analysis = None
+            detected_risk_level = 'low'
+            
+            if AI_AVAILABLE and ai_service and ai_service.openai_client:
+                try:
+                    sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
+                    detected_risk_level = sentiment_analysis.get('risk_level', 'low')
+                    print(f"[DEBUG] sentiment_analysis: {sentiment_analysis}")
+                    print(f"[DEBUG] detected_risk_level: {detected_risk_level}")
+                except Exception as e:
+                    print(f"[DEBUG] Erro na análise de sentimento: {e}")
+                    # Usar análise básica por palavras-chave como fallback
+                    detected_risk_level = ai_service.assess_risk_level(message_content)
+            
+            # Adicionar mensagem do usuário COM dados da análise de sentimento
             user_message = chat_session.add_message(
                 content=message_content, 
                 message_type=ChatMessageType.USER, 
                 sender_id=current_user.id
             )
+            
+            # Adicionar dados da análise de sentimento à mensagem do usuário
+            if sentiment_analysis:
+                user_message.sentiment_score = sentiment_analysis.get('score')
+                user_message.risk_indicators = json.dumps({
+                    'risk_level': detected_risk_level,
+                    'emotion': sentiment_analysis.get('emotion'),
+                    'intensity': sentiment_analysis.get('intensity'),
+                    'confidence': sentiment_analysis.get('confidence'),
+                    'requires_attention': sentiment_analysis.get('requires_attention', False),
+                    'timestamp': sentiment_analysis.get('timestamp')
+                }, ensure_ascii=False)
+            
+            # Atualizar o nível de risco inicial da sessão se for maior que o atual
+            if chat_session.initial_risk_level is None:
+                chat_session.initial_risk_level = detected_risk_level
+            else:
+                # Atualizar para o maior nível de risco detectado
+                risk_levels = {'low': 1, 'moderate': 2, 'high': 3, 'critical': 4}
+                current_level = risk_levels.get(chat_session.initial_risk_level, 1)
+                new_level = risk_levels.get(detected_risk_level, 1)
+                if new_level > current_level:
+                    chat_session.initial_risk_level = detected_risk_level
             
             # Gerar resposta da IA (OpenAI only)
             print(f"[DEBUG] AI_AVAILABLE: {AI_AVAILABLE}")
@@ -126,12 +165,6 @@ def api_chat_send():
                     })
                 
                 try:
-                    # Analisar sentimento e avaliar risco ANTES de gerar resposta
-                    sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
-                    detected_risk_level = sentiment_analysis.get('risk_level', 'low')
-                    print(f"[DEBUG] sentiment_analysis: {sentiment_analysis}")
-                    print(f"[DEBUG] detected_risk_level: {detected_risk_level}")
-                    
                     ai_response = ai_service.generate_response(
                         user_message=message_content,
                         risk_level=detected_risk_level,
@@ -139,10 +172,16 @@ def api_chat_send():
                         conversation_history=history_list
                     )
                     print(f"[DEBUG] ai_response: {ai_response}")
+                    
+                    # Salvar mensagem da IA com metadados
                     ai_message = chat_session.add_message(
                         content=ai_response['message'],
                         message_type=ChatMessageType.AI
                     )
+                    
+                    # Adicionar metadados da resposta da IA
+                    ai_message.ai_model_used = ai_response.get('source', 'openai')
+                    ai_message.ai_confidence = ai_response.get('confidence', 0.9)
                     db.session.commit()
 
                     # PopUp de Triagem de Risco
@@ -181,8 +220,23 @@ def api_chat_send():
                     print(f"[DEBUG][ERRO] Falha ao chamar IA: {exc}")
             else:
                 print("[DEBUG] IA NÃO disponível, usando resposta padrão.")
-            # Fallback caso IA não esteja disponível
-            resposta_padrao = "Desculpe, a IA não está disponível no momento. Mas estou aqui para ouvir você!"
+            
+            # Fallback caso IA não esteja disponível - resposta baseada no nível de risco
+            if detected_risk_level == 'critical':
+                resposta_padrao = ("Sinto muito que esteja se sentindo assim. É muito importante buscar ajuda profissional "
+                                 "imediatamente. Você pode ligar para o Centro de Valorização da Vida (CVV) no número 188, "
+                                 "é gratuito e disponível 24h. Você não está sozinho(a).")
+            elif detected_risk_level == 'high':
+                resposta_padrao = ("Percebo que você está passando por um momento muito difícil. "
+                                 "É importante conversar com alguém - considere buscar apoio profissional. "
+                                 "Estou aqui para te ouvir e te apoiar.")
+            elif detected_risk_level == 'moderate':
+                resposta_padrao = ("Entendo que você está enfrentando dificuldades. "
+                                 "Quero te apoiar neste momento. Como você está se sentindo? "
+                                 "Fique à vontade para compartilhar.")
+            else:
+                resposta_padrao = "Olá! Estou aqui para te apoiar. Como você está se sentindo hoje?"
+            
             ai_message = chat_session.add_message(
                 content=resposta_padrao,
                 message_type=ChatMessageType.AI
