@@ -18,9 +18,11 @@ local_settings.py
 env/
 venv/
 ENV/
+gabriel
 env.bak/
 venv.bak/
 .python-version
+
 
 # ==========================================
 # CACHE E ARQUIVOS TEMPORÁRIOS

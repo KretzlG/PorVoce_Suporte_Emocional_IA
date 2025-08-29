@@ -16,25 +16,27 @@
             <a href="/"><img src="{{ url_for('static', filename='img/coracao.png') }}" alt="Coração Logo"></a>
         </div>
         <nav class="nav">
-            <a href="#" class="nav-link">Fale conosco</a>
+            <a href="#contato" class="nav-link">Fale conosco</a>
             <a href="{{ url_for('auth.register') }}" class="btn-modern btn-primary-modern">
                 <i class="fas fa-user-plus me-2"></i> Começar Agora</a>
             <a href="{{ url_for('auth.login') }}" class="btn-modern btn-secondary-modern">
                 <i class="fas fa-sign-in-alt me-2"></i>Fazer Login</a>
         </nav>
     </header>
-    <main class="main-content">
-        <div class="background-waves"></div>
-        <div class="hero-section">
-            <div class="hero-text">
-                <h1 class="hero-title">POR VOCÊ</h1>
-            </div>
+    <section>
+        <main class="main-content">
+            <img src="{{ url_for('static', filename='img/teste.png') }}" alt="" class="background-image">
+            
+            <!-- <div class="background-waves">
+            </div> -->
+            
             <div class="hero-image">
-                <img src="{{ url_for('static', filename='img/coracaoCerebro.png') }}" alt="Coração com cérebro">
+                <!-- <img src="{{ url_for('static', filename='img/teste.png') }}" class="background-main" alt="Coração com cérebro"> -->
+                <img src="{{ url_for('static', filename='img/teste2.png') }}" alt="Coração com cérebro">
             </div>
-        </div>
-    </main>
-</section>
+            
+        </main>
+    </section>
 
 <section class="modern-features">
     <div class="modern-feature-card">
@@ -119,7 +121,7 @@
                 <br><br>
                 Entre em contato agora mesmo com um dos nossos psicólogos e transforme sua saúde mental!
             </p>
-            <a href="#" class="btn btn-contact">Entre em contato</a>
+            <a href="#" id="contato" class="btn btn-contact">Entre em contato</a>
         </div>
         
             <div class="info-card sobre-nos">
