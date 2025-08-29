@@ -1,0 +1,20 @@
+/* Estilos adicionais para mensagens de erro */
+.error-messages {
+    margin-bottom: 15px;
+}
+
+.error-messages .error-message {
+    display: block;
+    margin-bottom: 5px;
+    padding: 10px;
+    background-color: #ffebee;
+    border: 1px solid #e51b61;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.client-error {
+    color: #e51b61 !important;
+    font-size: 12px !important;
+    margin-top: 5px !important;
+}

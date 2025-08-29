@@ -1,0 +1,643 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+html, body {
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+.background {
+    height: 100vh;
+    width: 50vw;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.container {
+    background-color: #fafafa;
+    width: 50vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 20px 30px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Formulários */
+.login-form,
+.register-form {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    margin: 40px 0 35px 0;
+    color: #666 !important;
+    font-weight: 400;
+    font-size: 32px;
+    display: block !important;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+    visibility: visible !important;
+}
+
+.arrow {
+    color: #999 !important;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 32px;
+    display: inline-block !important;
+    line-height: 1;
+    visibility: visible !important;
+}
+
+/* Linha decorativa abaixo do título */
+h1::after {
+    content: "";
+    display: block;
+    width: 80px;
+    height: 2px;
+    background-color: #ddd;
+    margin: 10px auto 0;
+}
+
+/* Containers dos inputs */
+.input-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"] {
+    width: 100%;
+    height: 65px;
+    padding: 0 30px;
+    border: none;
+    border-radius: 35px;
+    background-color: #f0f0f0;
+    font-size: 16px;
+    color: #666;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+input::placeholder {
+    color: #aaa;
+    font-weight: 300;
+}
+
+input:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #e51b61;
+}
+
+/* Ícone do olho */
+i {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+i:hover {
+    color: #e51b61;
+}
+
+/* Link "Esqueceu a senha" */
+.forgot-password {
+    text-align: center;
+    margin: 8px 0 25px;
+    font-size: 15px;
+    color: #666;
+}
+
+.forgot-password a {
+    color: #f19ba7;
+    text-decoration: none;
+    font-weight: normal;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Grupo de radio buttons */
+.radio-group {
+    width: 100%;
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.radio-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: #e51b61;
+}
+
+.radio-option label {
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 300;
+}
+
+/* Container do checkbox */
+.checkbox-container {
+    width: 100%;
+    margin: 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    margin-top: 2px;
+    accent-color: #e51b61;
+    flex-shrink: 0;
+}
+
+.terms-label {
+    color: #f19ba7;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+    line-height: 1.4;
+    font-weight: 300;
+}
+
+/* Botão principal */
+.button {
+    width: 100%;
+    height: 65px;
+    margin: 25px 0 15px;
+    border-radius: 35px;
+    background: linear-gradient(135deg, #e51b61, #d91650);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(229, 27, 97, 0.4);
+}
+
+.button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(229, 27, 97, 0.3);
+}
+
+/* Links de navegação entre telas */
+.register-link,
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+    color: #666;
+    font-weight: 300;
+}
+
+.register-link a,
+.login-link a {
+    color: #e51b61;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.register-link a:hover,
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* Mensagem de erro */
+.error-message {
+    color: #e51b61;
+    display: none;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+/* Links gerais */
+a {
+    color: #e51b61;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    html, body {
+        flex-direction: column;
+    }
+    
+    .background {
+        display: none;
+    }
+    
+    .container {
+        width: 100vw;
+        height: 100vh;
+        padding: 20px;
+    }
+    
+    .login-form,
+    .register-form {
+        max-width: 100%;
+    }
+    
+    h1 {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+    
+    .arrow {
+        font-size: 28px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"] {
+        height: 60px;
+        padding: 0 25px;
+        font-size: 15px;
+    }
+    
+    .button {
+        height: 60px;
+        font-size: 20px;
+    }
+    
+    .input-container {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+    
+    .arrow {
+        font-size: 24px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"] {
+        height: 55px;
+        padding: 0 20px;
+        font-size: 14px;
+    }
+    
+    .button {
+        height: 55px;
+        font-size: 18px;
+    }
+}
+
+/* Formulários */
+.login-form,
+.register-form {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    margin-bottom: 35px;
+    color: #999;
+    font-weight: 400;
+    font-size: 32px;
+}
+
+.arrow {
+    color: #999;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+/* Linha decorativa abaixo do título */
+h1::after {
+    content: "";
+    display: block;
+    width: 80px;
+    height: 2px;
+    background-color: #ddd;
+    margin: 10px auto 0;
+}
+
+/* Containers dos inputs */
+.input-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"] {
+    width: 100%;
+    height: 65px;
+    padding: 0 30px;
+    border: none;
+    border-radius: 35px;
+    background-color: #f0f0f0;
+    font-size: 16px;
+    color: #666;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+input::placeholder {
+    color: #aaa;
+    font-weight: 300;
+}
+
+input:focus {
+    background-color: #fff;
+    box-shadow: 0 0 0 2px #e51b61;
+}
+
+/* Ícone do olho */
+i {
+    position: absolute;
+    right: 25px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+i:hover {
+    color: #e51b61;
+}
+
+/* Link "Esqueceu a senha" */
+.forgot-password {
+    text-align: center;
+    margin: 8px 0 25px;
+    font-size: 15px;
+    color: #666;
+}
+
+.forgot-password a {
+    color: #f19ba7;
+    text-decoration: none;
+    font-weight: normal;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* Grupo de radio buttons */
+.radio-group {
+    width: 100%;
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.radio-option input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: #e51b61;
+}
+
+.radio-option label {
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 300;
+}
+
+/* Container do checkbox */
+.checkbox-container {
+    width: 100%;
+    margin: 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    margin-top: 2px;
+    accent-color: #e51b61;
+    flex-shrink: 0;
+}
+
+.terms-label {
+    color: #f19ba7;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+    line-height: 1.4;
+    font-weight: 300;
+}
+
+/* Botão principal */
+.button {
+    width: 100%;
+    height: 65px;
+    margin: 25px 0 15px;
+    border-radius: 35px;
+    background: linear-gradient(135deg, #e51b61, #d91650);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(229, 27, 97, 0.4);
+}
+
+.button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(229, 27, 97, 0.3);
+}
+
+/* Links de navegação entre telas */
+.register-link,
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+    color: #666;
+    font-weight: 300;
+}
+
+.register-link a,
+.login-link a {
+    color: #e51b61;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.register-link a:hover,
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* Mensagem de erro */
+.error-message {
+    color: #e51b61;
+    display: none;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+/* Links gerais */
+a {
+    color: #e51b61;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    html, body {
+        flex-direction: column;
+    }
+    
+    .background {
+        display: none;
+    }
+    
+    .container {
+        width: 100vw;
+        height: 100vh;
+        padding: 20px;
+    }
+    
+    .login-form,
+    .register-form {
+        max-width: 100%;
+    }
+    
+    h1 {
+        font-size: 28px;
+        margin-bottom: 30px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"] {
+        height: 60px;
+        padding: 0 25px;
+        font-size: 15px;
+    }
+    
+    .button {
+        height: 60px;
+        font-size: 20px;
+    }
+    
+    .input-container {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 24px;
+        margin-bottom: 25px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"] {
+        height: 55px;
+        padding: 0 20px;
+        font-size: 14px;
+    }
+    
+    .button {
+        height: 55px;
+        font-size: 18px;
+    }
+}

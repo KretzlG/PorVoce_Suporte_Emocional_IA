@@ -1,50 +1,87 @@
-{% extends 'base.html' %}
-{% block title %}Cadastro | ForYou{% endblock %}
+<!DOCTYPE html>
+<html lang="pt-br">
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/register.css') }}">
-{% endblock %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="shortcut icon" type="image/x-icon" href="static/img/logo.png">
+        <title>Cadastro</title>
+        <link rel="stylesheet" href="static/css/auth/login_register.css">
+        <link rel="stylesheet" href="static/css/auth/error_styles.css">
+        <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    </head>
 
-{% block content %}
-<div class="auth-bg">
-  <div class="auth-center-box">
-    <form class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
-      <h2 class="auth-title">Criar Conta</h2>
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="flash-messages">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-      <div class="form-group">
-        <label for="username">Nome de usuário</label>
-        <input type="text" id="username" name="username" required autofocus>
-      </div>
-      <div class="form-group">
-        <label for="email">E-mail</label>
-        <input type="email" id="email" name="email" required>
-      </div>
-      <div class="form-group">
-        <label for="password">Senha</label>
-        <input type="password" id="password" name="password" required>
-      </div>
-      <div class="form-group">
-        <label for="confirm_password">Confirmar Senha</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
-      </div>
-      <div class="form-group">
-        <label for="role">Tipo de usuário</label>
-        <select id="role" name="role" required>
-          <option value="cliente">Cliente</option>
-          <option value="voluntario">Voluntário</option>
-        </select>
-      </div>
-      <button type="submit" class="btn-auth">Cadastrar</button>
-      <p class="auth-link">Já tem conta? <a href="{{ url_for('auth.login') }}">Entrar</a></p>
-    </form>
-  </div>
-</div>
-{% endblock %}
+    <body>
+        <div>
+            <img src="static/img/fundo.png" alt="fundo" class="background">
+        </div>
+            
+        <div class="container">
+            <h1 style="color: #666 !important; display: block !important; font-size: 32px !important; margin: 20px 0 30px 0 !important; text-align: center !important;">
+                <span style="color: #999 !important; margin-right: 10px !important; font-size: 32px !important;">></span> 
+                Cadastre-se
+            </h1>
+            
+            <form method="post" class="register-form">
+                <div class="input-container">
+                    <input type="text" name="first_name" placeholder="Digite seu nome" required>
+                </div>
+
+                <div class="input-container">
+                    <input type="email" name="email" placeholder="Digite seu e-mail" required>
+                </div>
+
+                <div class="input-container">
+                    <input type="tel" name="phone" placeholder="Digite seu telefone">
+                </div>
+
+                <div class="input-container">
+                    <input type="password" name="password" placeholder="Digite sua senha" id="senha1" required>
+                    <i class="bi bi-eye-fill" id="btn-senha1" onclick="mostrarSenha('senha1', 'btn-senha1')"></i>
+                </div>
+
+                <div class="input-container">
+                    <input type="password" name="confirm_password" placeholder="Confirme sua senha" id="senha2" required>
+                    <i class="bi bi-eye-fill" id="btn-senha2" onclick="mostrarSenha('senha2', 'btn-senha2')"></i>
+                </div>
+
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="paciente" name="user_type" value="client" required>
+                        <label for="paciente">Sou paciente</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="profissional" name="user_type" value="volunteer" required>
+                        <label for="profissional">Sou profissional</label>
+                    </div>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms" class="terms-label">
+                        Eu li e aceito os termos e condições de serviço
+                    </label>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="error-messages">
+                            {% for category, message in messages %}
+                                <p class="error-message" style="display: block;">{{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <button class="button" type="submit">Criar conta</button>
+
+                <p class="login-link">Já tem uma conta? <a href="{{ url_for('auth.login') }}">Faça login</a></p>
+            </form>
+        </div>
+
+        <script src="static/js/auth/show_password.js"></script>
+    </body>
+
+</html>

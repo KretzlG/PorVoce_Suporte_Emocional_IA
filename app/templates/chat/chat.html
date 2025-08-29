@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat de Apoio Emocional - ForYou</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- Sidebar com histórico de conversas -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <div class="header-title">
+                    <i class="fas fa-history"></i>
+                    <span>Histórico de Conversas</span>
+                </div>
+                <div class="header-actions">
+                    <button id="back-to-home" class="action-btn back-btn" title="Voltar ao início">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <button id="new-chat-btn" class="new-chat-btn" title="Iniciar Nova Conversa">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-list" id="chat-list">
+                <!-- Conversas serão carregadas aqui -->
+                <div class="loading-conversations">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Carregando conversas...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área principal do chat -->
+        <div class="chat-main">
+            <!-- Header do chat atual -->
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar-main">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="chat-details">
+                        <h2 id="chat-title">Íris</h2>
+                        <p class="chat-status" id="chat-status">IA especialista em saúde mental e bem-estar. Disponível para oferecer apoio emocional e orientação durante momentos difíceis.</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button id="end-chat-btn" class="action-btn end-chat" title="Encerrar Conversa">
+                        <i class="fas fa-stop"></i>
+                        <span>Encerrar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de mensagens -->
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-message">
+                    <div class="welcome-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>Bem-vindo ao Chat de Apoio Emocional</h3>
+                    <p>Inicie uma nova conversa ou selecione uma conversa anterior do histórico.</p>
+                </div>
+            </div>
+
+            <!-- Input de mensagem -->
+            <div class="chat-input" id="chat-input-area">
+                <div class="input-wrapper">
+                    <button class="input-action-btn" id="emoji-btn" title="Emojis">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                    <button class="input-action-btn" id="file-btn" title="Anexar arquivo">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" disabled />
+                    <button id="send-btn" title="Enviar mensagem" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="input-actions">
+                    <span class="input-hint">Pressione Enter para enviar</span>
+                </div>
+                
+                <!-- Picker de emoji -->
+                <div class="emoji-picker" id="emoji-picker" style="display: none;">
+                    <div class="emoji-grid">
+                        <span class="emoji" data-emoji="😊">😊</span>
+                        <span class="emoji" data-emoji="😢">😢</span>
+                        <span class="emoji" data-emoji="😔">😔</span>
+                        <span class="emoji" data-emoji="😌">😌</span>
+                        <span class="emoji" data-emoji="🙏">🙏</span>
+                        <span class="emoji" data-emoji="❤️">❤️</span>
+                        <span class="emoji" data-emoji="💔">💔</span>                        
+                        <span class="emoji" data-emoji="🤗">🤗</span>
+                        <span class="emoji" data-emoji="😓">😓</span>
+                        <span class="emoji" data-emoji="😰">😰</span>
+                        <span class="emoji" data-emoji="😭">😭</span>
+                        <span class="emoji" data-emoji="🥺">🥺</span>
+                        
+                    </div>
+                </div>
+                
+                <!-- Input de arquivo oculto -->
+                <input type="file" id="file-input" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação para excluir conversa -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Excluir Conversa</h3>
+                <button class="modal-close" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-delete" class="btn btn-danger">Excluir</button>
+                <button id="cancel-delete" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
