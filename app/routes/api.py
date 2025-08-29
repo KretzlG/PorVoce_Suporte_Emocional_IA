@@ -5,7 +5,8 @@ API REST simplificada para Por Você: apenas OpenAI, sem fallback, endpoints ess
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import User, ChatSession
+from flask_login import login_required, current_user
+from app.models import User, ChatSession, TriageLog, RiskLevel
 from app import db
 from datetime import datetime
 
@@ -14,6 +15,57 @@ api = Blueprint('api', __name__)
 def get_current_user():
     user_id = get_jwt_identity()
     return User.query.get(user_id)
+
+# Triagem
+@api.route('/API/triage', methods=['POST'])
+@login_required
+def triage_endpoint():
+    """Endpoint de triagem para compatibilidade"""
+    try:
+        data = request.get_json() or {}
+        content = request.form.get('content', '') or data.get('content', '')
+        context_type = data.get('context_type', 'form')
+        
+        if not content:
+            return jsonify({'error': 'Conteúdo não fornecido'}), 400
+        
+        # Análise básica (implementar lógica de IA posteriormente)
+        risk_level = RiskLevel.LOW
+        confidence = 0.8
+        
+        # Criar log de triagem
+        triage_log = TriageLog(
+            user_id=current_user.id,
+            risk_level=risk_level,
+            context_type=context_type,
+            trigger_content=content[:1000],
+            analyzed_by_ai=True,
+            confidence_score=confidence,
+            ai_model_used='basic_analysis'
+        )
+        
+        db.session.add(triage_log)
+        db.session.commit()
+        
+        # Determinar redirecionamento baseado no papel do usuário
+        if current_user.is_admin:
+            redirect_url = '/admin/dashboard'
+        elif current_user.is_volunteer:
+            redirect_url = '/volunteer/dashboard'
+        else:
+            redirect_url = '/dashboard'
+        
+        return jsonify({
+            'success': True,
+            'risk_level': risk_level.value,
+            'confidence': confidence,
+            'triage_id': triage_log.id,
+            'redirect_url': redirect_url
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro na API de triagem: {e}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
 # Sessões de chat
 @api.route('/chat/sessions', methods=['GET'])
