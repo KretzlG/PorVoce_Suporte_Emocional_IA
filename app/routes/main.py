@@ -75,22 +75,19 @@ def help_page():
 @login_required
 def dashboard():
     """Redireciona para o dashboard correto conforme o papel do usuário"""
-    if hasattr(current_user, 'is_admin') and current_user.is_admin:
+    if current_user.is_admin:
         return redirect(url_for('admin.dashboard'))
-    elif hasattr(current_user, 'is_volunteer') and current_user.is_volunteer:
-        # Se existir um dashboard específico para voluntário:
+    elif current_user.is_volunteer:
         return redirect(url_for('volunteer.dashboard'))
-    else:
+    elif current_user.is_client:
         try:
             user_stats = {
-                'total_chats': db.session.query(User).filter_by(id=current_user.id).count(),
+                'total_chats': ChatSession.query.filter_by(user_id=current_user.id).count(),
                 'total_assessments': 0,
                 'last_activity': getattr(current_user, 'last_seen', None)
             }
             recent_entries = []
             last_assessment = None
-            if 'ChatSession' in globals():
-                user_stats['total_chats'] = ChatSession.query.filter_by(user_id=current_user.id).count()
             return render_template('dashboards/client/dashboard.html', 
                                  user_stats=user_stats,
                                  recent_entries=recent_entries,
@@ -106,6 +103,9 @@ def dashboard():
                                  user_stats=user_stats,
                                  recent_entries=[],
                                  last_assessment=None)
+    else:
+        # Se não for nenhum papel conhecido, faz logout ou mostra erro
+        return redirect(url_for('auth.logout'))
 
 
 

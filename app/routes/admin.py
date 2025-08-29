@@ -25,8 +25,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
-@admin.route('/')
+@admin.route('/dashboard')
 @login_required
 @admin_required
 def dashboard():
