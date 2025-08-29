@@ -90,6 +90,102 @@ class AIService:
 		result = json.loads(content)
 		return result
 
+	def assess_risk_level(self, text, sentiment_analysis=None):
+		"""Avalia o nível de risco baseado no texto e análise de sentimento"""
+		# Palavras-chave críticas para detecção de risco
+		critical_keywords = [
+			'me matar', 'suicídio', 'suicidar', 'tirar a vida', 'vida não vale',
+			'quero morrer', 'acabar com tudo', 'me machucar', 'me ferir', 
+			'auto lesão', 'overdose', 'pensamentos de suicídio', 'tirar minha vida',
+			'não quero viver', 'prefiro morrer', 'melhor morto'
+		]
+		
+		high_keywords = [
+			'não aguento mais', 'não suporto', 'desesperado', 'desespero', 
+			'sem saída', 'sem esperança', 'sozinho no mundo', 'vazio total', 
+			'deprimido', 'depressão severa', 'ansiedade extrema', 'pânico',
+			'não consigo', 'tudo deu errado', 'perdido', 'sem rumo',
+			'vazio', 'sem sentido', 'inútil', 'fracasso total'
+		]
+		
+		moderate_keywords = [
+			'triste', 'ansioso', 'preocupado', 'estressado', 'cansado',
+			'difícil', 'problema', 'ajuda', 'apoio', 'conversar',
+			'depressão', 'ansiedade', 'angústia', 'tristeza', 'medo',
+			'sozinho', 'isolado', 'confuso', 'chateado'
+		]
+		
+		text_lower = text.lower()
+		
+		# Verificar palavras críticas
+		for keyword in critical_keywords:
+			if keyword in text_lower:
+				return 'critical'
+		
+		# Se há análise de sentimento, usar para refinar
+		if sentiment_analysis:
+			score = sentiment_analysis.get('score', 0)
+			emotion = sentiment_analysis.get('emotion', '').lower()
+			intensity = sentiment_analysis.get('intensity', '').lower()
+			
+			# Emoções críticas
+			if emotion in ['desesperado'] and intensity == 'high':
+				return 'critical'
+			elif emotion in ['triste', 'vazio'] and intensity == 'high' and score < -0.7:
+				return 'high'
+			elif emotion in ['ansioso', 'irritado'] and intensity == 'high':
+				return 'high'
+			elif score < -0.5 and intensity in ['moderate', 'high']:
+				return 'moderate'
+		
+		# Verificar outras palavras-chave
+		for keyword in high_keywords:
+			if keyword in text_lower:
+				return 'high'
+		
+		for keyword in moderate_keywords:
+			if keyword in text_lower:
+				return 'moderate'
+		
+		# Análise baseada apenas no sentimento se não encontrou palavras-chave
+		if sentiment_analysis:
+			score = sentiment_analysis.get('score', 0)
+			if score < -0.7:
+				return 'high'
+			elif score < -0.3:
+				return 'moderate'
+		
+		return 'low'
+
+	def analyze_with_risk_assessment(self, text):
+		"""Analisa sentimento e avalia nível de risco em uma única chamada"""
+		try:
+			# Fazer análise de sentimento
+			sentiment_result = self.analyze_sentiment(text)
+			
+			# Avaliar nível de risco
+			risk_level = self.assess_risk_level(text, sentiment_result)
+			
+			# Adicionar informações de risco ao resultado
+			sentiment_result['risk_level'] = risk_level
+			sentiment_result['requires_attention'] = risk_level in ['high', 'critical']
+			sentiment_result['timestamp'] = datetime.now(UTC).isoformat()
+			
+			return sentiment_result
+			
+		except Exception as e:
+			# Fallback em caso de erro
+			return {
+				'score': 0,
+				'confidence': 0.1,
+				'emotion': 'neutro',
+				'intensity': 'low',
+				'risk_level': self.assess_risk_level(text),  # Pelo menos tentar análise por palavras-chave
+				'requires_attention': False,
+				'error': str(e),
+				'timestamp': datetime.now(UTC).isoformat()
+			}
+
 
 	def generate_response(self, user_message, risk_level='low', user_context=None, conversation_history=None, fallback=True):
 		"""Gera resposta empática usando LLMs com fallback automático"""

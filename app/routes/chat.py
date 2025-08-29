@@ -126,9 +126,15 @@ def api_chat_send():
                     })
                 
                 try:
+                    # Analisar sentimento e avaliar risco ANTES de gerar resposta
+                    sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
+                    detected_risk_level = sentiment_analysis.get('risk_level', 'low')
+                    print(f"[DEBUG] sentiment_analysis: {sentiment_analysis}")
+                    print(f"[DEBUG] detected_risk_level: {detected_risk_level}")
+                    
                     ai_response = ai_service.generate_response(
                         user_message=message_content,
-                        risk_level='low',
+                        risk_level=detected_risk_level,
                         user_context={'name': getattr(current_user, 'first_name', '')},
                         conversation_history=history_list
                     )
