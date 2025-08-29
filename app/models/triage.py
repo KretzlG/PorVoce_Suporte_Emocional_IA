@@ -6,7 +6,6 @@ from enum import Enum
 from datetime import datetime
 from app import db
 from .base import BaseModel
-from app.models.wordlists import low_risk, medium_risk, high_risk
 from flask import request, jsonify
 
 
@@ -230,48 +229,3 @@ class TriageLog(BaseModel):
     def __repr__(self):
         return f"<TriageLog {self.id} - {self.risk_level.value} risk>"
 
-# Vou deixar está tarefa para a Gabizinha.
-# Sistema de verificação
-def first_triage(message):
-        # Inicializa um objeto TriageLog
-        triage_log = TriageLog(
-            anxiety_disorder=False,
-            action_taken=None,
-            follow_up_required=False,
-            follow_up_date=None,
-            analyzed_by_ai=True,
-            reviewed_by_human=False,
-            reviewer_id=None,
-            ai_model_used="v1.0",
-            processing_time_ms=0,
-            sentiment_score=0.0,
-            created_at=datetime.now(),
-            is_anonymized=False,
-            risk_color="none"
-        )
-
-        if any(word in message for word in low_risk):
-            response = "Parece que você está passando por um momento difícil. Se precisar, estou aqui para conversar."
-            triage_log.risk_color = "low"
-            return jsonify({"message": response, "user_message": message},
-                           {"risk": "low"})
-        
-        elif any(word in message for word in medium_risk):
-            response = "Sua mensagem indica que você pode estar enfrentando problemas sérios. É importante buscar ajuda profissional."
-            triage_log.risk_color = "medium"
-            return jsonify({"message": response, "user_message": message},
-                           {"risk": "medium"})
-        
-        elif any(word in message for word in high_risk):
-            response = "Sua mensagem sugere que você pode estar em perigo. Por favor, procure ajuda imediatamente."
-            triage_log.risk_color = "high"
-            return jsonify({"message": response, "user_message": message},
-                           {"risk": "high"})
-        
-        # Atualiza o log com os dados processados
-        triage_log.analyzed_by_ai = True
-        triage_log.processing_time_ms = 100  # Exemplo de tempo de processamento
-        triage_log.sentiment_score = 0.5  # Exemplo de pontuação de sentimento
-
-        return jsonify({"message": "Nenhum risco identificado.", "user_message": message},
-                   {"risk": "none"})

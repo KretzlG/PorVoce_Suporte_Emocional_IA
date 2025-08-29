@@ -144,6 +144,26 @@ def api_chat_send():
                         message_type=ChatMessageType.AI
                     )
                     db.session.commit()
+
+                    # PopUp de Triagem de Risco
+                    if detected_risk_level in ['high', 'critical']:
+                        print("[DEBUG] Alto risco detectado, acionando popup de alerta.")
+                        
+                        return jsonify({
+                            'success': True,
+                        'user_message': {
+                            'content': message_content,
+                            'timestamp': user_message.created_at.isoformat(),
+                            'sender_type': 'user'
+                        },
+                        'ai_response': {
+                            'content': ai_response['message'],
+                            'timestamp': ai_message.created_at.isoformat(),
+                            'sender_type': 'ai'
+                        },
+                        'alert': 'ALERTA BI BO BI BO BI BO - Alto risco detectado. Deseja iniciar uma triagem de risco?',
+                        })
+
                     return jsonify({
                         'success': True,
                         'user_message': {

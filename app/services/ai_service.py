@@ -93,6 +93,7 @@ class AIService:
 	def assess_risk_level(self, text, sentiment_analysis=None):
 		"""Avalia o nível de risco baseado no texto e análise de sentimento"""
 		# Palavras-chave críticas para detecção de risco
+		# OBSERVAÇÃO GERAL: Sinto que temos que melhorar as listas. As vezes está meio estranho de usar.
 		critical_keywords = [
 			'me matar', 'suicídio', 'suicidar', 'tirar a vida', 'vida não vale',
 			'quero morrer', 'acabar com tudo', 'me machucar', 'me ferir', 

@@ -332,6 +332,13 @@ async function sendMessage() {
         } else {
             showError('Erro ao obter resposta da IA');
         }
+
+        // Verificação do Alert no JSON
+        
+            if (data.alert) {
+                alert(data.alert);
+                window.location.href = '/triage';
+            }
         
         // Não recarregar histórico desnecessariamente
         // As mensagens já foram renderizadas acima
