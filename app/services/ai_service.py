@@ -91,13 +91,13 @@ class AIService:
 		return result
 
 
-	def generate_response(self, user_message, risk_level='low', user_context=None, fallback=True):
+	def generate_response(self, user_message, risk_level='low', user_context=None, conversation_history=None, fallback=True):
 		"""Gera resposta empática usando LLMs com fallback automático"""
 		errors = []
 		# 1. OpenAI
 		if self.openai_client:
 			try:
-				return self._generate_response_openai(user_message, risk_level, user_context)
+				return self._generate_response_openai(user_message, risk_level, user_context, conversation_history)
 			except Exception as e:
 				errors.append(f"OpenAI: {str(e)}")
 		# 2. Gemini
@@ -115,33 +115,67 @@ class AIService:
 		# 4. Resposta fixa
 		return self._generate_response_fallback(user_message, risk_level, user_context, errors)
 
-	def _generate_response_openai(self, user_message, risk_level, user_context):
+	def _generate_response_openai(self, user_message, risk_level, user_context, conversation_history=None):
 		user_name = ""
 		if user_context and user_context.get('name'):
 			user_name = user_context['name'].split()[0]
+		
+		# Verificar se é a primeira mensagem da conversa
+		is_first_message = not conversation_history or len(conversation_history) == 0
+		
 		tone_instructions = {
 			'low': "Seja empático, acolhedor e encorajador. Use um tom caloroso e de apoio.",
 			'moderate': "Seja empático mas mais sério. Demonstre preocupação genuína e ofereça apoio concreto.",
 			'high': "Seja muito empático e demonstre preocupação séria. Encoraje buscar ajuda profissional.",
 			'critical': "Seja extremamente empático mas firme. Enfatize a urgência de buscar ajuda IMEDIATA."
 		}
-		system_prompt = (
-			f"Você é uma IA de apoio emocional em português brasileiro.\n"
-			f"Nível de risco: {risk_level.upper()}.\n"
-			f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
-			"Seja empático, acolhedor, objetivo e nunca julgue.\n"
-			"Use linguagem natural e humana.\n"
-			"Evite conselhos médicos.\n"
-			"Valide emoções e ofereça apoio.\n"
-			"Responda em até 80 palavras.\n"
-			f"{'Use o nome ' + user_name if user_name else ''}"
-		)
+		
+		# Prompt diferente para primeira mensagem vs continuação
+		if is_first_message:
+			system_prompt = (
+				f"Você é Íris, uma IA de apoio emocional em português brasileiro.\n"
+				f"Esta é a PRIMEIRA interação com o usuário.\n"
+				f"Nível de risco: {risk_level.upper()}.\n"
+				f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
+				"Apresente-se brevemente como Íris e ofereça apoio.\n"
+				"Seja empático, acolhedor, objetivo e nunca julgue.\n"
+				"Use linguagem natural e humana.\n"
+				"Evite conselhos médicos.\n"
+				"Responda em até 60 palavras.\n"
+				f"{'Use o nome ' + user_name if user_name else ''}"
+			)
+		else:
+			system_prompt = (
+				f"Você é Íris, uma IA de apoio emocional em português brasileiro.\n"
+				f"Esta é uma CONTINUAÇÃO da conversa (NÃO se apresente novamente).\n"
+				f"Nível de risco: {risk_level.upper()}.\n"
+				f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
+				"Continue a conversa naturalmente, SEM se apresentar.\n"
+				"Seja empático, acolhedor, objetivo e nunca julgue.\n"
+				"Use linguagem natural e humana.\n"
+				"Evite conselhos médicos.\n"
+				"Valide emoções e ofereça apoio específico.\n"
+				"Responda em até 80 palavras.\n"
+				f"{'Use o nome ' + user_name if user_name else ''}"
+			)
+		
+		# Construir mensagens do contexto
+		messages = [{"role": "system", "content": system_prompt}]
+		
+		# Adicionar histórico limitado se disponível
+		if conversation_history and len(conversation_history) > 0:
+			# Pegar as últimas 4 mensagens para contexto
+			recent_history = conversation_history[-4:] if len(conversation_history) > 4 else conversation_history
+			for msg in recent_history:
+				role = "user" if msg.get('message_type') == 'USER' else "assistant"
+				messages.append({"role": role, "content": msg.get('content', '')})
+		
+		# Adicionar mensagem atual do usuário
+		messages.append({"role": "user", "content": user_message})
+		
 		response = self.openai_client.chat.completions.create(
 			model=self.openai_model,
-			messages=[
-				{"role": "system", "content": system_prompt},
-				{"role": "user", "content": f"Mensagem do usuário: {user_message}"}
-			],
+			messages=messages,
 			max_tokens=self.max_tokens,
 			temperature=self.temperature
 		)

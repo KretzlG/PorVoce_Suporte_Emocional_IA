@@ -22,7 +22,7 @@ chat = Blueprint('chat', __name__)
 @login_required
 def chat_interface():
     """Interface principal do chat"""
-    return render_template('chat/interface.html')
+    return render_template('chat/chat.html')
 
 
 @chat.route('/new-session', methods=['POST'])
@@ -51,14 +51,10 @@ def new_session():
         )
         db.session.add(new_chat_session)
         db.session.commit()
-        # Adicionar mensagem de boas-vindas
-        from app.models import ChatMessageType
-        welcome_text = "Olá! Sou seu assistente de apoio emocional. Como você está se sentindo hoje?"
-        new_chat_session.add_message(
-            content=welcome_text,
-            message_type=ChatMessageType.AI
-        )
-        db.session.commit()
+        
+        # Não adicionar mensagem de boas-vindas automática
+        # A primeira mensagem será gerada quando o usuário enviar algo
+        
         return jsonify({
             'success': True,
             'session_id': new_chat_session.id,
@@ -114,12 +110,28 @@ def api_chat_send():
                 print(f"[DEBUG] ai_service.openai_client: {getattr(ai_service, 'openai_client', None)}")
             if AI_AVAILABLE and ai_service and ai_service.openai_client:
                 print("[DEBUG] IA disponível, chamando generate_response...")
-                recent_messages = chat_session.get_recent_messages(10) if hasattr(chat_session, 'get_recent_messages') else []
+                
+                # Buscar histórico de mensagens para contexto
+                from app.models import ChatMessage
+                conversation_history = db.session.query(ChatMessage).filter_by(
+                    session_id=chat_session.id
+                ).order_by(ChatMessage.created_at.asc()).limit(10).all()
+                
+                # Converter para formato adequado
+                history_list = []
+                for msg in conversation_history:
+                    history_list.append({
+                        'content': msg.content,
+                        'message_type': msg.message_type.value if hasattr(msg.message_type, 'value') else msg.message_type,
+                        'created_at': msg.created_at.isoformat()
+                    })
+                
                 try:
                     ai_response = ai_service.generate_response(
                         user_message=message_content,
                         risk_level='low',
-                        user_context={'name': getattr(current_user, 'first_name', '')}
+                        user_context={'name': getattr(current_user, 'first_name', '')},
+                        conversation_history=history_list
                     )
                     print(f"[DEBUG] ai_response: {ai_response}")
                     ai_message = chat_session.add_message(
@@ -348,6 +360,142 @@ def check_session_status(session_id):
         return jsonify({
             'success': False,
             'error': f'Erro interno: {str(e)}'
+        }), 500
+
+
+@chat.route('/api/conversations', methods=['GET'])
+@login_required
+def get_conversations():
+    """Obter histórico de conversas do usuário"""
+    try:
+        from app.models import ChatSession, ChatMessage
+        from sqlalchemy import desc
+        
+        # Buscar todas as sessões do usuário, incluindo as finalizadas
+        sessions = ChatSession.query.filter_by(
+            user_id=current_user.id
+        ).order_by(desc(ChatSession.created_at)).limit(50).all()
+        
+        conversations = []
+        for session in sessions:
+            # Buscar última mensagem para prévia
+            last_message = ChatMessage.query.filter_by(
+                session_id=session.id
+            ).order_by(desc(ChatMessage.created_at)).first()
+            
+            conversations.append({
+                'id': session.id,
+                'title': session.title or f"Conversa {session.created_at.strftime('%d/%m/%Y')}",
+                'created_at': session.created_at.isoformat(),
+                'status': session.status.value if hasattr(session.status, 'value') else session.status,
+                'message_count': session.message_count,
+                'last_message': last_message.content[:100] + '...' if last_message and len(last_message.content) > 100 else (last_message.content if last_message else 'Conversa iniciada')
+            })
+        
+        return jsonify({
+            'success': True,
+            'conversations': conversations
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao carregar conversas: {str(e)}'
+        }), 500
+
+
+@chat.route('/api/end-session', methods=['POST'])
+@login_required
+def api_end_session():
+    """Encerrar sessão de chat ativa"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id') if data else None
+        
+        if not session_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID da sessão é obrigatório'
+            }), 400
+        
+        # Buscar sessão do usuário
+        chat_session = db.session.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == current_user.id
+        ).first()
+        
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada'
+            }), 404
+        
+        # Encerrar sessão com valor correto do enum
+        chat_session.status = 'COMPLETED'
+        chat_session.ended_at = datetime.now(timezone.utc)
+        
+        if chat_session.started_at:
+            duration = chat_session.ended_at - chat_session.started_at
+            chat_session.duration_minutes = int(duration.total_seconds() / 60)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Sessão encerrada com sucesso'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro ao encerrar sessão: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao encerrar sessão: {str(e)}'
+        }), 500
+
+
+@chat.route('/api/delete-conversation', methods=['DELETE'])
+@login_required
+def delete_conversation():
+    """Excluir uma conversa específica"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID da sessão é obrigatório'
+            }), 400
+        
+        from app.models import ChatSession
+        
+        # Buscar sessão do usuário
+        chat_session = ChatSession.query.filter_by(
+            id=session_id,
+            user_id=current_user.id
+        ).first()
+        
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada'
+            }), 404
+        
+        # Excluir sessão (cascade irá excluir mensagens)
+        db.session.delete(chat_session)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Conversa excluída com sucesso'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Erro ao excluir conversa: {str(e)}'
         }), 500
 
 
