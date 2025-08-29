@@ -12,9 +12,10 @@ main = Blueprint('main', __name__)
 
 
 @main.route('/')
+@main.route('/home')
 def index():
     """Página inicial"""
-    return render_template('index.html')
+    return render_template('landing.html')
 
 
 @main.route('/health')

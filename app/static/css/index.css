@@ -17,6 +17,10 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+a {
+    text-decoration: none;
+}
+
 .hero-modern {
     min-height: 90vh;
     display: flex;
