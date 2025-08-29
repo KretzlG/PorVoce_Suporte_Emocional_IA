@@ -596,8 +596,8 @@ function handleFileUpload(event) {
     }, 1000);
 }
 
-// Função para voltar ao início
+// Função para voltar ao dashboard
 function goBackToHome() {
-    // Redirecionar para a página inicial
-    window.location.href = '/';
+    // Redirecionar para o dashboard
+    window.location.href = '/dashboard';
 }
