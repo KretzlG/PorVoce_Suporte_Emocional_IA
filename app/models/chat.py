@@ -253,6 +253,7 @@ class ChatMessage(BaseModel):
             'content': self.content,
             'message_type': self.message_type.value,
             'sentiment_score': self.sentiment_score,
+            'risk_indicators': self.risk_indicators,
             'ai_model_used': self.ai_model_used,
             'ai_confidence': self.ai_confidence,
             'processing_time_ms': self.processing_time_ms,
