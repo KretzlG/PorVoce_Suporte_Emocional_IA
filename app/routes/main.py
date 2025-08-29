@@ -4,6 +4,7 @@ Rotas principais da aplicação ForYou
 
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for
 from flask_login import login_required, current_user
+from datetime import datetime
 from app.models import User
 from app.models import ChatSession
 from app import db
@@ -75,37 +76,58 @@ def help_page():
 @login_required
 def dashboard():
     """Redireciona para o dashboard correto conforme o papel do usuário"""
-    if hasattr(current_user, 'is_admin') and current_user.is_admin:
+    if current_user.is_admin:
         return redirect(url_for('admin.dashboard'))
-    elif hasattr(current_user, 'is_volunteer') and current_user.is_volunteer:
-        # Se existir um dashboard específico para voluntário:
+    elif current_user.is_volunteer:
         return redirect(url_for('volunteer.dashboard'))
-    else:
+    elif current_user.is_client:
         try:
+            # Buscar dados do usuário
+            total_chats = ChatSession.query.filter_by(user_id=current_user.id).count()
+            
+            # Preparar dados com valores seguros (sem None)
             user_stats = {
-                'total_chats': db.session.query(User).filter_by(id=current_user.id).count(),
-                'total_assessments': 0,
-                'last_activity': getattr(current_user, 'last_seen', None)
+                'total_chats': total_chats,
+                'total_assessments': 0,  # Funcionalidade futura
+                'last_activity': current_user.last_login or current_user.created_at
             }
+            
+            # Buscar atividades recentes (sessões de chat)
+            recent_sessions = ChatSession.query.filter_by(user_id=current_user.id)\
+                .order_by(ChatSession.created_at.desc()).limit(5).all()
+            
             recent_entries = []
-            last_assessment = None
-            if 'ChatSession' in globals():
-                user_stats['total_chats'] = ChatSession.query.filter_by(user_id=current_user.id).count()
+            for session in recent_sessions:
+                if session.title:
+                    recent_entries.append({
+                        'title': session.title,
+                        'text': f"Conversa realizada em {session.created_at.strftime('%d/%m/%Y')}"
+                    })
+                else:
+                    recent_entries.append({
+                        'title': f"Conversa de {session.created_at.strftime('%d/%m/%Y')}",
+                        'text': "Sessão de apoio emocional"
+                    })
+            
             return render_template('dashboards/client/dashboard.html', 
                                  user_stats=user_stats,
                                  recent_entries=recent_entries,
-                                 last_assessment=last_assessment)
+                                 last_assessment=None)
         except Exception as e:
             current_app.logger.error(f"Erro no dashboard: {e}")
+            # Valores padrão seguros em caso de erro
             user_stats = {
                 'total_chats': 0,
                 'total_assessments': 0,
-                'last_activity': None
+                'last_activity': datetime.now()
             }
             return render_template('dashboards/client/dashboard.html', 
                                  user_stats=user_stats,
                                  recent_entries=[],
                                  last_assessment=None)
+    else:
+        # Se não for nenhum papel conhecido, faz logout ou mostra erro
+        return redirect(url_for('auth.logout'))
 
 
 

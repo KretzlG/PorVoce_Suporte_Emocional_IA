@@ -47,9 +47,9 @@ def create_app():
     from app.routes.api import api as api_blueprint
     app.register_blueprint(api_blueprint)
     from app.routes.admin import admin as admin_blueprint
-    app.register_blueprint(admin_blueprint)
+    app.register_blueprint(admin_blueprint, url_prefix='/admin')
     from app.routes.volunteer import volunteer as volunteer_blueprint
-    app.register_blueprint(volunteer_blueprint)
+    app.register_blueprint(volunteer_blueprint, url_prefix='/volunteer')
 
     return app
     # Formato dos logs
