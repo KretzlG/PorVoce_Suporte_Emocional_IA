@@ -28,22 +28,21 @@ def chat_interface():
 @chat.route('/new-session', methods=['POST'])
 @login_required
 def new_session():
-    """Criar nova sessão de chat ou retornar a ativa"""
+    """Criar nova sessão de chat sempre"""
     try:
         from app.models import ChatSessionStatus
-        # Procurar sessão ativa
-        active_session = ChatSession.query.filter_by(
+        
+        # Encerrar qualquer sessão ativa existente
+        active_sessions = ChatSession.query.filter_by(
             user_id=current_user.id,
             status=ChatSessionStatus.ACTIVE.value
-        ).first()
-        if active_session:
-            return jsonify({
-                'success': True,
-                'session_id': active_session.id,
-                'session_uuid': active_session.uuid,
-                'message': 'Sessão ativa já existente'
-            })
-        # Se não houver, criar nova sessão
+        ).all()
+        
+        for session in active_sessions:
+            session.status = ChatSessionStatus.COMPLETED.value
+            session.last_activity = datetime.now(timezone.utc)
+        
+        # Sempre criar uma nova sessão
         new_chat_session = ChatSession(
             user_id=current_user.id,
             title=f"Chat {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')}",

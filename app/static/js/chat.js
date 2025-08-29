@@ -476,7 +476,19 @@ function disableChatInput() {
 }
 
 function updateChatStatus(status) {
-    chatStatus.textContent = status;
+    // Se for "Conversa ativa", remove qualquer texto sobre primeira mensagem do status atual
+    if (status === 'Conversa ativa') {
+        const currentStatus = chatStatus.textContent;
+        if (currentStatus.includes('- Digite sua primeira mensagem')) {
+            // Mantém a parte antes do " - Digite sua primeira mensagem"
+            const baseStatus = currentStatus.split(' - Digite sua primeira mensagem')[0];
+            chatStatus.textContent = status;
+        } else {
+            chatStatus.textContent = status;
+        }
+    } else {
+        chatStatus.textContent = status;
+    }
 }
 
 function showWelcomeScreen() {
