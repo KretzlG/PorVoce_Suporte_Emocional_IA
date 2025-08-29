@@ -90,14 +90,110 @@ class AIService:
 		result = json.loads(content)
 		return result
 
+	def assess_risk_level(self, text, sentiment_analysis=None):
+		"""Avalia o nível de risco baseado no texto e análise de sentimento"""
+		# Palavras-chave críticas para detecção de risco
+		critical_keywords = [
+			'me matar', 'suicídio', 'suicidar', 'tirar a vida', 'vida não vale',
+			'quero morrer', 'acabar com tudo', 'me machucar', 'me ferir', 
+			'auto lesão', 'overdose', 'pensamentos de suicídio', 'tirar minha vida',
+			'não quero viver', 'prefiro morrer', 'melhor morto'
+		]
+		
+		high_keywords = [
+			'não aguento mais', 'não suporto', 'desesperado', 'desespero', 
+			'sem saída', 'sem esperança', 'sozinho no mundo', 'vazio total', 
+			'deprimido', 'depressão severa', 'ansiedade extrema', 'pânico',
+			'não consigo', 'tudo deu errado', 'perdido', 'sem rumo',
+			'vazio', 'sem sentido', 'inútil', 'fracasso total'
+		]
+		
+		moderate_keywords = [
+			'triste', 'ansioso', 'preocupado', 'estressado', 'cansado',
+			'difícil', 'problema', 'ajuda', 'apoio', 'conversar',
+			'depressão', 'ansiedade', 'angústia', 'tristeza', 'medo',
+			'sozinho', 'isolado', 'confuso', 'chateado'
+		]
+		
+		text_lower = text.lower()
+		
+		# Verificar palavras críticas
+		for keyword in critical_keywords:
+			if keyword in text_lower:
+				return 'critical'
+		
+		# Se há análise de sentimento, usar para refinar
+		if sentiment_analysis:
+			score = sentiment_analysis.get('score', 0)
+			emotion = sentiment_analysis.get('emotion', '').lower()
+			intensity = sentiment_analysis.get('intensity', '').lower()
+			
+			# Emoções críticas
+			if emotion in ['desesperado'] and intensity == 'high':
+				return 'critical'
+			elif emotion in ['triste', 'vazio'] and intensity == 'high' and score < -0.7:
+				return 'high'
+			elif emotion in ['ansioso', 'irritado'] and intensity == 'high':
+				return 'high'
+			elif score < -0.5 and intensity in ['moderate', 'high']:
+				return 'moderate'
+		
+		# Verificar outras palavras-chave
+		for keyword in high_keywords:
+			if keyword in text_lower:
+				return 'high'
+		
+		for keyword in moderate_keywords:
+			if keyword in text_lower:
+				return 'moderate'
+		
+		# Análise baseada apenas no sentimento se não encontrou palavras-chave
+		if sentiment_analysis:
+			score = sentiment_analysis.get('score', 0)
+			if score < -0.7:
+				return 'high'
+			elif score < -0.3:
+				return 'moderate'
+		
+		return 'low'
 
-	def generate_response(self, user_message, risk_level='low', user_context=None, fallback=True):
+	def analyze_with_risk_assessment(self, text):
+		"""Analisa sentimento e avalia nível de risco em uma única chamada"""
+		try:
+			# Fazer análise de sentimento
+			sentiment_result = self.analyze_sentiment(text)
+			
+			# Avaliar nível de risco
+			risk_level = self.assess_risk_level(text, sentiment_result)
+			
+			# Adicionar informações de risco ao resultado
+			sentiment_result['risk_level'] = risk_level
+			sentiment_result['requires_attention'] = risk_level in ['high', 'critical']
+			sentiment_result['timestamp'] = datetime.now(UTC).isoformat()
+			
+			return sentiment_result
+			
+		except Exception as e:
+			# Fallback em caso de erro
+			return {
+				'score': 0,
+				'confidence': 0.1,
+				'emotion': 'neutro',
+				'intensity': 'low',
+				'risk_level': self.assess_risk_level(text),  # Pelo menos tentar análise por palavras-chave
+				'requires_attention': False,
+				'error': str(e),
+				'timestamp': datetime.now(UTC).isoformat()
+			}
+
+
+	def generate_response(self, user_message, risk_level='low', user_context=None, conversation_history=None, fallback=True):
 		"""Gera resposta empática usando LLMs com fallback automático"""
 		errors = []
 		# 1. OpenAI
 		if self.openai_client:
 			try:
-				return self._generate_response_openai(user_message, risk_level, user_context)
+				return self._generate_response_openai(user_message, risk_level, user_context, conversation_history)
 			except Exception as e:
 				errors.append(f"OpenAI: {str(e)}")
 		# 2. Gemini
@@ -115,33 +211,67 @@ class AIService:
 		# 4. Resposta fixa
 		return self._generate_response_fallback(user_message, risk_level, user_context, errors)
 
-	def _generate_response_openai(self, user_message, risk_level, user_context):
+	def _generate_response_openai(self, user_message, risk_level, user_context, conversation_history=None):
 		user_name = ""
 		if user_context and user_context.get('name'):
 			user_name = user_context['name'].split()[0]
+		
+		# Verificar se é a primeira mensagem da conversa
+		is_first_message = not conversation_history or len(conversation_history) == 0
+		
 		tone_instructions = {
 			'low': "Seja empático, acolhedor e encorajador. Use um tom caloroso e de apoio.",
 			'moderate': "Seja empático mas mais sério. Demonstre preocupação genuína e ofereça apoio concreto.",
 			'high': "Seja muito empático e demonstre preocupação séria. Encoraje buscar ajuda profissional.",
 			'critical': "Seja extremamente empático mas firme. Enfatize a urgência de buscar ajuda IMEDIATA."
 		}
-		system_prompt = (
-			f"Você é uma IA de apoio emocional em português brasileiro.\n"
-			f"Nível de risco: {risk_level.upper()}.\n"
-			f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
-			"Seja empático, acolhedor, objetivo e nunca julgue.\n"
-			"Use linguagem natural e humana.\n"
-			"Evite conselhos médicos.\n"
-			"Valide emoções e ofereça apoio.\n"
-			"Responda em até 80 palavras.\n"
-			f"{'Use o nome ' + user_name if user_name else ''}"
-		)
+		
+		# Prompt diferente para primeira mensagem vs continuação
+		if is_first_message:
+			system_prompt = (
+				f"Você é Íris, uma IA de apoio emocional em português brasileiro.\n"
+				f"Esta é a PRIMEIRA interação com o usuário.\n"
+				f"Nível de risco: {risk_level.upper()}.\n"
+				f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
+				"Apresente-se brevemente como Íris e ofereça apoio.\n"
+				"Seja empático, acolhedor, objetivo e nunca julgue.\n"
+				"Use linguagem natural e humana.\n"
+				"Evite conselhos médicos.\n"
+				"Responda em até 60 palavras.\n"
+				f"{'Use o nome ' + user_name if user_name else ''}"
+			)
+		else:
+			system_prompt = (
+				f"Você é Íris, uma IA de apoio emocional em português brasileiro.\n"
+				f"Esta é uma CONTINUAÇÃO da conversa (NÃO se apresente novamente).\n"
+				f"Nível de risco: {risk_level.upper()}.\n"
+				f"Instruções: {tone_instructions.get(risk_level, tone_instructions['low'])}\n"
+				"Continue a conversa naturalmente, SEM se apresentar.\n"
+				"Seja empático, acolhedor, objetivo e nunca julgue.\n"
+				"Use linguagem natural e humana.\n"
+				"Evite conselhos médicos.\n"
+				"Valide emoções e ofereça apoio específico.\n"
+				"Responda em até 80 palavras.\n"
+				f"{'Use o nome ' + user_name if user_name else ''}"
+			)
+		
+		# Construir mensagens do contexto
+		messages = [{"role": "system", "content": system_prompt}]
+		
+		# Adicionar histórico limitado se disponível
+		if conversation_history and len(conversation_history) > 0:
+			# Pegar as últimas 4 mensagens para contexto
+			recent_history = conversation_history[-4:] if len(conversation_history) > 4 else conversation_history
+			for msg in recent_history:
+				role = "user" if msg.get('message_type') == 'USER' else "assistant"
+				messages.append({"role": role, "content": msg.get('content', '')})
+		
+		# Adicionar mensagem atual do usuário
+		messages.append({"role": "user", "content": user_message})
+		
 		response = self.openai_client.chat.completions.create(
 			model=self.openai_model,
-			messages=[
-				{"role": "system", "content": system_prompt},
-				{"role": "user", "content": f"Mensagem do usuário: {user_message}"}
-			],
+			messages=messages,
 			max_tokens=self.max_tokens,
 			temperature=self.temperature
 		)
