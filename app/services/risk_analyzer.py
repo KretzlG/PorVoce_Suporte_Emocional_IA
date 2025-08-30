@@ -2,8 +2,6 @@
 Analisador de Risco Profissional para Detecção de Situações Críticas
 Sistema especializado em identificar níveis de risco em saúde mental
 
-Versão: 2.0 - Otimizada e Comentada
-Autor: Sistema PorVoce
 """
 
 import re
