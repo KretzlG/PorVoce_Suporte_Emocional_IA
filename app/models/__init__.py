@@ -11,6 +11,7 @@ from .volunteer import (
 )
 from .triage import TriageLog, RiskLevel, TriageAction
 from .admin import AdminLog, AdminAction, LogLevel
+from .training import TrainingData, TrainingDataType, TrainingDataStatus
 from .base import BaseModel
 
 # Lista de todos os modelos para facilitar importação
@@ -35,5 +36,8 @@ __all__ = [
     'AdminLog',
     'AdminAction',
     'LogLevel',
+    'TrainingData',
+    'TrainingDataType',
+    'TrainingDataStatus',
     'BaseModel'
 ]

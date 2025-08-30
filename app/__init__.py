@@ -50,6 +50,9 @@ def create_app():
     app.register_blueprint(admin_blueprint, url_prefix='/admin')
     from app.routes.volunteer import volunteer as volunteer_blueprint
     app.register_blueprint(volunteer_blueprint, url_prefix='/volunteer')
+    
+    from app.routes.training import training as training_blueprint
+    app.register_blueprint(training_blueprint)
 
     return app
     # Formato dos logs

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Treinamento IA - Por Você{% endblock %}
+{% block head %}
+<link href="{{ url_for('static', filename='css/training.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 sidebar">
+            <div class="sidebar-content">
+                <h5 class="sidebar-title">
+                    <i class="fas fa-robot me-2"></i>
+                    Treinamento IA
+                </h5>
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if view == 'dashboard' %}active{% endif %}" href="{{ url_for('training.unified', view='dashboard') }}">
+                        <i class="fas fa-home"></i> Visão Geral
+                    </a>
+                    <a class="nav-link {% if view == 'submit' %}active{% endif %}" href="{{ url_for('training.unified', view='submit') }}">
+                        <i class="fas fa-plus"></i> Novo Treinamento
+                    </a>
+                    <a class="nav-link {% if view == 'list' %}active{% endif %}" href="{{ url_for('training.unified', view='list') }}">
+                        <i class="fas fa-list"></i> Meus Treinamentos
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a class="nav-link {% if view == 'pending' %}active{% endif %}" href="{{ url_for('training.unified', view='list', status='pending') }}">
+                        <i class="fas fa-clock"></i> Pendentes
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            {% if view == 'dashboard' %}
+                {% include 'training/index.html' %}
+            {% elif view == 'submit' %}
+                {% include 'training/submit.html' %}
+            {% elif view == 'list' %}
+                {% include 'training/list.html' %}
+            {% elif view == 'view' %}
+                {% include 'training/view.html' %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/training.js') }}"></script>
+{% endblock %}
