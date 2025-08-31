@@ -5,8 +5,8 @@ import sqlalchemy as sa
 import pgvector.sqlalchemy
 
 # Revisão gerada pelo Alembic
-revision = 'add_training_embedding_vector'
-down_revision = 'fec4fa3d6b59'
+revision = 'a2_add_training_embedding_vector'
+down_revision = 'a1_create_training_data_table'
 branch_labels = None
 depends_on = None
 

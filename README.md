@@ -23,13 +23,23 @@ pip install -r requirements.txt
 ### 2. Configurar Banco de Dados
 
 ```bash
+
 # Configurar variáveis de ambiente
 cp .env.example .env
-# Editar .env com suas configurações do PostgreSQL
+# Edite o arquivo `.env` e configure:
+# DATABASE_URL=postgresql://postgres:SUA_SENHA@localhost:5432/foryou_dev
+# (Use a senha definida no Docker ou no Render)
 
-# Criar migrações (só na primeira vez)
-flask db init
-flask db migrate -m "Initial migration"
+# Subir PostgreSQL com pgvector via Docker (recomendado para desenvolvimento):
+docker run -d --name pgvector -e POSTGRES_PASSWORD=SUA_SENHA -p 5432:5432 ankane/pgvector
+
+# Crie o banco foryou_dev (no pgAdmin4 ou psql):
+# CREATE DATABASE foryou_dev;
+
+# Habilite a extensão pgvector (no banco foryou_dev):
+# CREATE EXTENSION IF NOT EXISTS vector;
+
+# Aplicar migrações (ordem correta):
 flask db upgrade
 
 # Inserir dados de teste
@@ -145,6 +155,7 @@ pip install -r requirements.txt
 
 # 3. Configurar .env com PostgreSQL
 
+
 # 4. Aplicar migrações
 flask db upgrade
 
@@ -178,7 +189,22 @@ flask db downgrade
 
 # Atualizar para versão específica
 flask db upgrade <revision>
+
+# Ver múltiplos heads (corrigir cadeia de migrações)
+flask db heads
+
+# Unificar ramificações de migração (se necessário)
+flask db merge heads -m "merge branches"
 ```
+# Deploy em Nova Máquina
+
+> **Importante:** Para produção (ex: Render), crie o banco e habilite a extensão pgvector com:
+> 
+> ```sql
+> CREATE EXTENSION IF NOT EXISTS vector;
+> ```
+> 
+> E use a string de conexão fornecida pelo Render no `.env`.
 
 ## 🛡️ Conformidade LGPD
 
