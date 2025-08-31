@@ -736,6 +736,26 @@ body {
     background: #545b62;
 }
 
+#triage-ntf {
+    background-color: #ec4899;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+
+    font-size: 14px;
+    width: 310px;
+    height: auto;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1100;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .chat-sidebar {

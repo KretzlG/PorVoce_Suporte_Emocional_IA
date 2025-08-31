@@ -8,6 +8,21 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+
+    <!-- Notificação de Triagem -->
+    <div id="triage-ntf">
+        <!-- Titulo da Notf.-->
+        <div class="triage-ntf-title">
+            <h3>Atendimento com Profissional</h3>
+            <span>Gostaria de falar com um profissional? </span>
+        </div>
+        <!-- Botões de ação -->
+        <div class="triage-ntf-actions">
+            <button id="start-triage" class="btn btn-primary" onclick="startTriage()">Aceito!</button>
+            <button id="cancel-triage" class="btn btn-danger" onclick="dismissTriageNotification()">Não, obrigado!</button>
+        </div>
+    </div>
+
     <div class="chat-layout">
         <!-- Sidebar com histórico de conversas -->
         <div class="chat-sidebar">
@@ -128,6 +143,8 @@
             </div>
         </div>
     </div>
+
+    
 
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>

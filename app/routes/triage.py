@@ -15,41 +15,7 @@ triagem = Blueprint('triage', __name__)
 @login_required
 def triage():
     """Página de triagem - redireciona para o dashboard após avaliação"""
-    try:
-        # Log da entrada na triagem
-        current_app.logger.info(f"Usuário {current_user.id} ({current_user.username}) acessou triagem")
-        
-        # Aqui seria implementada a lógica de triagem
-        # Por enquanto, apenas cria um log básico e redireciona
-        
-        # Criar log de triagem básico
-        triage_log = TriageLog(
-            user_id=current_user.id,
-            risk_level=RiskLevel.LOW,
-            context_type='system_access',
-            trigger_content='Acesso direto à rota de triagem',
-            analyzed_by_ai=False,
-            confidence_score=1.0
-        )
-        
-        db.session.add(triage_log)
-        db.session.commit()
-        
-        # Redirecionar baseado no papel do usuário
-        if current_user.is_admin:
-            flash('Triagem completada. Redirecionando para dashboard administrativo.', 'success')
-            return redirect(url_for('admin.dashboard'))
-        elif current_user.is_volunteer:
-            flash('Triagem completada. Redirecionando para dashboard de voluntário.', 'success')
-            return redirect(url_for('volunteer.dashboard'))
-        else:
-            flash('Triagem completada. Redirecionando para seu dashboard.', 'success')
-            return redirect(url_for('main.dashboard'))
-            
-    except Exception as e:
-        current_app.logger.error(f"Erro na triagem para usuário {current_user.id}: {e}")
-        flash('Erro durante a triagem. Redirecionando para dashboard principal.', 'error')
-        return redirect(url_for('main.dashboard'))
+    return render_template('triage/triage.html')
 
 
 @triagem.route('/api/triage', methods=['POST'])
@@ -61,33 +27,19 @@ def api_triage():
         if not data:
             return jsonify({'error': 'Dados não fornecidos'}), 400
         
-        # Processar dados da triagem
-        content = data.get('content', '')
-        context_type = data.get('context_type', 'api')
+        selected_images = data.get('selectedImages', [])
+        if not selected_images:
+            return jsonify({'error': 'Nenhuma imagem selecionada'}), 400
         
-        # Análise básica (aqui seria implementada lógica de IA)
-        risk_level = RiskLevel.LOW
-        confidence = 0.8
-        
-        # Criar log de triagem
-        triage_log = TriageLog(
-            user_id=current_user.id,
-            risk_level=risk_level,
-            context_type=context_type,
-            trigger_content=content[:1000],  # Limitar tamanho
-            analyzed_by_ai=True,
-            confidence_score=confidence,
-            ai_model_used='basic_analysis'
-        )
-        
-        db.session.add(triage_log)
-        db.session.commit()
-        
+        #print de teste da data -> ESSE FOR LOOP PRINTA TODOS OS NOMES, VAI SER IMPORTANTE PRA FAZER O JSON DO NGC.
+        for img in selected_images:
+            print(f"Nome da imagem: {img.get('name')}")
+
         return jsonify({
             'success': True,
-            'risk_level': risk_level.value,
-            'confidence': confidence,
-            'triage_id': triage_log.id,
+            'risk_level': 'low',
+            'confidence': 0.9,
+            'triage_id': 123,
             'redirect_url': url_for('main.dashboard')
         })
         

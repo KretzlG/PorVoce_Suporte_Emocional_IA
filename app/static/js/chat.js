@@ -20,6 +20,7 @@ const emojiBtn = document.getElementById('emoji-btn');
 const fileBtn = document.getElementById('file-btn');
 const emojiPicker = document.getElementById('emoji-picker');
 const fileInput = document.getElementById('file-input');
+const triageNotification = document.getElementById('triage-ntf');
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
@@ -333,12 +334,10 @@ async function sendMessage() {
             showError('Erro ao obter resposta da IA');
         }
 
-        // Verificação do Alert no JSON
-        
+        // Notificação de Triagem (caso Necessário)
             if (data.alert) {
-                alert(data.alert);
-                window.location.href = '/triage';
-            }
+                triageNotification.style.display = 'flex';
+            } 
         
         // Não recarregar histórico desnecessariamente
         // As mensagens já foram renderizadas acima
@@ -348,6 +347,14 @@ async function sendMessage() {
         console.error('Erro ao enviar mensagem:', error);
         showError('Erro de conexão com o servidor');
     }
+}
+
+// Botões de ação | Triagem
+function startTriage() {
+    window.location.href = '/triage';
+}
+function dismissTriageNotification() {
+    triageNotification.style.display = 'none';
 }
 
 // Renderizar mensagem
