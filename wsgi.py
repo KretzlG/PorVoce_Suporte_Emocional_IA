@@ -6,6 +6,12 @@ Ponto de entrada principal para produção
 import os
 from dotenv import load_dotenv
 
+# Suppress warnings from Transformers library
+os.environ["TRANSFORMERS_NO_TF_WARNING"] = "1"
+os.environ["TRANSFORMERS_NO_FLAX_WARNING"] = "1"
+os.environ["TRANSFORMERS_NO_PYTORCH_WARNING"] = "1"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+
 # Carregar variáveis de ambiente
 load_dotenv()
 

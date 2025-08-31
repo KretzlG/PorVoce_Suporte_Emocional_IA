@@ -21,11 +21,13 @@ try:
 except ImportError:
     GEMINI_AVAILABLE = False
 
+
 try:
     from transformers import pipeline
     BERT_AVAILABLE = True
 except ImportError:
     BERT_AVAILABLE = False
+
 
 # === IMPORTAR SISTEMA DE PROMPTS ===
 from .ai_prompt import AIPromptManager
@@ -260,15 +262,7 @@ class AIService:
                 except Exception as e:
                     logger.error(f"Erro ao configurar Gemini: {e}")
         
-        # === CONFIGURAÇÃO BERT (Fallback Local) ===
-        self.bert_pipeline = None
-        if BERT_AVAILABLE:
-            try:
-                self.bert_pipeline = pipeline("text-generation", 
-                    model="neuralmind/bert-base-portuguese-cased")
-                logger.info("BERT configurado como fallback local")
-            except Exception as e:
-                logger.warning(f"BERT não disponível: {e}")
+
         
         # === SISTEMA RAG INTEGRADO ===
         self.rag = SimpleRAG()

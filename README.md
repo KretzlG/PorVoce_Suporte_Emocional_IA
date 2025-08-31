@@ -56,7 +56,7 @@ python wsgi.py
 
 ```bash
 # Criar nova migração
-flask db migrate -m "Descrição da mudança"
+flask db migrate -m "0001_full_init"
 
 # Aplicar migrações
 flask db upgrade
