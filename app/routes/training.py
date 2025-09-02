@@ -73,7 +73,15 @@ def index():
         ).count()
     }
     
-    return render_template('training.html', 
+    # Se for requisição AJAX, retornar apenas o conteúdo específico
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
+        return render_template('training/dashboard.html', 
+                             trainings=user_trainings, 
+                             stats=stats,
+                             user=current_user)
+    
+    return render_template('training/index.html', 
+                         view='dashboard',
                          trainings=user_trainings, 
                          stats=stats,
                          user=current_user)
@@ -87,7 +95,7 @@ def submit():
             data_type = request.form.get('data_type')
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
-            content = request.form.get('content', '').strip()
+            content = request.form.get('text_content', '').strip()  # Atualizado para text_content
 
             if not title:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -110,7 +118,7 @@ def submit():
                 training_data.content = content
                 validation_result = validation_service.validate_content(content, title, description)
             elif data_type == 'file':
-                file = request.files.get('file')
+                file = request.files.get('file_upload')  # Atualizado para file_upload
                 if not file or file.filename == '':
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return '<div class="alert alert-danger">Arquivo é obrigatório</div>', 400
@@ -167,9 +175,12 @@ def submit():
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return f'<div class="alert alert-danger">Erro interno: {str(e)}</div>', 500
             return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'}), 500
-    return render_template('training/submit.html', user=current_user)
     
-    return render_template('training/submit.html', user=current_user)
+    # Se for requisição AJAX, retornar apenas o conteúdo
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
+        return render_template('training/submit.html', user=current_user)
+    
+    return render_template('training/index.html', view='submit', user=current_user)
 
 @training.route('/training/list')
 @login_required
@@ -196,7 +207,16 @@ def list_trainings():
     trainings = query.order_by(TrainingData.created_at.desc())\
         .paginate(page=page, per_page=20, error_out=False)
     
-    return render_template('training/list.html', 
+    # Se for requisição AJAX, retornar apenas o conteúdo
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
+        return render_template('training/list.html', 
+                             trainings=trainings, 
+                             status_filter=status_filter,
+                             user=current_user)
+    
+    # Sempre usar view 'list' para listagem de treinamentos
+    return render_template('training/index.html', 
+                         view='list',
                          trainings=trainings, 
                          status_filter=status_filter,
                          user=current_user)
@@ -210,10 +230,19 @@ def view_training(training_id):
     
     # Verificar permissão
     if not current_user.is_admin and training_data.submitted_by != current_user.id:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
+            return '<div class="alert alert-danger">Acesso negado.</div>', 403
         flash('Acesso negado.', 'error')
         return redirect(url_for('training.index'))
     
-    return render_template('training/view.html', 
+    # Se for requisição AJAX, retornar apenas o conteúdo
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == '1':
+        return render_template('training/view.html', 
+                             training=training_data,
+                             user=current_user)
+    
+    return render_template('training/index.html',
+                         view='view',
                          training=training_data,
                          user=current_user)
 
