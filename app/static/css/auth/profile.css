@@ -1,0 +1,32 @@
+
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--secondary-color);
+  box-shadow: 0 4px 15px var(--shadow-medium);
+  background: var(--background-secondary);
+}
+
+.profile-details {
+  font-size: 1.1rem;
+  color: var(--dark-color);
+}
+
+.profile-subtitle {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
