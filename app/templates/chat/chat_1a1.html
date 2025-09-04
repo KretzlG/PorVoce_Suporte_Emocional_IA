@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat 1a1 - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_1a1.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="chat-1a1-header">
+    <div class="chat-info d-flex align-items-center gap-3">
+        <div class="chat-avatar-main">
+            <i class="fas fa-user"></i>
+        </div>
+        <div>
+            <h2>{{ client.first_name }} {{ client.last_name }}</h2>
+            <span class="text-muted">Atendimento 1a1 - Voluntário & Cliente</span>
+        </div>
+    </div>
+    <div class="chat-actions d-flex gap-2">
+        <a href="{{ google_meet_url }}" target="_blank" class="btn btn-danger">
+            <i class="fas fa-video"></i> Chamada de Vídeo
+        </a>
+    <a href="{{ url_for('chat.end_session', session_id=session.id) }}" class="btn btn-secondary">
+            <i class="fas fa-stop"></i> Encerrar Atendimento
+        </a>
+    </div>
+</div>
+<div class="chat-messages" id="chat-messages" data-session-id="{{ session.id }}">
+    {% for msg in session.get_messages() %}
+        <div class="chat-message {{ 'from-volunteer' if msg.message_type == 'volunteer' else 'from-client' }}">
+            <span class="chat-author">{{ 'Você' if msg.message_type == 'volunteer' else client.first_name ~ ' ' ~ client.last_name }}:</span>
+            <span class="chat-content">{{ msg.content }}</span>
+        </div>
+    {% endfor %}
+</div>
+<div class="chat-input" id="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off" class="form-control" />
+    <button id="send-btn" class="btn btn-primary" title="Enviar mensagem">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+</div>
+<style>
+.chat-1a1-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+.chat-actions .btn {
+    min-width: 160px;
+    font-size: 1rem;
+}
+.chat-message {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 70%;
+}
+.from-volunteer {
+    background: #e3f2fd;
+    align-self: flex-end;
+    text-align: right;
+}
+.from-client {
+    background: #fce4ec;
+    align-self: flex-start;
+    text-align: left;
+}
+.chat-author {
+    font-weight: bold;
+    margin-right: 6px;
+}
+</style>
+<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>
+</body>
+</html>
+
+<style>
+.chat-1a1-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+.chat-actions .btn {
+    min-width: 160px;
+    font-size: 1rem;
+}
+.chat-message {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 70%;
+}
+.from-volunteer {
+    background: #e3f2fd;
+    align-self: flex-end;
+    text-align: right;
+}
+.from-client {
+    background: #fce4ec;
+    align-self: flex-start;
+    text-align: left;
+}
+.chat-author {
+    font-weight: bold;
+    margin-right: 6px;
+}
+</style>
+<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>

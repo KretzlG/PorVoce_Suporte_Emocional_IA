@@ -163,7 +163,7 @@
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded disabled" href="#" title="Funcionalidade indisponível">
+							<a class="nav-link text-white fw-semibold rounded" href="/volunteer/new_service" title="Iniciar novo atendimento">
 								<i class="fas fa-headset me-2"></i> Novo Atendimento
 							</a>
 						</li>
@@ -235,6 +235,36 @@
 <script src="{{ url_for('static', filename='js/base.js') }}"></script>
 <script src="{{ url_for('static', filename='dashboards/js/dashboard-base.js') }}"></script>
 <script src="{{ url_for('static', filename='dashboards/js/charts.js') }}"></script>
+<script>
+function checkWaitingClients() {
+    fetch('/api/triage/waiting')
+        .then(response => response.json())
+        .then(data => {
+            if (data.waiting_count > 0) {
+                const atendimentoBtn = document.querySelector('.fa-headset').closest('a');
+                if (atendimentoBtn) {
+                    atendimentoBtn.classList.remove('disabled');
+                    atendimentoBtn.setAttribute('href', '/volunteer/new_service');
+                    atendimentoBtn.setAttribute('title', 'Novo atendimento disponível!');
+                }
+                showWaitingAlert(data.waiting_count);
+            }
+        });
+}
+function showWaitingAlert(count) {
+    if (!document.getElementById('waiting-alert')) {
+        const alertDiv = document.createElement('div');
+        alertDiv.id = 'waiting-alert';
+        alertDiv.className = 'alert alert-warning position-fixed top-0 end-0 m-4 shadow';
+        alertDiv.style.zIndex = '2000';
+        alertDiv.innerHTML = `<strong>Há ${count} atendimento(s) aguardando!</strong> <i class='fas fa-bell fa-shake'></i>`;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 10000);
+    }
+}
+setInterval(checkWaitingClients, 10000);
+window.addEventListener('DOMContentLoaded', checkWaitingClients);
+</script>
 {% block extra_js %}{% endblock %}
 
 </body>

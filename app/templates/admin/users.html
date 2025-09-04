@@ -1,0 +1,55 @@
+{% extends "dashboards/dashboard-base.html" %}
+{% block title %}Usuários - Admin{% endblock %}
+{% block page_title %}Gestão de Usuários{% endblock %}
+{% block dashboard_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold">Usuários</h2>
+            <form method="get" class="mb-3 d-flex gap-2">
+                <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nome, e-mail ou telefone">
+                <select name="status_filter" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="active" {% if status_filter=='active' %}selected{% endif %}>Ativos</option>
+                    <option value="inactive" {% if status_filter=='inactive' %}selected{% endif %}>Inativos</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </form>
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Telefone</th>
+                        <th>Papel</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.phone }}</td>
+                        <td>
+                            {% set papel = {'admin': 'Administrador', 'volunteer': 'Voluntário', 'client': 'Cliente'} %}
+                            {{ papel.get(user.role.value, 'Desconhecido') }}
+                        </td>
+                        <td>{% if user.is_active %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-danger">Inativo</span>{% endif %}</td>
+                        <td>
+                            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                            <a href="{{ url_for('admin.delete_user', user_id=user.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir este usuário?');">Excluir</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted">Nenhum usuário encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
