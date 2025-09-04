@@ -31,7 +31,7 @@ cp .env.example .env
 # (Use a senha definida no Docker ou no Render)
 
 # Subir PostgreSQL com pgvector via Docker (recomendado para desenvolvimento):
-docker run -d --name pgvector -e POSTGRES_PASSWORD=SUA_SENHA -p 5432:5432 ankane/pgvector
+docker run -d --name pgvector -e POSTGRES_PASSWORD=SUA_SENHA -p 5433:5433 ankane/pgvector
 
 # Crie o banco foryou_dev (no pgAdmin4 ou psql):
 # CREATE DATABASE foryou_dev;
