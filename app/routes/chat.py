@@ -466,6 +466,7 @@ def get_conversations():
 @chat.route('/api/end-session', methods=['POST'])
 @login_required
 def api_end_session():
+    from datetime import timezone, datetime
     """Encerrar sessão de chat ativa"""
     try:
         data = request.get_json()
@@ -493,9 +494,32 @@ def api_end_session():
         chat_session.status = 'COMPLETED'
         chat_session.ended_at = datetime.now(timezone.utc)
         
-        if chat_session.started_at:
-            duration = chat_session.ended_at - chat_session.started_at
-            chat_session.duration_minutes = int(duration.total_seconds() / 60)
+        if chat_session.started_at and chat_session.ended_at:
+            from datetime import timezone, datetime
+            ended_at = chat_session.ended_at
+            started_at = chat_session.started_at
+            # Converter para datetime se vier como string
+            if isinstance(ended_at, str):
+                try:
+                    ended_at = datetime.fromisoformat(ended_at)
+                except Exception:
+                    ended_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+            if isinstance(started_at, str):
+                try:
+                    started_at = datetime.fromisoformat(started_at)
+                except Exception:
+                    started_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+            # Garantir timezone
+            if ended_at.tzinfo is None:
+                ended_at = ended_at.replace(tzinfo=timezone.utc)
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            try:
+                duration = ended_at - started_at
+                chat_session.duration_minutes = int(duration.total_seconds() / 60)
+            except Exception as e:
+                current_app.logger.error(f'Erro ao calcular duração da sessão: {e}')
+                chat_session.duration_minutes = 0
         
         db.session.commit()
         

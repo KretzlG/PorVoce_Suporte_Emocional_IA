@@ -93,33 +93,16 @@ async function loadConversationHistory() {
         
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
-        chatList.innerHTML = `
-            <div class="loading-conversations">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Erro ao carregar conversas</span>
-            try {
-                const response = await fetch('/triage/forward', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ answer })
-                });
-                const data = await response.json();
-                if (data.success && data.forwarded) {
-                    renderMessage('Você será encaminhado para atendimento profissional. Aguarde...', 'ai');
-                    // Redireciona automaticamente para o chat1a1
-                    if (data.chat1a1_url) {
-                        setTimeout(() => {
-                            window.location.href = data.chat1a1_url;
-                        }, 2000);
-                    }
-                } else {
-                    renderMessage('Ok, seguimos normalmente. Se precisar, estou aqui!', 'ai');
-                }
-            } catch (error) {
-                console.error('Erro ao enviar resposta de encaminhamento:', error);
-            }
-    
+        chatList.innerHTML = '' +
+            '<div class="loading-conversations">' +
+                '<i class="fas fa-exclamation-triangle"></i>' +
+                '<span>Erro ao carregar conversas</span>' +
+            '</div>';
+    }
+}
+
+// Exibir conversas no histórico
+function displayConversations(conversations) {
     chatList.innerHTML = conversations.map(function(conv) {
         return '<div class="conversation-item" data-session-id="' + conv.id + '">' +
             '<div class="conversation-avatar">' +
@@ -602,4 +585,4 @@ function handleFileUpload(event) {
 function goBackToHome() {
     // Redirecionar para o dashboard
     window.location.href = '/dashboard';
-    }
+}

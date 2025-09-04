@@ -33,11 +33,11 @@ class RiskAnalyzer:
         self.critical_patterns = {
             'suicidal_ideation': {
                 'patterns': [
-                    r'quero morrer',
-                    r'vou me matar',
+                    r'(quero|vou|pretendo|penso em|tento|tentei|iria|gostaria de) morrer',
+                    r'(quero|vou|pretendo|penso em|tento|tentei|iria|gostaria de) me matar',
                     r'acabar com tudo',
                     r'por fim na vida',
-                    r'suicídio',
+                    r'suic[ií]dio',
                     r'me jogar da',
                     r'pular da ponte',
                     r'overdose',
