@@ -256,12 +256,15 @@ async function loadEntries(page = 1) {
 // Exibir entradas
 function displayEntries(entries) {
     const entriesList = document.getElementById('entries-list');
-    if (!entriesList) return;
+    if (!entriesList) {
+        console.error('❌ Elemento entries-list não encontrado no DOM');
+        return;
+    }
 
     if (!entries || entries.length === 0) {
         entriesList.innerHTML = `
             <div class="no-entries">
-                <i class="fas fa-book-open"></i>
+                <i class="fas fa-journal-whills"></i>
                 <h3>Nenhuma entrada encontrada</h3>
                 <p>Que tal começar escrevendo sobre como você está se sentindo hoje?</p>
                 <button onclick="toggleEntryForm(true)" class="btn-primary">
@@ -269,7 +272,8 @@ function displayEntries(entries) {
                     Criar primeira entrada
                 </button>
             </div>
-        `;
+        `; 
+        console.log('📝 Estado vazio exibido (comentado)');
         return;
     }
 
@@ -278,6 +282,8 @@ function displayEntries(entries) {
     
     // Adicionar event listeners para botões de ação
     setupEntryActions();
+    
+    console.log(`✅ ${entries.length} entradas exibidas`);
 }
 
 // Criar HTML de uma entrada
@@ -614,21 +620,22 @@ async function confirmDelete() {
 }
 
 function checkForEmptyState() {
-    const entriesContainer = document.querySelector('.entries-container');
+    const entriesList = document.getElementById('entries-list');
     const entryCards = document.querySelectorAll('.entry-card');
     
-    if (entryCards.length === 0 && entriesContainer) {
-        entriesContainer.innerHTML = `
+    if (entryCards.length === 0 && entriesList) {
+        /* entriesList.innerHTML = `
             <div class="no-entries">
-                <i class="fas fa-book"></i>
+                <i class="fas fa-journal-whills"></i>
                 <h3>Nenhuma entrada encontrada</h3>
                 <p>Que tal começar escrevendo sobre como você está se sentindo hoje?</p>
-                <button class="btn-primary" onclick="toggleEntryForm();">
+                <button onclick="toggleEntryForm(true)" class="btn-primary">
                     <i class="fas fa-plus"></i>
                     Criar primeira entrada
                 </button>
             </div>
-        `;
+        `; */
+        console.log('📝 Estado vazio restaurado após exclusão (comentado)');
     }
 }
 
