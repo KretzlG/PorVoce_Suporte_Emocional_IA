@@ -30,7 +30,7 @@
     </div>
 </div>
 <div class="chat-messages" id="chat-messages" data-session-id="{{ session.id }}">
-    {% for msg in session.get_messages() %}
+    {% for msg in messages %}
         <div class="chat-message {{ 'from-volunteer' if msg.message_type == 'volunteer' else 'from-client' }}">
             <span class="chat-author">{{ 'Você' if msg.message_type == 'volunteer' else client.first_name ~ ' ' ~ client.last_name }}:</span>
             <span class="chat-content">{{ msg.content }}</span>

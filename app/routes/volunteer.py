@@ -4,7 +4,8 @@ Rotas do dashboard do voluntário
 
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
-from app.models import ChatSession, ChatMessage, User, Volunteer, ChatSessionStatus, ChatMessageType
+from app.models import User, Volunteer
+from app.models.chat1a1 import Chat1a1Session, Chat1a1Message
 
 volunteer = Blueprint('volunteer', __name__)
 
@@ -21,14 +22,13 @@ def dashboard():
     
     # Se o usuário atual for um voluntário, calcular estatísticas reais
     if hasattr(current_user, 'volunteer') and current_user.volunteer:
-        # Contar sessões atendidas pelo voluntário (implementar quando tiver a lógica)
-        stats['sessions'] = ChatSession.query.filter_by(volunteer_id=current_user.volunteer.id).count()
-        stats['messages'] = ChatMessage.query.join(ChatSession).filter(
-            ChatSession.volunteer_id == current_user.volunteer.id
+        stats['sessions'] = Chat1a1Session.query.filter_by(volunteer_id=current_user.volunteer.id).count()
+        stats['messages'] = Chat1a1Message.query.join(Chat1a1Session).filter(
+            Chat1a1Session.volunteer_id == current_user.volunteer.id
         ).count()
-        stats['active_sessions'] = ChatSession.query.filter_by(
+        stats['active_sessions'] = Chat1a1Session.query.filter_by(
             volunteer_id=current_user.volunteer.id,
-            status='active'
+            status='ACTIVE'
         ).count()
     
     return render_template('dashboards/volunteer/dashboard.html', user=current_user, stats=stats)
