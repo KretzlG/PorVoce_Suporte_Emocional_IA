@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário Emocional - Por Você</title>
+        <link href="{{ url_for('static', filename='css/diary_enhanced.css') }}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="diary-layout">
+        <!-- Sidebar com insights e filtros -->
+        <div class="diary-sidebar">
+            <div class="sidebar-header">
+                <div class="header-title">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Seus Insights</span>
+                </div>
+                <div class="header-actions">
+                    <button id="back-to-home" class="action-btn back-btn" title="Voltar ao Dashboard">
+                        <i class="fas fa-home"></i>
+                    </button>
+                    <button id="new-entry-btn" class="new-entry-btn" title="Nova Entrada">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Insights Card -->
+            <div class="insights-section">
+                <div id="insights-content">
+                    <div class="loading-insights">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Carregando insights...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-section">
+                <div class="filter-header">
+                    <i class="fas fa-filter"></i>
+                    <span>Filtros</span>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="period-filter">Período</label>
+                    <select id="period-filter" class="filter-select">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Último mês</option>
+                        <option value="90">Últimos 3 meses</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="mood-filter">Humor</label>
+                    <select id="mood-filter" class="filter-select">
+                        <option value="all" selected>Todos</option>
+                        <option value="muito-feliz">😄 Muito Feliz</option>
+                        <option value="feliz">😊 Feliz</option>
+                        <option value="neutro">😐 Neutro</option>
+                        <option value="triste">😢 Triste</option>
+                        <option value="muito-triste">😭 Muito Triste</option>
+                    </select>
+                </div>
+
+                <button id="apply-filters" class="apply-filters-btn">
+                    <i class="fas fa-search"></i>
+                    Aplicar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Área principal do diário -->
+        <div class="diary-main">
+            <!-- Header do diário -->
+            <div class="diary-header">
+                <div class="diary-info">
+                    <div class="diary-avatar-main">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="diary-details">
+                        <h2>Meu Diário Emocional</h2>
+                        <p class="diary-description">Registre seus pensamentos e sentimentos para acompanhar seu bem-estar emocional</p>
+                    </div>
+                </div>
+                <div class="diary-actions">
+                    <button id="toggle-form" class="diary-action-btn primary">
+                        <i class="fas fa-plus"></i>
+                        Nova Entrada
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formulário de nova entrada (inicialmente oculto) -->
+            <div id="entry-form-container" class="entry-form-container" style="display: none;">
+                <form id="diary-form" class="diary-form">
+                    <div class="form-group">
+                        <label for="mood">Como você está se sentindo?</label>
+                        <div class="mood-selector">
+                            <input type="radio" id="muito-feliz" name="mood" value="muito-feliz">
+                            <label for="muito-feliz" class="mood-option" data-mood="muito-feliz">
+                                <span class="mood-emoji">😄</span>
+                                <span class="mood-label">Muito Feliz</span>
+                            </label>
+
+                            <input type="radio" id="feliz" name="mood" value="feliz">
+                            <label for="feliz" class="mood-option" data-mood="feliz">
+                                <span class="mood-emoji">😊</span>
+                                <span class="mood-label">Feliz</span>
+                            </label>
+
+                            <input type="radio" id="neutro" name="mood" value="neutro" checked>
+                            <label for="neutro" class="mood-option" data-mood="neutro">
+                                <span class="mood-emoji">😐</span>
+                                <span class="mood-label">Neutro</span>
+                            </label>
+
+                            <input type="radio" id="triste" name="mood" value="triste">
+                            <label for="triste" class="mood-option" data-mood="triste">
+                                <span class="mood-emoji">😢</span>
+                                <span class="mood-label">Triste</span>
+                            </label>
+
+                            <input type="radio" id="muito-triste" name="mood" value="muito-triste">
+                            <label for="muito-triste" class="mood-option" data-mood="muito-triste">
+                                <span class="mood-emoji">😭</span>
+                                <span class="mood-label">Muito Triste</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="title">Título (opcional)</label>
+                        <input type="text" id="title" name="title" placeholder="Dê um título para sua entrada...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content">O que você gostaria de compartilhar?</label>
+                        <textarea id="content" name="content" rows="5" placeholder="Escreva sobre seus pensamentos, sentimentos ou eventos do seu dia..." required></textarea>
+                        <div class="char-counter">
+                            <span id="char-count">0</span>/1000 caracteres
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="cancel-entry" class="btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancelar
+                        </button>
+                        <button type="submit" id="save-entry" class="btn-primary">
+                            <i class="fas fa-save"></i>
+                            Salvar Entrada
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de entradas -->
+            <div class="diary-content">
+                <div id="entries-list" class="entries-list">
+                    <div class="loading-entries">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Carregando suas entradas...</span>
+                    </div>
+                </div>
+
+                <!-- Paginação -->
+                <div id="pagination" class="pagination" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação -->
+    <div id="delete-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar Exclusão</h3>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta entrada? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-delete" class="btn-secondary">Cancelar</button>
+                <button id="confirm-delete" class="btn-danger">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificações -->
+    <div id="notification" class="notification" style="display: none;"></div>
+
+    <script>
+        // URLs do Flask para usar no JavaScript
+        const DASHBOARD_URL = "{{ url_for('main.dashboard') }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/diary.js') }}"></script>
+</body>
+</html>

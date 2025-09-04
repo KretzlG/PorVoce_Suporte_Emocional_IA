@@ -142,8 +142,8 @@
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded disabled" href="#" title="Em desenvolvimento">
-								<i class="fas fa-book me-2"></i> Diário
+							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('diary.diary_interface') }}">
+								<i class="fas fa-book me-2"></i> Diário Emocional
 							</a>
 						</li>
 						<li class="nav-item">
@@ -154,12 +154,27 @@
 					{% elif current_user.is_volunteer %}
 						<li class="nav-item">
 							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('volunteer.dashboard') }}">
-								<i class="fas fa-hands-helping me-2"></i> Dashboard
+								<i class="fas fa-tachometer-alt me-2"></i> Dashboard
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="#">
-								<i class="fas fa-comments me-2"></i> Atendimentos
+							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('chat.chat_interface') }}">
+								<i class="fas fa-comments me-2"></i> Chat
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link text-white fw-semibold rounded disabled" href="#" title="Funcionalidade indisponível">
+								<i class="fas fa-headset me-2"></i> Novo Atendimento
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('training.index') }}">
+								<i class="fas fa-robot me-2"></i> Treinar IA
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('main.help_page') }}">
+								<i class="fas fa-question-circle me-2"></i> Ajuda
 							</a>
 						</li>
 					{% endif %}

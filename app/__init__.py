@@ -53,6 +53,9 @@ def create_app():
     
     from app.routes.training import training as training_blueprint
     app.register_blueprint(training_blueprint)
+    
+    from app.routes.diary import diary as diary_blueprint
+    app.register_blueprint(diary_blueprint)
 
     return app
     # Formato dos logs

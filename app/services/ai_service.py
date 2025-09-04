@@ -462,6 +462,118 @@ class AIService:
                 'timestamp': datetime.now(UTC).isoformat()
             }
     
+    def analyze_diary_entry(self, entry_content: str) -> Optional[Dict]:
+        """
+        Analisa uma entrada do diário para extrair insights emocionais
+        
+        Args:
+            entry_content: Conteúdo da entrada do diário
+            
+        Returns:
+            Dict com análise da entrada ou None em caso de erro
+        """
+        try:
+            if not entry_content or not entry_content.strip():
+                return None
+            
+            # Análise de sentimento básica
+            sentiment_result = self.analyze_text(entry_content)
+            
+            # Detectar emoções específicas usando palavras-chave
+            emotions = self._detect_emotions_in_text(entry_content)
+            
+            # Identificar indicadores de risco
+            risk_indicators = self._identify_risk_indicators(entry_content)
+            
+            # Extrair temas principais
+            themes = self._extract_themes(entry_content)
+            
+            return {
+                'sentiment_score': sentiment_result.get('score', 0),
+                'emotion': emotions[0] if emotions else sentiment_result.get('emotion'),
+                'confidence': sentiment_result.get('confidence', 0),
+                'risk_indicators': risk_indicators,
+                'themes': themes,
+                'word_count': len(entry_content.split()),
+                'analysis_timestamp': datetime.now(UTC).isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro na análise de entrada do diário: {e}")
+            return None
+    
+    def _detect_emotions_in_text(self, text: str) -> List[str]:
+        """Detecta emoções específicas no texto usando palavras-chave"""
+        emotion_keywords = {
+            'alegria': ['feliz', 'alegre', 'contente', 'animado', 'eufórico', 'radiante', 'otimista'],
+            'tristeza': ['triste', 'melancólico', 'deprimido', 'abatido', 'desanimado', 'lamentando'],
+            'ansiedade': ['ansioso', 'nervoso', 'preocupado', 'inquieto', 'apreensivo', 'tenso'],
+            'raiva': ['raiva', 'irritado', 'furioso', 'bravo', 'indignado', 'revoltado'],
+            'medo': ['medo', 'amedrontado', 'assustado', 'aterrorizado', 'receoso'],
+            'gratidão': ['grato', 'agradecido', 'reconhecido', 'abençoado'],
+            'amor': ['amor', 'carinho', 'afeto', 'paixão', 'adoração'],
+            'esperança': ['esperança', 'esperançoso', 'confiante', 'positivo'],
+            'solidão': ['sozinho', 'isolado', 'abandonado', 'solitário'],
+            'culpa': ['culpa', 'culpado', 'arrependido', 'remorso']
+        }
+        
+        text_lower = text.lower()
+        detected_emotions = []
+        
+        for emotion, keywords in emotion_keywords.items():
+            if any(keyword in text_lower for keyword in keywords):
+                detected_emotions.append(emotion)
+        
+        return detected_emotions[:3]  # Máximo 3 emoções principais
+    
+    def _identify_risk_indicators(self, text: str) -> List[str]:
+        """Identifica indicadores de risco no texto"""
+        risk_keywords = {
+            'suicidal_ideation': ['suicídio', 'acabar com tudo', 'não aguento mais', 'quero morrer'],
+            'self_harm': ['me machucar', 'me cortar', 'autolesão', 'me ferir'],
+            'substance_abuse': ['bebendo muito', 'usando drogas', 'viciado', 'dependente'],
+            'eating_disorder': ['não como', 'vomito', 'bulimia', 'anorexia'],
+            'severe_depression': ['não vejo sentido', 'vida sem propósito', 'desesperança total'],
+            'panic_attacks': ['pânico', 'coração acelerado', 'não consigo respirar', 'ataque'],
+            'social_isolation': ['não saio', 'evito pessoas', 'me isolo', 'ninguém me entende']
+        }
+        
+        text_lower = text.lower()
+        risk_indicators = []
+        
+        for risk_type, keywords in risk_keywords.items():
+            if any(keyword in text_lower for keyword in keywords):
+                risk_indicators.append(risk_type)
+        
+        return risk_indicators
+    
+    def _extract_themes(self, text: str) -> List[str]:
+        """Extrai temas principais do texto"""
+        theme_keywords = {
+            'trabalho': ['trabalho', 'emprego', 'chefe', 'colega', 'carreira', 'profissional'],
+            'família': ['família', 'pai', 'mãe', 'irmão', 'filho', 'parente'],
+            'relacionamento': ['namorado', 'namorada', 'marido', 'esposa', 'relacionamento', 'amor'],
+            'estudos': ['escola', 'universidade', 'faculdade', 'estudo', 'prova', 'professor'],
+            'saúde': ['saúde', 'doença', 'médico', 'hospital', 'tratamento', 'dor'],
+            'finanças': ['dinheiro', 'financeiro', 'conta', 'pagamento', 'dívida', 'salário'],
+            'amizade': ['amigo', 'amiga', 'amizade', 'colega', 'turma'],
+            'futuro': ['futuro', 'planos', 'objetivos', 'sonhos', 'metas', 'amanhã'],
+            'autoestima': ['autoestima', 'confiança', 'inseguro', 'valor próprio', 'autoimagem']
+        }
+        
+        text_lower = text.lower()
+        themes = []
+        
+        for theme, keywords in theme_keywords.items():
+            keyword_count = sum(1 for keyword in keywords if keyword in text_lower)
+            if keyword_count >= 2:  # Pelo menos 2 palavras-chave do tema
+                themes.append(theme)
+            elif keyword_count == 1 and len([k for k in keywords if k in text_lower and len(k) > 6]) > 0:
+                # Uma palavra-chave específica/longa
+                themes.append(theme)
+        
+        return themes[:5]  # Máximo 5 temas
+    
     def generate_response(self, user_message: str, risk_level: str = 'low', 
                          user_context: Optional[Dict] = None, 
                          conversation_history: Optional[List] = None, 
