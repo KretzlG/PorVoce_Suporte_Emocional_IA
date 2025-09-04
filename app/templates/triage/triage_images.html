@@ -1,0 +1,12 @@
+<div class="triage-images">
+  <h3>Selecione as imagens que mais representam seu estado emocional:</h3>
+  <div class="images-list">
+    {% for img in images %}
+      <div class="image-item" data-id="{{ img.id }}">
+        <img src="{{ img.url }}" alt="{{ img.descricao }}">
+        <p>{{ img.descricao }}</p>
+      </div>
+    {% endfor %}
+  </div>
+  <button id="btn-images-submit">Enviar seleção</button>
+</div>

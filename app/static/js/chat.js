@@ -1,4 +1,5 @@
 // Chat.js - Sistema de Chat com Histórico
+// @ts-nocheck
 let currentSessionId = null;
 let conversationToDelete = null;
 
@@ -96,43 +97,48 @@ async function loadConversationHistory() {
             <div class="loading-conversations">
                 <i class="fas fa-exclamation-triangle"></i>
                 <span>Erro ao carregar conversas</span>
-            </div>
-        `;
-    }
-}
-
-// Exibir conversas na sidebar
-function displayConversations(conversations) {
-    if (conversations.length === 0) {
-        chatList.innerHTML = `
-            <div class="loading-conversations">
-                <i class="fas fa-comments"></i>
-                <span>Nenhuma conversa ainda</span>
-                <small>Clique em "+" para iniciar</small>
-            </div>
-        `;
-        return;
-    }
+            try {
+                const response = await fetch('/triage/forward', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ answer })
+                });
+                const data = await response.json();
+                if (data.success && data.forwarded) {
+                    renderMessage('Você será encaminhado para atendimento profissional. Aguarde...', 'ai');
+                    // Redireciona automaticamente para o chat1a1
+                    if (data.chat1a1_url) {
+                        setTimeout(() => {
+                            window.location.href = data.chat1a1_url;
+                        }, 2000);
+                    }
+                } else {
+                    renderMessage('Ok, seguimos normalmente. Se precisar, estou aqui!', 'ai');
+                }
+            } catch (error) {
+                console.error('Erro ao enviar resposta de encaminhamento:', error);
+            }
     
-    chatList.innerHTML = conversations.map(conv => `
-        <div class="conversation-item" data-session-id="${conv.id}">
-            <div class="conversation-avatar">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="conversation-info">
-                <div class="conversation-header">
-                    <div class="conversation-title">${conv.title || 'Conversa sem título'}</div>
-                    <div class="conversation-date">${formatDate(conv.created_at)}</div>
-                </div>
-                <div class="conversation-preview">${conv.last_message || 'Conversa iniciada'}</div>
-            </div>
-            <div class="conversation-actions">
-                <button class="delete-conversation" data-session-id="${conv.id}" title="Excluir conversa">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
+    chatList.innerHTML = conversations.map(function(conv) {
+        return '<div class="conversation-item" data-session-id="' + conv.id + '">' +
+            '<div class="conversation-avatar">' +
+                '<i class="fas fa-user"></i>' +
+            '</div>' +
+            '<div class="conversation-info">' +
+                '<div class="conversation-header">' +
+                    '<div class="conversation-title">' + (conv.title || 'Conversa sem título') + '</div>' +
+                    '<div class="conversation-date">' + formatDate(conv.created_at) + '</div>' +
+                '</div>' +
+                '<div class="conversation-preview">' + (conv.last_message || 'Conversa iniciada') + '</div>' +
+            '</div>' +
+            '<div class="conversation-actions">' +
+                '<button class="delete-conversation" data-session-id="' + conv.id + '" title="Excluir conversa">' +
+                    '<i class="fas fa-trash"></i>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
     
     // Adicionar event listeners
     document.querySelectorAll('.conversation-item').forEach(item => {
@@ -162,10 +168,10 @@ async function loadConversation(sessionId) {
         document.querySelectorAll('.conversation-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`[data-session-id="${sessionId}"]`).classList.add('active');
+    document.querySelector('[data-session-id="' + sessionId + '"]').classList.add('active');
         
         // Carregar mensagens
-        const response = await fetch(`/chat/api/chat/receive?session_id=${sessionId}`, {
+    const response = await fetch('/chat/api/chat/receive?session_id=' + sessionId, {
             credentials: 'include'
         });
         
@@ -183,15 +189,14 @@ async function loadConversation(sessionId) {
                     renderMessage(msg.content, msg.message_type, msg.created_at);
                 });
             } else {
-                chatMessages.innerHTML = `
-                    <div class="welcome-message">
-                        <div class="welcome-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h3>Conversa Carregada</h3>
-                        <p>Continue sua conversa onde parou.</p>
-                    </div>
-                `;
+                chatMessages.innerHTML = '' +
+                    '<div class="welcome-message">' +
+                        '<div class="welcome-icon">' +
+                            '<i class="fas fa-robot"></i>' +
+                        '</div>' +
+                        '<h3>Conversa Carregada</h3>' +
+                        '<p>Continue sua conversa onde parou.</p>' +
+                    '</div>';
             }
             
             // Habilitar input
@@ -346,7 +351,7 @@ async function sendMessage() {
 // Renderizar mensagem
 function renderMessage(content, sender, timestamp = null) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
+    messageDiv.className = 'message ' + sender;
     
     // Wrapper para avatar e conteúdo
     const wrapperDiv = document.createElement('div');
@@ -391,19 +396,18 @@ function showTypingIndicator() {
     typingDiv.id = 'typing-indicator';
     typingDiv.className = 'typing-indicator';
     
-    typingDiv.innerHTML = `
-        <div class="message-avatar">
-            <i class="fas fa-robot"></i>
-        </div>
-        <div class="typing-content">
-            A IA está digitando
-            <span class="typing-dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </span>
-        </div>
-    `;
+    typingDiv.innerHTML = '' +
+        '<div class="message-avatar">' +
+            '<i class="fas fa-robot"></i>' +
+        '</div>' +
+        '<div class="typing-content">' +
+            'A IA está digitando' +
+            '<span class="typing-dots">' +
+                '<span class="dot"></span>' +
+                '<span class="dot"></span>' +
+                '<span class="dot"></span>' +
+            '</span>' +
+        '</div>';
     
     chatMessages.appendChild(typingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -492,28 +496,26 @@ function updateChatStatus(status) {
 }
 
 function showWelcomeScreen() {
-    chatMessages.innerHTML = `
-        <div class="welcome-message">
-            <div class="welcome-icon">
-                <i class="fas fa-heart"></i>
-            </div>
-            <h3>Bem-vindo ao Chat de Apoio Emocional</h3>
-            <p>Inicie uma nova conversa ou selecione uma conversa anterior do histórico.</p>
-        </div>
-    `;
+    chatMessages.innerHTML = '' +
+        '<div class="welcome-message">' +
+            '<div class="welcome-icon">' +
+                '<i class="fas fa-heart"></i>' +
+            '</div>' +
+            '<h3>Bem-vindo ao Chat de Apoio Emocional</h3>' +
+            '<p>Inicie uma nova conversa ou selecione uma conversa anterior do histórico.</p>' +
+        '</div>';
 }
 
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'message ai';
-    errorDiv.innerHTML = `
-        <div class="message-avatar">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="message-content" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-            ${message}
-        </div>
-    `;
+    errorDiv.innerHTML = '' +
+        '<div class="message-avatar">' +
+            '<i class="fas fa-exclamation-triangle"></i>' +
+        '</div>' +
+        '<div class="message-content" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">' +
+            message +
+        '</div>';
     chatMessages.appendChild(errorDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -535,7 +537,7 @@ function formatDate(dateString) {
     
     if (diffDays === 1) return 'Hoje';
     if (diffDays === 2) return 'Ontem';
-    if (diffDays <= 7) return `${diffDays} dias atrás`;
+    if (diffDays <= 7) return diffDays + ' dias atrás';
     
     return date.toLocaleDateString('pt-BR');
 }
@@ -585,7 +587,7 @@ function handleFileUpload(event) {
     }
     
     // Simular upload de arquivo
-    showMessage(`📎 Arquivo anexado: ${file.name}`, 'user');
+    showMessage('📎 Arquivo anexado: ' + file.name, 'user');
     
     // Limpar input
     event.target.value = '';
@@ -600,4 +602,4 @@ function handleFileUpload(event) {
 function goBackToHome() {
     // Redirecionar para o dashboard
     window.location.href = '/dashboard';
-}
+    }
