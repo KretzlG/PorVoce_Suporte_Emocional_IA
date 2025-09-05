@@ -125,6 +125,7 @@ def api_chat_send():
                 }
                 
                 try:
+                    # Tentar criar o log de triagem com os novos campos
                     triage_log = TriageLog(
                         user_id=current_user.id,
                         chat_session_id=chat_session.id,
@@ -137,8 +138,17 @@ def api_chat_send():
                         self_harm_risk='self_harm' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
                         severe_depression='severe_depression' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
                         anxiety_disorder='anxiety_panic' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
-                        triage_status='triggered'  # Status inicial
+                        triage_status='waiting'  # Status para fila de voluntários
                     )
+                    
+                    # Tentar definir novos campos se existirem
+                    try:
+                        triage_log.emotional_state = sentiment_analysis.get('emotion', 'Análise em andamento') if sentiment_analysis else 'A avaliar'
+                        triage_log.notes = sentiment_analysis.get('summary', f'Risco {detected_risk_level} detectado na conversa') if sentiment_analysis else f'Sistema detectou nível de risco: {detected_risk_level}'
+                    except AttributeError as attr_err:
+                        print(f"[DEBUG] Campos emotional_state/notes não existem ainda no BD: {attr_err}")
+                        # Continuar sem esses campos por enquanto
+                    
                     db.session.add(triage_log)
                     # Salvar primeiro para obter ID
                     db.session.flush()
@@ -148,7 +158,9 @@ def api_chat_send():
                     
                 except Exception as e:
                     print(f"[DEBUG] Erro ao criar log de triagem: {e}")
-                    # Não falhar por causa da triagem
+                    import traceback
+                    traceback.print_exc()
+                    # Não falhar por causa da triagem - continuar com o chat
             
             # Adicionar mensagem do usuário COM dados da análise de sentimento
             user_message = chat_session.add_message(
@@ -622,6 +634,19 @@ def delete_conversation():
                 'error': 'Sessão não encontrada'
             }), 404
         
+        # CORREÇÃO: Deletar logs de triagem relacionados primeiro
+        try:
+            from app.models.triage import TriageLog
+            related_triage_logs = TriageLog.query.filter_by(chat_session_id=session_id).all()
+            for triage_log in related_triage_logs:
+                db.session.delete(triage_log)
+        except ImportError:
+            # Se o modelo de triagem não existir, continuar
+            pass
+        except Exception as triage_error:
+            current_app.logger.warning(f"Erro ao deletar logs de triagem: {triage_error}")
+            # Não falhar por causa dos logs de triagem
+        
         # Excluir sessão (cascade irá excluir mensagens)
         db.session.delete(chat_session)
         db.session.commit()
@@ -633,6 +658,7 @@ def delete_conversation():
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Erro ao excluir conversa: {str(e)}')
         return jsonify({
             'success': False,
             'error': f'Erro ao excluir conversa: {str(e)}'

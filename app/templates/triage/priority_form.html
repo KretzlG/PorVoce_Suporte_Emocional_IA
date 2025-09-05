@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encaminhamento Prioritário - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .priority-content {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .priority-header {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .priority-header h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #f39c12;
+            margin-bottom: 2rem;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .next-steps ul li {
+            background: #fff3cd;
+            padding: 0.8rem;
+            margin: 0.8rem 0;
+            border-radius: 8px;
+            border-left: 3px solid #f39c12;
+            list-style: none;
+        }
+        
+        .next-steps ul {
+            padding-left: 0;
+        }
+        
+        .important-info {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #2196f3;
+            margin-top: 1.5rem;
+        }
+        
+        .important-info h4 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .support-message {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+        }
+        
+        .support-message h4 {
+            margin-top: 0;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        @media (max-width: 768px) {
+            .priority-content {
+                padding: 1rem;
+            }
+            
+            .action-buttons .btn {
+                display: block;
+                margin: 0.5rem 0;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- Área principal do chat adaptada -->
+        <div class="chat-main" style="margin-left: 0; width: 100%;">
+            <!-- Header adaptado -->
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar-main">
+                        <i class="fas fa-bolt" style="color: #f39c12;"></i>
+                    </div>
+                    <div class="chat-details">
+                        <h2>⚡ Encaminhamento Prioritário</h2>
+                        <p class="chat-status">Situação de risco alto identificada. Você será priorizado(a) em nosso atendimento.</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button onclick="window.location.href='/'" class="action-btn" title="Voltar ao Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de mensagens adaptada -->
+            <div class="chat-messages" style="padding: 0;">
+                <div class="priority-content">
+                    
+                    <div class="card">
+                        <h3>✅ Encaminhamento Registrado</h3>
+                        <p class="lead" style="font-size: 1.1rem; color: #666;">Sua solicitação foi registrada com <strong>prioridade alta</strong>.</p>
+                        
+                        <div class="next-steps">
+                            <h4>📋 Próximos Passos:</h4>
+                            <ul>
+                                <li>✓ Sua solicitação está na fila prioritária</li>
+                                <li>✓ Um profissional entrará em contato em até <strong>2 horas</strong></li>
+                                <li>✓ Mantenha seu telefone por perto</li>
+                            </ul>
+                        </div>
+
+                        <div class="important-info">
+                            <h4>🔔 Informações Importantes:</h4>
+                            <ul style="margin-bottom: 0;">
+                                <li>Se a situação se tornar uma emergência, ligue <strong>188 (CVV)</strong> ou <strong>192 (SAMU)</strong></li>
+                                <li>Você pode continuar conversando conosco enquanto aguarda o contato</li>
+                                <li>Todos os atendimentos são <strong>gratuitos e confidenciais</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <a href="/chat" class="btn btn-primary btn-lg">
+                            <i class="fas fa-comments"></i> Ir para Chat
+                        </a>
+                        <a href="/emergency-contacts" class="btn btn-danger btn-lg">
+                            <i class="fas fa-phone"></i> Ver Contatos de Emergência
+                        </a>
+                    </div>
+
+                    <div class="support-message">
+                        <h4>💙 Você fez a escolha certa!</h4>
+                        <p>Procurar ajuda profissional é um ato de coragem e autocuidado.</p>
+                        <p>Nossa equipe está preparada para te oferecer o melhor suporte.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

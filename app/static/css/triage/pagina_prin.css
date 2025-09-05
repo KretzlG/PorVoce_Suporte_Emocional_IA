@@ -1,0 +1,93 @@
+/* Estilização geral */
+body {
+    background-color: #52c7c3;
+    font-family: Arial, sans-serif;
+    position: fixed;
+}
+
+/* Container principal */
+.container {
+    text-align: center;
+    padding: 2em;
+}
+
+/* Título principal */
+h1 {
+    color: #ffff;
+    margin: 5px;
+}
+p{
+  color: #ffff;
+}
+
+/* Galeria de cards */
+.symptom-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1em;
+    justify-content: center;
+    padding: 2em;
+}
+
+/* Estilo dos cards */
+.symptom-item {
+    text-align: center;
+    background-color: #f784a2;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(235, 36, 185, 0.152);
+    padding: 1em;
+    width: 225px;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer; /* Indica que o card é clicável */
+}
+
+.symptom-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px #f43779ae;
+}
+
+/* Estilo para card selecionado */
+.symptom-item.selected {
+    border: 3px solid #03e6de; /* Borda azul quando selecionado */
+    background-color: #f9a1b6;
+}
+
+/* Imagens dos cards */
+.symptom-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 0.5em;
+}
+
+/* Títulos dos cards */
+h2 {
+    font-size: 18px;
+    color: #fff;
+}
+
+/* Estilo do botão de redirecionamento */
+.redirect-button {
+    
+    margin: 2em auto;
+    padding: 0.5em 1em;
+    background-color: #e51b61;
+    color: #fff;
+    width: 145px;
+    height: 25px ;
+    text-decoration: none;
+    border:none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-inline-end: -25px;
+    margin-top: -320px;
+    font-size: 16px;
+    display: block;
+    transition: background-color 0.2s ease;
+}
+
+.redirect-button:hover {
+    background-color: #c71550;
+}

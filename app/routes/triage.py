@@ -46,23 +46,59 @@ def triage_images():
 @login_required
 def triage_compile():
     """
-    Compila dados da triagem e encaminha para profissional
+    Compila dados da triagem coletados na interface
     """
-    data = request.get_json()
-    triage_id = session.get('triage_id')
-    triage_log = TriageLog.query.get(triage_id)
-    if not triage_log:
-        return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
-    user_data = data.get('user')
-    chat_messages = data.get('chat_messages', [])
-    images_selected = data.get('images_selected', [])
-    resumo_contexto = data.get('resumo_contexto', '')
-    triage_json = triage_log.compile_triage_json(user_data, chat_messages, images_selected, resumo_contexto)
-    # Atualiza status para waiting e notifica profissional
-    triage_log.triage_status = 'waiting'
-    db.session.commit()
-    # Aqui você pode integrar com o chat1a1 ou sistema de notificação
-    return jsonify({'success': True, 'triage_json': triage_json})
+    try:
+        data = request.get_json()
+        triage_id = data.get('triage_id')
+        
+        if not triage_id:
+            triage_id = session.get('triage_id')
+        
+        if not triage_id:
+            return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+        
+        triage_log = TriageLog.query.get(triage_id)
+        if not triage_log or triage_log.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+        
+        # Extrair dados coletados
+        selected_emotions = data.get('selected_emotions', [])
+        main_concern = data.get('main_concern', '')
+        previous_help = data.get('previous_help', 'nao-informado')
+        urgency_level = data.get('urgency_level', 'moderate')
+        
+        # Preparar dados compilados
+        compiled_data = {
+            'selected_emotions': selected_emotions,
+            'main_concern': main_concern,
+            'previous_help': previous_help,
+            'urgency_level': urgency_level,
+            'collection_timestamp': data.get('timestamp', datetime.utcnow().isoformat())
+        }
+        
+        # Atualizar log de triagem
+        triage_log.action_details = f"Dados coletados: {len(selected_emotions)} emoções selecionadas, " \
+                                  f"preocupação principal: {'sim' if main_concern else 'não informada'}, " \
+                                  f"ajuda anterior: {previous_help}"
+        
+        # Armazenar dados compilados como JSON
+        import json
+        triage_log.risk_factors = json.dumps(compiled_data, ensure_ascii=False)
+        
+        # Atualizar status
+        triage_log.triage_status = 'compiled'
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'compiled_data': compiled_data,
+            'message': 'Dados coletados com sucesso'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f'Erro ao compilar dados: {str(e)}'}), 500
 
 @triage.route('/triage/forward', methods=['POST'])
 @login_required
@@ -70,77 +106,102 @@ def triage_forward():
     """
     Botão: Posso te encaminhar para um profissional? Sim/Não
     """
-    data = request.get_json()
-    answer = data.get('answer')
-    triage_id = data.get('triage_id')
-    urgency_level = data.get('urgency_level', 'moderate')
-    
-    if not triage_id:
-        # Buscar triagem ativa na sessão se não fornecido
-        triage_id = session.get('triage_id')
-    
-    if not triage_id:
-        return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+    try:
+        data = request.get_json()
+        print(f"[DEBUG TRIAGE] Dados recebidos: {data}")
         
-    triage_log = TriageLog.query.get(triage_id)
-    if not triage_log or triage_log.user_id != current_user.id:
-        return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
-    
-    if answer == 'sim':
-        # Atualizar status da triagem
-        triage_log.triage_status = 'waiting'
-        triage_log.action_taken = TriageAction.PROFESSIONAL_REFERRAL
-        triage_log.action_details = f"Usuário aceitou encaminhamento profissional (urgência: {urgency_level})"
-        db.session.commit()
+        answer = data.get('answer')
+        triage_id = data.get('triage_id')
+        urgency_level = data.get('urgency_level', 'moderate')
         
-        # Se for emergência crítica, criar sessão prioritária
-        if urgency_level == 'emergency' or urgency_level == 'critical':
-            try:
-                from app.models import Chat1a1Session
-                chat1a1_session = Chat1a1Session(
-                    user_id=triage_log.user_id,
-                    volunteer_id=None,  # Será atribuído pelo sistema de distribuição
-                    status='waiting_priority',  # Status especial para casos críticos
-                    started_at=datetime.utcnow(),
-                    priority_level='high',
-                    triage_log_id=triage_log.id
-                )
-                db.session.add(chat1a1_session)
-                db.session.commit()
-                
-                chat1a1_url = f"/volunteer/chat1a1/{chat1a1_session.id}"
-                return jsonify({
-                    'success': True, 
-                    'forwarded': True, 
-                    'chat1a1_url': chat1a1_url,
-                    'priority': 'high',
-                    'message': 'Encaminhamento prioritário realizado'
-                })
-            except Exception as e:
-                # Se falhar, pelo menos registrar o encaminhamento
-                return jsonify({
-                    'success': True, 
-                    'forwarded': True,
-                    'message': 'Encaminhamento registrado - aguarde contato'
-                })
-        else:
-            # Encaminhamento normal para risco moderado/alto
+        if not triage_id:
+            # Buscar triagem ativa na sessão se não fornecido
+            triage_id = session.get('triage_id')
+        
+        if not triage_id:
+            print("[DEBUG TRIAGE] Triagem ID não encontrado")
+            return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+            
+        triage_log = TriageLog.query.get(triage_id)
+        if not triage_log or triage_log.user_id != current_user.id:
+            print(f"[DEBUG TRIAGE] Log não encontrado ou usuário incorreto. Log: {triage_log}, User: {current_user.id}")
+            return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+        
+        print(f"[DEBUG TRIAGE] Resposta: {answer}, Urgência: {urgency_level}")
+        
+        if answer == 'sim':
+            # Atualizar status da triagem
+            triage_log.triage_status = 'waiting'
+            triage_log.action_taken = TriageAction.PROFESSIONAL_REFERRAL
+            triage_log.action_details = f"Usuário aceitou encaminhamento profissional (urgência: {urgency_level})"
+            db.session.commit()
+            
+            print(f"[DEBUG TRIAGE] Encaminhamento aceito para urgência: {urgency_level}")
+            
+            # Determinar a URL de redirecionamento baseada na urgência
+            if urgency_level == 'emergency' or urgency_level == 'critical':
+                # Para emergências, redirecionar para página de contatos de emergência
+                redirect_url = "/emergency-contacts"
+                message = "Encaminhamento de emergência ativado - você será redirecionado para contatos de emergência"
+                print(f"[DEBUG TRIAGE] Redirecionamento de emergência: {redirect_url}")
+            elif urgency_level == 'high':
+                # Para risco alto, redirecionar para formulário de agendamento prioritário
+                redirect_url = "/triage/priority-form"
+                message = "Encaminhamento prioritário - você será redirecionado para agendamento"
+                print(f"[DEBUG TRIAGE] Redirecionamento prioritário: {redirect_url}")
+            else:
+                # Para risco moderado, redirecionar para formulário de encaminhamento normal
+                redirect_url = "/triage/referral-form"
+                message = "Encaminhamento registrado - você será redirecionado para formulário"
+                print(f"[DEBUG TRIAGE] Redirecionamento normal: {redirect_url}")
+            
             return jsonify({
                 'success': True, 
-                'forwarded': True,
-                'message': 'Encaminhamento realizado - você será contactado'
+                'forwarded': True, 
+                'redirect_url': redirect_url,
+                'urgency_level': urgency_level,
+                'message': message
             })
-    else:
-        # Usuário não quer encaminhamento
-        triage_log.action_taken = TriageAction.MONITORED
-        triage_log.action_details = "Usuário optou por continuar sem encaminhamento"
-        db.session.commit()
-        
-        return jsonify({
-            'success': True, 
-            'forwarded': False,
-            'message': 'Continuando chat sem encaminhamento'
-        })
+        else:
+            # Usuário não quer encaminhamento
+            triage_log.action_taken = TriageAction.MONITORED
+            triage_log.action_details = "Usuário optou por continuar sem encaminhamento"
+            db.session.commit()
+            
+            print("[DEBUG TRIAGE] Usuário recusou encaminhamento")
+            return jsonify({
+                'success': True, 
+                'forwarded': False,
+                'message': 'Continuando chat sem encaminhamento'
+            })
+            
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR TRIAGE] Erro no encaminhamento: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f'Erro no encaminhamento: {str(e)}'}), 500
+
+
+@triage.route('/emergency-contacts')
+@login_required
+def emergency_contacts():
+    """Página de contatos de emergência para casos críticos"""
+    return render_template('triage/emergency_contacts.html')
+
+
+@triage.route('/triage/priority-form')
+@login_required
+def priority_form():
+    """Formulário de agendamento prioritário para risco alto"""
+    return render_template('triage/priority_form.html')
+
+
+@triage.route('/triage/referral-form')
+@login_required
+def referral_form():
+    """Formulário de encaminhamento para risco moderado"""
+    return render_template('triage/referral_form.html')
 
 # Telas (templates) para triagem
 # triage_popup.html: mensagem pop-up no chat

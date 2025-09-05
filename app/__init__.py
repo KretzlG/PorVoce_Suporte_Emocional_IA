@@ -56,6 +56,10 @@ def create_app():
     
     from app.routes.diary import diary as diary_blueprint
     app.register_blueprint(diary_blueprint)
+    
+    # Registrar blueprint de triagem
+    from app.routes.triage import triage as triage_blueprint
+    app.register_blueprint(triage_blueprint)
 
     return app
     # Formato dos logs

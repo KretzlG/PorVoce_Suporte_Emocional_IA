@@ -8,13 +8,20 @@ class Chat1a1Session(db.Model):
     __tablename__ = 'chat1a1_sessions'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteers.id'), nullable=False)
+    volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteers.id'), nullable=True)  # Nullable para casos em espera
     started_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     ended_at = db.Column(db.DateTime(timezone=True), nullable=True)
-    status = db.Column(db.String(20), default='ACTIVE', nullable=False)
+    status = db.Column(db.String(20), default='ACTIVE', nullable=False)  # ACTIVE, WAITING, WAITING_PRIORITY, COMPLETED
     title = db.Column(db.String(200), nullable=True)
     message_count = db.Column(db.Integer, default=0)
+    priority_level = db.Column(db.String(20), default='normal', nullable=False)  # normal, high, critical
+    triage_log_id = db.Column(db.Integer, db.ForeignKey('triage_logs.id'), nullable=True)  # Referência para triagem
+    
+    # Relacionamentos
     messages = db.relationship('Chat1a1Message', backref='session', lazy='dynamic', cascade='all, delete-orphan')
+    user = db.relationship('User', backref='chat1a1_sessions_as_user')
+    volunteer = db.relationship('Volunteer', backref='chat1a1_sessions_as_volunteer')
+    triage_log = db.relationship('TriageLog', backref='chat1a1_session')
 
 class Chat1a1Message(db.Model):
     __tablename__ = 'chat1a1_messages'

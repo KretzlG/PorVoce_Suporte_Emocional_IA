@@ -70,6 +70,11 @@ class TriageLog(BaseModel):
 
     # Status da triagem (novo campo)
     triage_status = db.Column(db.String(20), default="in_progress", nullable=False)  # waiting, in_progress, completed
+    
+    # Informações adicionais para exibição no pré-atendimento
+    emotional_state = db.Column(db.String(100), nullable=True)  # Estado emocional detectado
+    notes = db.Column(db.Text, nullable=True)  # Notas da análise de IA
+    volunteer_assigned = db.Column(db.Integer, db.ForeignKey('volunteers.id'), nullable=True)  # Voluntário designado
 
     # Ações tomadas
     action_taken = db.Column(db.Enum(TriageAction), nullable=True)

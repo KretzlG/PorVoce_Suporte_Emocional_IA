@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contatos de Emergência - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .emergency-content {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .emergency-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .emergency-header h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+        }
+        
+        .contact-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #007bff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .contact-card.priority {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #f8fff8, #e8f5e8);
+        }
+        
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .contact-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.3rem;
+        }
+        
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .badge-success { background: #28a745; color: white; }
+        .badge-danger { background: #dc3545; color: white; }
+        .badge-warning { background: #ffc107; color: #333; }
+        .badge-info { background: #17a2b8; color: white; }
+        
+        .phone-number {
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .phone-number a {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+        
+        .phone-number a:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .action-buttons .btn {
+            margin: 0.5rem;
+        }
+        
+        .support-message {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+        }
+        
+        .support-message h4 {
+            margin-top: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .emergency-content {
+                padding: 1rem;
+            }
+            
+            .contact-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .contact-header h3 {
+                margin-bottom: 0.5rem;
+            }
+            
+            .phone-number a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+            
+            .action-buttons .btn {
+                display: block;
+                margin: 0.5rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- Área principal do chat adaptada para emergência -->
+        <div class="chat-main" style="margin-left: 0; width: 100%;">
+            <!-- Header adaptado -->
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar-main">
+                        <i class="fas fa-exclamation-triangle" style="color: #ff6b6b;"></i>
+                    </div>
+                    <div class="chat-details">
+                        <h2>🚨 Contatos de Emergência</h2>
+                        <p class="chat-status">Situação de risco identificada. Você não está sozinho(a).</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button onclick="window.location.href='/'" class="action-btn" title="Voltar ao Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de mensagens adaptada para conteúdo estático -->
+            <div class="chat-messages" style="padding: 0;">
+                <div class="emergency-content">
+                    
+                    <!-- CVV -->
+                    <div class="contact-card priority">
+                        <div class="contact-header">
+                            <h3>📞 CVV - Centro de Valorização da Vida</h3>
+                            <span class="badge badge-success">24 HORAS</span>
+                        </div>
+                        <div class="contact-info">
+                            <p class="phone-number">
+                                <a href="tel:188" class="btn btn-success btn-lg">
+                                    <i class="fas fa-phone"></i> 188
+                                </a>
+                            </p>
+                            <p>Ligação <strong>gratuita</strong> de qualquer telefone</p>
+                            <p>Conversa confidencial com voluntários treinados</p>
+                        </div>
+                    </div>
+
+                    <!-- SAMU -->
+                    <div class="contact-card">
+                        <div class="contact-header">
+                            <h3>🚑 SAMU - Serviço de Atendimento Móvel de Urgência</h3>
+                            <span class="badge badge-danger">EMERGÊNCIA</span>
+                        </div>
+                        <div class="contact-info">
+                            <p class="phone-number">
+                                <a href="tel:192" class="btn btn-danger btn-lg">
+                                    <i class="fas fa-ambulance"></i> 192
+                                </a>
+                            </p>
+                            <p>Para emergências médicas imediatas</p>
+                        </div>
+                    </div>
+
+                    <!-- Bombeiros -->
+                    <div class="contact-card">
+                        <div class="contact-header">
+                            <h3>🚒 Corpo de Bombeiros</h3>
+                            <span class="badge badge-warning">EMERGÊNCIA</span>
+                        </div>
+                        <div class="contact-info">
+                            <p class="phone-number">
+                                <a href="tel:193" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-fire"></i> 193
+                                </a>
+                            </p>
+                            <p>Salvamento e emergências</p>
+                        </div>
+                    </div>
+
+                    <!-- CAPS -->
+                    <div class="contact-card">
+                        <div class="contact-header">
+                            <h3>🏥 CAPS - Centro de Atenção Psicossocial</h3>
+                            <span class="badge badge-info">PSICOLÓGICO</span>
+                        </div>
+                        <div class="contact-info">
+                            <p>Atendimento psicológico especializado</p>
+                            <p><strong>Procure a unidade mais próxima de você</strong></p>
+                            <a href="https://bvsms.saude.gov.br/caps/" target="_blank" class="btn btn-info">
+                                <i class="fas fa-map-marker-alt"></i> Encontrar CAPS próximo
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Botões de ação -->
+                    <div class="action-buttons">
+                        <a href="/chat" class="btn btn-primary btn-lg">
+                            <i class="fas fa-comments"></i> Ir para Chat
+                        </a>
+                        <a href="/" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </div>
+
+                    <!-- Mensagem de apoio -->
+                    <div class="support-message">
+                        <h4>💙 Mensagem Importante:</h4>
+                        <p>Você tomou uma atitude corajosa ao buscar ajuda. Isso demonstra força, não fraqueza.</p>
+                        <p>Lembre-se: <strong>toda situação pode mudar</strong>, e existem pessoas preparadas para te apoiar.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
