@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risco Grave</title>
+    <link rel="stylesheet" href="pagina.prin.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/triage/pagina_prin.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Como Você Está Se Sentindo Neste Momento?</h1>
+        <p>Escolha as imagens conforme o que está sentindo</p>
+        <div class="symptom-gallery">
+            <div class="symptom-item" data-href="mental.html">
+                <img src="/img/mental.jpg" alt="Confusão Mental Severa">
+                <h2>Confusão Mental Severa</h2>
+            </div>
+            <div class="symptom-item" data-href="letais.html">
+                <img src="/img/letais.jpg" alt="Acesso a Meios Letais">
+                <h2>Acesso a Meios Letais</h2>
+            </div>
+            <div class="symptom-item" data-href="autodano.html">
+                <img src="/img/autodano.jpg" alt="Tentativa Recente de Autodano">
+                <h2>Tentativa Recente de Autodano</h2>
+            </div>
+            <div class="symptom-item" data-href="extremo.html">
+                <img src="/img/extremo.jpg" alt="Agitação Extrema">
+                <h2>Agitação Extrema</h2>
+            </div>
+            <div class="symptom-item" data-href="aguda.html">
+                <img src="/img/alcool1.jpeg" alt="Substâncias">
+                <h2>Uso de Substâncias(álcool etc...)</h2>
+            </div>
+            <div class="symptom-item" data-href="agressivo.html">
+                <img src="/img/agressivo.jpg" alt="Comportamento Agressivo">
+                <h2>Comportamento Agressivo</h2>
+            </div>
+            <div class="symptom-item" data-href="ansiedade.html">
+                <img src="/img/ansiedade.jpg" alt="Crise de Ansiedade">
+                <h2>Crise de Ansiedade</h2>
+            </div>
+            <div class="symptom-item" data-href="total.html">
+                <img src="/img/total.jpg" alt="Isolamento Total">
+                <h2>Isolamento Total</h2>
+            </div>
+        </div>
+        <a href="psicologo.html"button class="redirect-button">=></a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.symptom-item');
+            const redirectButton = document.querySelector('.redirect-button');
+
+            // Toggle de seleção nos cards
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    // Alterna a classe .selected no card clicado
+                    card.classList.toggle('selected');
+                });
+            });
+
+            // Redirecionamento ao clicar no botão
+            redirectButton.addEventListener('click', () => {
+                const selectedCards = document.querySelectorAll('.symptom-item.selected');
+                if (selectedCards.length > 0) {
+                    // Coleta os data-href dos cards selecionados
+                    const selectedHrefs = Array.from(selectedCards).map(card => card.getAttribute('data-href'));
+                    // Redireciona para uma página genérica com os hrefs como query parameters
+                    window.location.href = `result.html?selected=${encodeURIComponent(selectedHrefs.join(','))}`;
+                } else {
+                    alert('Por favor, selecione pelo menos um card antes de continuar.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
