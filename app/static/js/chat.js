@@ -317,6 +317,11 @@ async function sendMessage() {
         
         if (data.success && data.ai_response) {
             renderMessage(data.ai_response.content, 'ai');
+            
+            // VERIFICAR SE É NECESSÁRIO ATIVAR TRIAGEM
+            if (data.risk_assessment && data.risk_assessment.requires_triage) {
+                handleTriageActivation(data.risk_assessment);
+            }
         } else {
             showError('Erro ao obter resposta da IA');
         }
@@ -585,4 +590,214 @@ function handleFileUpload(event) {
 function goBackToHome() {
     // Redirecionar para o dashboard
     window.location.href = '/dashboard';
+}
+
+// ========== FUNÇÕES DE TRIAGEM ==========
+
+/**
+ * Ativa o fluxo de triagem quando risco moderado/alto/crítico é detectado
+ */
+async function handleTriageActivation(riskAssessment) {
+    const riskLevel = riskAssessment.risk_level;
+    const triageId = riskAssessment.triage_id;
+    
+    console.log(`[TRIAGEM] Risco ${riskLevel} detectado. Triagem ID: ${triageId}`);
+    
+    // Renderizar mensagem de triagem baseada no nível de risco
+    const triageMessage = generateTriageMessage(riskLevel);
+    renderMessage(triageMessage, 'ai', null, true); // true = mensagem especial
+    
+    // Se for risco crítico, mostrar botões de emergência imediatamente
+    if (riskLevel === 'critical') {
+        showEmergencyActions(triageId);
+    } 
+    // Para risco alto/moderado, mostrar opções de encaminhamento
+    else if (riskLevel === 'high' || riskLevel === 'moderate') {
+        showTriageOptions(triageId, riskLevel);
+    }
+}
+
+/**
+ * Gera mensagem de triagem baseada no nível de risco
+ */
+function generateTriageMessage(riskLevel) {
+    const messages = {
+        'critical': `🚨 **ATENÇÃO**: Percebi que você pode estar passando por um momento muito difícil. 
+Sua segurança é minha prioridade. Gostaria de te conectar com ajuda profissional agora?`,
+        
+        'high': `⚠️ Percebo que você está enfrentando uma situação desafiadora. 
+Posso te encaminhar para conversar com um profissional que pode te dar o suporte adequado?`,
+        
+        'moderate': `💭 Noto que você pode estar precisando de um apoio adicional. 
+Gostaria que eu te conecte com alguém especializado que pode te ajudar melhor?`
+    };
+    
+    return messages[riskLevel] || messages['moderate'];
+}
+
+/**
+ * Mostra ações de emergência para risco crítico
+ */
+function showEmergencyActions(triageId) {
+    const actionsHtml = `
+        <div class="triage-emergency-actions" data-triage-id="${triageId}">
+            <div class="emergency-header">
+                <h4>🆘 Precisa de Ajuda Imediata?</h4>
+                <p>Estes contatos estão disponíveis 24 horas:</p>
+            </div>
+            
+            <div class="emergency-contacts">
+                <div class="emergency-contact">
+                    <strong>CVV - Centro de Valorização da Vida</strong>
+                    <div class="contact-info">
+                        <span class="phone">📞 188</span>
+                        <span class="description">Apoio emocional gratuito 24h</span>
+                    </div>
+                </div>
+                
+                <div class="emergency-contact">
+                    <strong>SAMU</strong>
+                    <div class="contact-info">
+                        <span class="phone">📞 192</span>
+                        <span class="description">Emergências médicas</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="triage-buttons">
+                <button class="btn-triage btn-primary" onclick="forwardToProfessional('${triageId}', 'emergency')">
+                    🏥 Quero Falar com um Profissional
+                </button>
+                <button class="btn-triage btn-secondary" onclick="continueChat('${triageId}')">
+                    💬 Continuar Conversando Aqui
+                </button>
+            </div>
+        </div>
+    `;
+    
+    renderSpecialContent(actionsHtml);
+}
+
+/**
+ * Mostra opções de triagem para risco alto/moderado
+ */
+function showTriageOptions(triageId, riskLevel) {
+    const urgencyText = riskLevel === 'high' ? 'prioritário' : 'quando possível';
+    
+    const optionsHtml = `
+        <div class="triage-options" data-triage-id="${triageId}">
+            <div class="triage-question">
+                <p><strong>Posso te encaminhar para um profissional?</strong></p>
+                <p class="triage-subtitle">Encaminhamento ${urgencyText}</p>
+            </div>
+            
+            <div class="triage-buttons">
+                <button class="btn-triage btn-primary" onclick="forwardToProfessional('${triageId}', '${riskLevel}')">
+                    ✅ Sim, quero ajuda profissional
+                </button>
+                <button class="btn-triage btn-secondary" onclick="continueChat('${triageId}')">
+                    💬 Não, quero continuar aqui
+                </button>
+            </div>
+            
+            <div class="triage-info">
+                <small>💡 Caso mude de ideia, posso te conectar com um profissional a qualquer momento.</small>
+            </div>
+        </div>
+    `;
+    
+    renderSpecialContent(optionsHtml);
+}
+
+/**
+ * Renderiza conteúdo especial (HTML) no chat
+ */
+function renderSpecialContent(htmlContent) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai triage-message';
+    messageDiv.innerHTML = htmlContent;
+    
+    chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+/**
+ * Encaminha usuário para profissional
+ */
+async function forwardToProfessional(triageId, urgencyLevel) {
+    try {
+        // Desabilitar botões para evitar duplo clique
+        const buttons = document.querySelectorAll(`[data-triage-id="${triageId}"] .btn-triage`);
+        buttons.forEach(btn => btn.disabled = true);
+        
+        const response = await fetch('/triage/forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                answer: 'sim',
+                triage_id: triageId,
+                urgency_level: urgencyLevel
+            })
+        });
+        
+        if (!response.ok) throw new Error('Erro no encaminhamento');
+        
+        const data = await response.json();
+        
+        if (data.success && data.forwarded) {
+            // Mostrar confirmação de encaminhamento
+            const confirmationHtml = `
+                <div class="triage-confirmation">
+                    <div class="success-icon">✅</div>
+                    <h4>Encaminhamento Realizado!</h4>
+                    <p>Você foi conectado(a) com nossa equipe de profissionais.</p>
+                    ${data.chat1a1_url ? `<p>Em breve um voluntário especializado entrará em contato.</p>` : ''}
+                    <div class="next-steps">
+                        <h5>Enquanto isso:</h5>
+                        <ul>
+                            <li>💬 Continue conversando comigo se precisar</li>
+                            <li>📞 Lembre-se: CVV 188 disponível 24h</li>
+                            <li>🤝 Você não está sozinho(a)</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            renderSpecialContent(confirmationHtml);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao encaminhar:', error);
+        showError('Erro ao processar encaminhamento. Tente novamente.');
+    }
+}
+
+/**
+ * Continua chat sem encaminhamento
+ */
+async function continueChat(triageId) {
+    try {
+        // Registrar que usuário optou por não ser encaminhado
+        await fetch('/triage/forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                answer: 'nao',
+                triage_id: triageId
+            })
+        });
+        
+        // Mostrar mensagem de apoio
+        const supportMessage = `Entendo sua escolha. Estou aqui para te apoiar. 
+Como você gostaria de continuar nossa conversa? 
+💡 *Lembre-se: posso te conectar com um profissional a qualquer momento se mudar de ideia.*`;
+        
+        renderMessage(supportMessage, 'ai');
+        
+    } catch (error) {
+        console.error('Erro ao continuar chat:', error);
+        // Não mostrar erro ao usuário, apenas continuar
+        renderMessage('Vamos continuar conversando. Como posso te ajudar agora?', 'ai');
+    }
 }

@@ -111,6 +111,45 @@ def api_chat_send():
                     # Usar análise básica por palavras-chave como fallback
                     detected_risk_level = ai_service.assess_risk_level(message_content)
             
+            # CRIAR LOG DE TRIAGEM SE RISCO MODERADO/ALTO/CRÍTICO
+            triage_log = None
+            if detected_risk_level in ['moderate', 'high', 'critical']:
+                from app.models.triage import TriageLog, RiskLevel
+                
+                # Converter string para enum
+                risk_enum_map = {
+                    'low': RiskLevel.LOW,
+                    'moderate': RiskLevel.MODERATE, 
+                    'high': RiskLevel.HIGH,
+                    'critical': RiskLevel.CRITICAL
+                }
+                
+                try:
+                    triage_log = TriageLog(
+                        user_id=current_user.id,
+                        chat_session_id=chat_session.id,
+                        risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
+                        confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
+                        trigger_content=message_content[:500],  # Limitar tamanho
+                        context_type='chat_message',
+                        # Definir indicadores específicos baseados na análise
+                        suicidal_ideation='suicidal_ideation' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        self_harm_risk='self_harm' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        severe_depression='severe_depression' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        anxiety_disorder='anxiety_panic' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        triage_status='triggered'  # Status inicial
+                    )
+                    db.session.add(triage_log)
+                    # Salvar primeiro para obter ID
+                    db.session.flush()
+                    
+                    # Salvar ID da triagem na sessão para uso posterior
+                    session['triage_id'] = triage_log.id
+                    
+                except Exception as e:
+                    print(f"[DEBUG] Erro ao criar log de triagem: {e}")
+                    # Não falhar por causa da triagem
+            
             # Adicionar mensagem do usuário COM dados da análise de sentimento
             user_message = chat_session.add_message(
                 content=message_content, 
@@ -183,7 +222,9 @@ def api_chat_send():
                     ai_message.ai_model_used = ai_response.get('source', 'openai')
                     ai_message.ai_confidence = ai_response.get('confidence', 0.9)
                     db.session.commit()
-                    return jsonify({
+                    
+                    # PREPARAR RESPOSTA COM DADOS DE TRIAGEM
+                    response_data = {
                         'success': True,
                         'user_message': {
                             'content': message_content,
@@ -194,8 +235,15 @@ def api_chat_send():
                             'content': ai_response['message'],
                             'timestamp': ai_message.created_at.isoformat(),
                             'sender_type': 'ai'
+                        },
+                        'risk_assessment': {
+                            'risk_level': detected_risk_level,
+                            'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
+                            'triage_id': triage_log.id if triage_log else None
                         }
-                    })
+                    }
+                    
+                    return jsonify(response_data)
                 except Exception as exc:
                     print(f"[DEBUG][ERRO] Falha ao chamar IA: {exc}")
             else:
@@ -222,7 +270,9 @@ def api_chat_send():
                 message_type=ChatMessageType.AI
             )
             db.session.commit()
-            return jsonify({
+            
+            # RESPOSTA COM DADOS DE TRIAGEM (FALLBACK)
+            response_data = {
                 'success': True,
                 'user_message': {
                     'content': message_content,
@@ -233,8 +283,15 @@ def api_chat_send():
                     'content': resposta_padrao,
                     'timestamp': ai_message.created_at.isoformat(),
                     'sender_type': 'ai'
+                },
+                'risk_assessment': {
+                    'risk_level': detected_risk_level,
+                    'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
+                    'triage_id': triage_log.id if triage_log else None
                 }
-            })
+            }
+            
+            return jsonify(response_data)
                 
         except Exception as e:
             db.session.rollback()

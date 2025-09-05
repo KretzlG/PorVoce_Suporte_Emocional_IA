@@ -4,7 +4,7 @@ Rotas para fluxo de triagem psicológica integrado ao chat
 from flask import Blueprint, request, jsonify, render_template, session
 from flask_login import login_required, current_user
 from app import db
-from app.models.triage import TriageLog, RiskLevel
+from app.models.triage import TriageLog, RiskLevel, TriageAction
 from datetime import datetime
 
 triage = Blueprint('triage', __name__)
@@ -72,26 +72,75 @@ def triage_forward():
     """
     data = request.get_json()
     answer = data.get('answer')
-    triage_id = session.get('triage_id')
-    triage_log = TriageLog.query.get(triage_id)
-    if not triage_log:
+    triage_id = data.get('triage_id')
+    urgency_level = data.get('urgency_level', 'moderate')
+    
+    if not triage_id:
+        # Buscar triagem ativa na sessão se não fornecido
+        triage_id = session.get('triage_id')
+    
+    if not triage_id:
         return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+        
+    triage_log = TriageLog.query.get(triage_id)
+    if not triage_log or triage_log.user_id != current_user.id:
+        return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
+    
     if answer == 'sim':
+        # Atualizar status da triagem
         triage_log.triage_status = 'waiting'
+        triage_log.action_taken = TriageAction.PROFESSIONAL_REFERRAL
+        triage_log.action_details = f"Usuário aceitou encaminhamento profissional (urgência: {urgency_level})"
         db.session.commit()
-        # INTEGRAÇÃO: Criar sessão no chat1a1 e retornar URL para frontend
-        from app.models import Chat1a1Session
-        chat1a1_session = Chat1a1Session(
-            user_id=triage_log.user_id,
-            volunteer_id=None,  # Será atribuído pelo sistema de distribuição
-            status='waiting',
-            started_at=datetime.utcnow()
-        )
-        db.session.add(chat1a1_session)
+        
+        # Se for emergência crítica, criar sessão prioritária
+        if urgency_level == 'emergency' or urgency_level == 'critical':
+            try:
+                from app.models import Chat1a1Session
+                chat1a1_session = Chat1a1Session(
+                    user_id=triage_log.user_id,
+                    volunteer_id=None,  # Será atribuído pelo sistema de distribuição
+                    status='waiting_priority',  # Status especial para casos críticos
+                    started_at=datetime.utcnow(),
+                    priority_level='high',
+                    triage_log_id=triage_log.id
+                )
+                db.session.add(chat1a1_session)
+                db.session.commit()
+                
+                chat1a1_url = f"/volunteer/chat1a1/{chat1a1_session.id}"
+                return jsonify({
+                    'success': True, 
+                    'forwarded': True, 
+                    'chat1a1_url': chat1a1_url,
+                    'priority': 'high',
+                    'message': 'Encaminhamento prioritário realizado'
+                })
+            except Exception as e:
+                # Se falhar, pelo menos registrar o encaminhamento
+                return jsonify({
+                    'success': True, 
+                    'forwarded': True,
+                    'message': 'Encaminhamento registrado - aguarde contato'
+                })
+        else:
+            # Encaminhamento normal para risco moderado/alto
+            return jsonify({
+                'success': True, 
+                'forwarded': True,
+                'message': 'Encaminhamento realizado - você será contactado'
+            })
+    else:
+        # Usuário não quer encaminhamento
+        triage_log.action_taken = TriageAction.MONITORED
+        triage_log.action_details = "Usuário optou por continuar sem encaminhamento"
         db.session.commit()
-        chat1a1_url = f"/volunteer/chat1a1/{chat1a1_session.id}"
-        return jsonify({'success': True, 'forwarded': True, 'chat1a1_url': chat1a1_url})
-    return jsonify({'success': True, 'forwarded': False})
+        
+        return jsonify({
+            'success': True, 
+            'forwarded': False,
+            'message': 'Continuando chat sem encaminhamento'
+        })
 
 # Telas (templates) para triagem
 # triage_popup.html: mensagem pop-up no chat
