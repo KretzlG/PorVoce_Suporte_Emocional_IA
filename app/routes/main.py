@@ -19,6 +19,61 @@ def index():
     return render_template('landing.html')
 
 
+@main.route('/chat1a1')
+@main.route('/chat1a1/<priority>')
+@login_required
+def chat1a1(priority='normal'):
+    """Interface de chat cliente-voluntário (1a1)"""
+    from app.models.chat1a1 import Chat1a1Session, Chat1a1Message
+    from app.models.triage import TriageLog
+    
+    # Verificar se há uma sessão ativa para o cliente
+    active_session = Chat1a1Session.query.filter_by(
+        user_id=current_user.id,
+        status='ACTIVE'
+    ).first()
+    
+    if active_session:
+        # Se há sessão ativa, redirecionar para a interface do cliente
+        return redirect(url_for('main.client_chat_1a1', session_id=active_session.id))
+    
+    # Verificar se há uma sessão em espera
+    waiting_session = Chat1a1Session.query.filter_by(
+        user_id=current_user.id,
+        status='WAITING'
+    ).first()
+    
+    # Determinar prioridade baseada na URL ou parâmetro
+    if priority not in ['normal', 'high', 'critical']:
+        priority = 'normal'
+    
+    if waiting_session:
+        # Atualizar prioridade se necessário
+        if priority != 'normal' and waiting_session.priority_level == 'normal':
+            waiting_session.priority_level = priority
+            db.session.commit()
+        
+        # Se há sessão em espera, mostrar página de espera
+        return render_template('chat/chat_1a1_waiting.html', session=waiting_session)
+    
+    # Buscar a última triagem do usuário para vincular
+    latest_triage = TriageLog.query.filter_by(user_id=current_user.id).order_by(TriageLog.created_at.desc()).first()
+    
+    # Se não há sessão, criar uma nova solicitação
+    new_session = Chat1a1Session(
+        user_id=current_user.id,
+        status='WAITING',
+        title=f"Solicitação de apoio - {current_user.first_name}",
+        priority_level=priority
+    )
+    
+    db.session.add(new_session)
+    db.session.commit()
+    
+    # Renderizar página de espera
+    return render_template('chat/chat_1a1_waiting.html', session=new_session)
+
+
 @main.route('/health')
 def health_check():
     """Health check para testes"""
@@ -35,6 +90,54 @@ def health_check():
         'database': 'connected' if db_status else 'disconnected',
         'timestamp': request.environ.get('REQUEST_TIME', 'unknown')
     }), 200 if db_status else 503
+
+
+@main.route('/chat1a1/status/<int:session_id>')
+@login_required
+def chat1a1_status(session_id):
+    """Verificar status da sessão 1a1"""
+    from app.models.chat1a1 import Chat1a1Session
+    
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se a sessão pertence ao usuário atual
+    if session.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    return jsonify({
+        'status': session.status,
+        'volunteer_connected': session.volunteer_id is not None
+    })
+
+
+@main.route('/client_chat_1a1/<int:session_id>')
+@login_required
+def client_chat_1a1(session_id):
+    """Interface do cliente para chat 1a1"""
+    from app.models.chat1a1 import Chat1a1Session, Chat1a1Message
+    
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se o usuário é o dono da sessão
+    if session.user_id != current_user.id:
+        return "Acesso negado", 403
+    
+    # Se a sessão ainda está esperando, mostrar página de espera
+    if session.status == 'WAITING':
+        return render_template('chat/chat_1a1_waiting.html', session=session)
+    
+    # Se a sessão está ativa, mostrar interface de chat
+    if session.status == 'ACTIVE':
+        volunteer = session.volunteer
+        messages = session.messages.order_by(Chat1a1Message.created_at.asc()).all()
+        
+        return render_template('chat/chat_1a1_client.html', 
+                             session=session, 
+                             volunteer=volunteer, 
+                             messages=messages)
+    
+    # Sessão completada
+    return render_template('chat/chat_1a1_completed.html', session=session)
 
 
 @main.route('/about')

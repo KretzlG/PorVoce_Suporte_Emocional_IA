@@ -8,7 +8,11 @@ from app import db
 
 from .base import BaseModel
 from sqlalchemy import Text, Enum as SQLEnum
-from pgvector.sqlalchemy import Vector
+try:
+    from pgvector.sqlalchemy import Vector
+except ImportError:
+    # pgvector não está instalado, usar Text como fallback
+    Vector = Text
 
 
 class TrainingDataType(Enum):

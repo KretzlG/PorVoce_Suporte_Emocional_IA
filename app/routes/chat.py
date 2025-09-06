@@ -200,6 +200,20 @@ def api_chat_send():
             if AI_AVAILABLE and ai_service and ai_service.openai_client:
                 print("[DEBUG] IA disponível, chamando generate_response...")
                 
+                # VERIFICAR SE A SESSÃO AINDA EXISTE (pode ter sido excluída)
+                current_session = ChatSession.query.filter_by(
+                    id=chat_session.id,
+                    user_id=current_user.id,
+                    status=ChatSessionStatus.ACTIVE.value
+                ).first()
+                
+                if not current_session:
+                    print("[DEBUG] Sessão foi excluída durante o processamento, cancelando resposta da IA")
+                    return jsonify({
+                        'success': False, 
+                        'error': 'Sessão foi encerrada ou excluída'
+                    }), 404
+                
                 # Buscar histórico de mensagens para contexto
                 from app.models import ChatMessage
                 conversation_history = db.session.query(ChatMessage).filter_by(
@@ -223,6 +237,20 @@ def api_chat_send():
                         conversation_history=history_list
                     )
                     print(f"[DEBUG] ai_response: {ai_response}")
+                    
+                    # VERIFICAR NOVAMENTE SE A SESSÃO AINDA EXISTE ANTES DE SALVAR
+                    current_session_check = ChatSession.query.filter_by(
+                        id=chat_session.id,
+                        user_id=current_user.id,
+                        status=ChatSessionStatus.ACTIVE.value
+                    ).first()
+                    
+                    if not current_session_check:
+                        print("[DEBUG] Sessão foi excluída após gerar resposta, não salvando mensagem da IA")
+                        return jsonify({
+                            'success': False, 
+                            'error': 'Sessão foi encerrada ou excluída durante o processamento'
+                        }), 404
                     
                     # Salvar mensagem da IA com metadados
                     ai_message = chat_session.add_message(

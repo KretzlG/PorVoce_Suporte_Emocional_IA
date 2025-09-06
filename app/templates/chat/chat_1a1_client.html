@@ -1,88 +1,35 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat 1a1 - Voluntário - Por Você</title>
+    <title>Chat 1a1 - Por Você</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .chat-header {
-            background: linear-gradient(135deg, #0984e3, #0770c7);
+            background: linear-gradient(135deg, #00b894, #00a085);
             color: white;
             padding: 1rem;
             border-radius: 10px 10px 0 0;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-        }
-        
-        .client-info {
-            display: flex;
-            align-items: center;
             gap: 1rem;
         }
         
-        .client-avatar {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+        .volunteer-info {
+            flex: 1;
         }
         
-        .client-details h3 {
+        .volunteer-info h3 {
             margin: 0;
             font-size: 1.2rem;
         }
         
-        .client-details p {
+        .volunteer-info p {
             margin: 0.3rem 0 0 0;
             opacity: 0.9;
             font-size: 0.9rem;
-        }
-        
-        .header-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .btn-video, .btn-end {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-video {
-            background: #e74c3c;
-            color: white;
-        }
-        
-        .btn-video:hover {
-            background: #c0392b;
-            color: white;
-        }
-        
-        .btn-end {
-            background: #95a5a6;
-            color: white;
-        }
-        
-        .btn-end:hover {
-            background: #7f8c8d;
-            color: white;
         }
         
         .priority-badge {
@@ -90,7 +37,6 @@
             border-radius: 15px;
             font-size: 0.8rem;
             font-weight: bold;
-            margin-left: 1rem;
         }
         
         .priority-high {
@@ -128,14 +74,13 @@
             gap: 0.5rem;
         }
         
-        .message.volunteer {
+        .message.client {
             justify-content: flex-end;
             flex-direction: row-reverse;
         }
         
-        .message.client {
+        .message.volunteer {
             justify-content: flex-start;
-            flex-direction: row;
         }
         
         .message-avatar {
@@ -150,12 +95,12 @@
             flex-shrink: 0;
         }
         
-        .message.volunteer .message-avatar {
-            background: #0984e3;
+        .message.client .message-avatar {
+            background: #00b894;
         }
         
-        .message.client .message-avatar {
-            background: #e74c3c;
+        .message.volunteer .message-avatar {
+            background: #0984e3;
         }
         
         .message-content {
@@ -163,16 +108,17 @@
             padding: 0.8rem;
             border-radius: 15px;
             word-wrap: break-word;
-        }
-        
-        .message.client .message-content {
-            background: #fee;
-            color: #c0392b;
-            border-bottom-left-radius: 5px;
+            position: relative;
         }
         
         .message.volunteer .message-content {
-            background: #0984e3;
+            background: #e3f2fd;
+            color: #1565c0;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message.client .message-content {
+            background: #00b894;
             color: white;
             border-bottom-right-radius: 5px;
         }
@@ -181,10 +127,6 @@
             font-size: 0.8rem;
             color: #666;
             margin-top: 0.3rem;
-        }
-        
-        .message.volunteer .message-time {
-            color: rgba(255,255,255,0.8);
         }
         
         .input-container {
@@ -203,7 +145,7 @@
         }
         
         .send-button {
-            background: #0984e3;
+            background: #00b894;
             color: white;
             border: none;
             padding: 0.8rem 1.5rem;
@@ -213,45 +155,30 @@
         }
         
         .send-button:hover {
-            background: #0770c7;
+            background: #00a085;
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <div class="client-info">
-                <div class="client-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="client-details">
-                    <h3>{{ client.first_name }} {{ client.last_name }}</h3>
-                    <p>Cliente em atendimento prioritário</p>
-                </div>
-                {% if session.priority_level %}
-                <div class="priority-badge priority-{{ session.priority_level }}">
-                    {{ 'Urgente' if session.priority_level == 'critical' else 'Alto' if session.priority_level == 'high' else 'Normal' }}
-                </div>
-                {% endif %}
+            <div class="volunteer-info">
+                <h3><i class="fas fa-user-friends"></i> Chat com {{ volunteer.user.first_name }}</h3>
+                <p>Voluntário especializado em suporte emocional</p>
             </div>
-            <div class="header-actions">
-                <a href="{{ google_meet_url }}" target="_blank" class="btn-video">
-                    <i class="fas fa-video"></i> Chamada de Vídeo
-                </a>
-                <a href="{{ url_for('volunteer.end_session', session_id=session.id) }}" class="btn-end">
-                    <i class="fas fa-stop"></i> Encerrar
-                </a>
+            <div class="priority-badge priority-{{ session.priority_level }}">
+                {{ 'Urgente' if session.priority_level == 'critical' else 'Alto' if session.priority_level == 'high' else 'Normal' }}
             </div>
         </div>
         
         <div class="messages-container" id="messages">
             {% for message in messages %}
-            <div class="message {{ 'volunteer' if message.message_type == 'volunteer' else 'client' }}">
+            <div class="message {{ 'client' if message.sender_id == session.user_id else 'volunteer' }}">
                 <div class="message-avatar">
-                    {% if message.message_type == 'volunteer' %}
-                        <i class="fas fa-heart"></i>
-                    {% else %}
+                    {% if message.sender_id == session.user_id %}
                         <i class="fas fa-user"></i>
+                    {% else %}
+                        <i class="fas fa-heart"></i>
                     {% endif %}
                 </div>
                 <div class="message-content">
@@ -265,7 +192,7 @@
         </div>
         
         <div class="input-container">
-            <input type="text" class="message-input" id="messageInput" placeholder="Digite sua resposta..." />
+            <input type="text" class="message-input" id="messageInput" placeholder="Digite sua mensagem..." />
             <button class="send-button" onclick="sendMessage()">
                 <i class="fas fa-paper-plane"></i> Enviar
             </button>
@@ -314,14 +241,14 @@
             messagesContainer.innerHTML = '';
             messages.forEach(message => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${message.sender_type}`;
+                messageDiv.className = `message ${message.sender_type === 'client' ? 'client' : 'volunteer'}`;
                 
                 const time = new Date(message.created_at).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                const isVolunteer = message.sender_type === 'volunteer';
-                const avatarIcon = isVolunteer ? 'fas fa-heart' : 'fas fa-user';
+                const isClient = message.sender_type === 'client';
+                const avatarIcon = isClient ? 'fas fa-user' : 'fas fa-heart';
                 
                 messageDiv.innerHTML = `
                     <div class="message-avatar">
@@ -353,69 +280,3 @@
     </script>
 </body>
 </html>
-    padding: 1rem 0;
-    border-bottom: 1px solid #eee;
-}
-.chat-actions .btn {
-    min-width: 160px;
-    font-size: 1rem;
-}
-.chat-message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 70%;
-}
-.from-volunteer {
-    background: #e3f2fd;
-    align-self: flex-end;
-    text-align: right;
-}
-.from-client {
-    background: #fce4ec;
-    align-self: flex-start;
-    text-align: left;
-}
-.chat-author {
-    font-weight: bold;
-    margin-right: 6px;
-}
-</style>
-<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>
-</body>
-</html>
-
-<style>
-.chat-1a1-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid #eee;
-}
-.chat-actions .btn {
-    min-width: 160px;
-    font-size: 1rem;
-}
-.chat-message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 70%;
-}
-.from-volunteer {
-    background: #e3f2fd;
-    align-self: flex-end;
-    text-align: right;
-}
-.from-client {
-    background: #fce4ec;
-    align-self: flex-start;
-    text-align: left;
-}
-.chat-author {
-    font-weight: bold;
-    margin-right: 6px;
-}
-</style>
-<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>

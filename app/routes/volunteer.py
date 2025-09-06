@@ -2,14 +2,19 @@
 Rotas do dashboard do voluntário
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import login_required, current_user
 from app.models import User, Volunteer
 from app.models.chat1a1 import Chat1a1Session, Chat1a1Message
+from app.models.triage import TriageLog
+from app import db
+from datetime import datetime
+from datetime import datetime, timezone
+import sqlalchemy as sa
 
 volunteer = Blueprint('volunteer', __name__)
 
-@volunteer.route('/volunteer/dashboard')
+@volunteer.route('/dashboard')
 @login_required
 def dashboard():
     # Estatísticas básicas do voluntário
@@ -34,220 +39,250 @@ def dashboard():
     return render_template('dashboards/volunteer/dashboard.html', user=current_user, stats=stats)
 
 @volunteer.route('/new_service')
-@volunteer.route('/new_service/<int:triage_id>')
 @login_required
-def new_service(triage_id=None):
-    from app.models import User, Volunteer, ChatSession, ChatSessionStatus, TriageLog, RiskLevel
-    from app import db
-    from datetime import datetime
+def new_service():
+    """Lista de clientes esperando atendimento"""
+    # Buscar todas as sessões em espera, ordenadas por prioridade e data
+    waiting_sessions = Chat1a1Session.query.filter(
+        Chat1a1Session.status == 'WAITING',
+        Chat1a1Session.volunteer_id == None
+    ).order_by(
+        # Prioridade: critical > high > normal
+        sa.case(
+            (Chat1a1Session.priority_level == 'critical', 1),
+            (Chat1a1Session.priority_level == 'high', 2),
+            else_=3
+        ),
+        Chat1a1Session.started_at.asc()  # Mais antigos primeiro
+    ).all()
     
-    # Buscar triagem específica ou a mais recente
-    if triage_id:
-        triage_log = TriageLog.query.get(triage_id)
-        if not triage_log:
-            return "Triagem não encontrada", 404
-    else:
-        # Buscar a triagem mais recente que precisa de atendimento
-        triage_log = TriageLog.query.filter_by(
-            triage_status='waiting'
-        ).order_by(TriageLog.created_at.desc()).first()
+    # Criar lista com informações completas dos clientes
+    clients_waiting = []
+    for session in waiting_sessions:
+        client = session.user
         
-        if not triage_log:
-            # Se não há triagens em espera, criar dados de exemplo para teste
-            client = User.query.first()
-            if not client:
-                return "Nenhum usuário encontrado no sistema", 404
-                
-            volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
-            if not volunteer:
-                volunteer = Volunteer(user_id=current_user.id)
-                db.session.add(volunteer)
-                db.session.commit()
-            
-            triage = {
-                'reason': 'Ansiedade e estresse',
-                'date': '04/09/2025'
-            }
-            ai_analysis = {
-                'emotional_state': 'Ansioso',
-                'risk_level': 'Baixo',
-                'notes': 'Cliente demonstra preocupação com trabalho e rotina.'
-            }
-            
-            session = ChatSession.query.filter_by(
-                user_id=client.id, 
-                volunteer_id=volunteer.id, 
-                status=ChatSessionStatus.ACTIVE.value
-            ).first()
-            if not session:
-                session = ChatSession(
-                    user_id=client.id, 
-                    volunteer_id=volunteer.id, 
-                    status=ChatSessionStatus.ACTIVE.value
-                )
-                session.title = f"Atendimento {client.first_name} {client.last_name}"
-                db.session.add(session)
-                db.session.commit()
-            
-            return render_template('chat/service_intake.html', 
-                                 client=client, 
-                                 triage=triage, 
-                                 ai_analysis=ai_analysis, 
-                                 session=session,
-                                 is_example=True)
+        # Buscar a triagem mais recente do cliente
+        triage_log = TriageLog.query.filter_by(user_id=client.id).order_by(TriageLog.created_at.desc()).first()
+        
+        client_info = {
+            'session': session,
+            'client': client,
+            'triage_log': triage_log,
+            'waiting_time': datetime.now(timezone.utc) - session.started_at,
+            'priority_label': {
+                'critical': 'Urgente',
+                'high': 'Alto',
+                'normal': 'Normal'
+            }.get(session.priority_level, 'Normal'),
+            'priority_color': {
+                'critical': '#d63031',
+                'high': '#e17055', 
+                'normal': '#00b894'
+            }.get(session.priority_level, '#00b894')
+        }
+        clients_waiting.append(client_info)
     
-    # Dados reais da triagem
-    client = triage_log.user
-    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
-    if not volunteer:
-        volunteer = Volunteer(user_id=current_user.id)
-        db.session.add(volunteer)
-        db.session.commit()
+    return render_template('volunteer/new_service_list.html', clients_waiting=clients_waiting)
+
+
+@volunteer.route('/new_service/<int:session_id>')
+@login_required
+def view_client_details(session_id):
+    """Visualizar detalhes de um cliente específico"""
+    session = Chat1a1Session.query.get_or_404(session_id)
     
-    # Montar dados da triagem
-    triage = {
-        'reason': triage_log.action_details or 'Apoio emocional solicitado',
-        'date': triage_log.created_at.strftime('%d/%m/%Y') if triage_log.created_at else 'Não informado'
-    }
+    # Verificar se a sessão ainda está em espera
+    if session.status != 'WAITING':
+        return redirect(url_for('volunteer.new_service'))
     
-    # Montar análise da IA baseada nos dados reais
-    risk_level_map = {
-        RiskLevel.LOW: 'Baixo',
-        RiskLevel.MODERATE: 'Moderado', 
-        RiskLevel.HIGH: 'Alto',
-        RiskLevel.CRITICAL: 'Crítico'
-    }
+    client = session.user
     
-    ai_analysis = {
-        'emotional_state': triage_log.emotional_state or 'A avaliar',
-        'risk_level': risk_level_map.get(triage_log.risk_level, 'Não avaliado'),
-        'notes': triage_log.notes or 'Cliente solicita apoio profissional.'
-    }
+    # Buscar a triagem mais recente do cliente
+    triage_log = TriageLog.query.filter_by(user_id=client.id).order_by(TriageLog.created_at.desc()).first()
     
-    # Buscar sessão ativa ou criar nova
-    session = ChatSession.query.filter_by(
-        user_id=client.id, 
-        volunteer_id=volunteer.id, 
-        status=ChatSessionStatus.ACTIVE.value
-    ).first()
-    if not session:
-        session = ChatSession(
-            user_id=client.id, 
-            volunteer_id=volunteer.id, 
-            status=ChatSessionStatus.ACTIVE.value
-        )
-        session.title = f"Atendimento {client.first_name} {client.last_name}"
-        db.session.add(session)
-        db.session.commit()
-    
-    # Atualizar status da triagem para 'em_atendimento'
-    triage_log.triage_status = 'em_atendimento'
-    triage_log.volunteer_assigned = volunteer.id
-    db.session.commit()
-    
-    return render_template('chat/service_intake.html', 
+    return render_template('volunteer/client_details.html', 
+                         session=session, 
                          client=client, 
-                         triage=triage, 
-                         ai_analysis=ai_analysis, 
-                         session=session,
                          triage_log=triage_log)
 
-@volunteer.route('/start_chat/<int:client_id>')
+
+@volunteer.route('/accept_client/<int:session_id>')
 @login_required
-def start_chat(client_id):
-    from app.models import User, Volunteer, ChatSession, ChatSessionStatus, ChatMessage, ChatMessageType
-    from app import db
-    client = User.query.get(client_id)
+def accept_client(session_id):
+    """Aceitar um cliente e iniciar chat 1a1"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se a sessão ainda está disponível
+    if session.status != 'WAITING':
+        return redirect(url_for('volunteer.new_service'))
+    
+    # Criar ou obter voluntário
     volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
     if not volunteer:
         volunteer = Volunteer(user_id=current_user.id)
         db.session.add(volunteer)
         db.session.commit()
-    # Buscar sessão ativa ou criar nova
-    session = ChatSession.query.filter_by(user_id=client.id, volunteer_id=volunteer.id, status=ChatSessionStatus.ACTIVE.value).first()
-    if not session:
-        session = ChatSession(user_id=client.id, volunteer_id=volunteer.id, status=ChatSessionStatus.ACTIVE.value)
-        session.title = f"Atendimento {client.first_name} {client.last_name}"
-        db.session.add(session)
-        db.session.commit()
-    # Buscar mensagens
-    messages = session.get_messages()
-    google_meet_url = 'https://meet.google.com/new'
-    return render_template('chat/chat_1a1.html', client=client, google_meet_url=google_meet_url, messages=messages, session=session)
+    
+    # Atribuir voluntário à sessão
+    session.volunteer_id = volunteer.id
+    session.status = 'ACTIVE'
+    db.session.commit()
+    
+    # Redirecionar para o chat
+    return redirect(url_for('volunteer.client_chat', session_id=session_id))
 
-@volunteer.route('/send_message/<int:session_id>', methods=['POST'])
-@login_required
-def send_message(session_id):
-    from app.models import ChatSession, ChatMessageType
-    from app import db
-    session = ChatSession.query.get(session_id)
-    if not session or not session.is_active:
-        return "Sessão não encontrada ou encerrada", 404
-    content = request.form.get('content')
-    if content:
-        session.add_message(content, message_type=ChatMessageType.VOLUNTEER, sender_id=current_user.id)
-        db.session.commit()
-    return redirect(url_for('volunteer.start_chat', client_id=session.user_id))
 
-@volunteer.route('/api/messages/<int:session_id>')
+@volunteer.route('/video_call/<int:session_id>')
 @login_required
-def api_get_messages(session_id):
-    from app.models import ChatSession
-    session = ChatSession.query.get(session_id)
-    if not session:
-        return {"messages": []}, 404
-    messages = session.get_messages()
-    client_name = session.user.name if hasattr(session.user, 'name') else 'Cliente'
-    return {"messages": messages, "client_name": client_name}
-
-@volunteer.route('/api/send_message/<int:session_id>', methods=['POST'])
-@login_required
-def api_send_message(session_id):
-    from app.models import ChatSession, ChatMessageType
-    from app import db
-    import json
-    session = ChatSession.query.get(session_id)
-    if not session:
-        return {"error": "Sessão não encontrada"}, 404
-    # Permite envio mesmo se não estiver ativa, mas retorna aviso
-    if not session.is_active:
-        # Ainda salva a mensagem, mas marca como encerrada
-        data = request.get_json()
-        content = data.get('content')
-        if content:
-            session.add_message(f"[ATENÇÃO: Sessão encerrada] {content}", message_type=ChatMessageType.VOLUNTEER, sender_id=current_user.id)
-            db.session.commit()
-        return {"warning": "Sessão está encerrada, mensagem registrada apenas para histórico."}, 200
-    data = request.get_json()
-    content = data.get('content')
-    if content:
-        session.add_message(content, message_type=ChatMessageType.VOLUNTEER, sender_id=current_user.id)
+def video_call(session_id):
+    """Iniciar chamada de vídeo com cliente"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se a sessão ainda está disponível
+    if session.status != 'WAITING':
+        return redirect(url_for('volunteer.new_service'))
+    
+    # Criar ou obter voluntário
+    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+    if not volunteer:
+        volunteer = Volunteer(user_id=current_user.id)
+        db.session.add(volunteer)
         db.session.commit()
-    return {"success": True}
+    
+    # Atribuir voluntário à sessão e iniciar vídeo
+    session.volunteer_id = volunteer.id
+    session.status = 'ACTIVE'
+    db.session.commit()
+    
+    # TODO: Implementar notificação para o cliente sobre chamada de vídeo
+    # Por enquanto, redirecionar para o chat
+    return redirect(url_for('volunteer.client_chat', session_id=session_id))
+
+
+@volunteer.route('/reject_client/<int:session_id>')
+@login_required
+def reject_client(session_id):
+    """Não aceitar um cliente específico"""
+    # Por enquanto, apenas redirecionar de volta
+    # TODO: Implementar lógica para marcar que este voluntário não pode atender este cliente
+    return redirect(url_for('volunteer.new_service'))
+
 
 @volunteer.route('/client_chat/<int:session_id>')
 @login_required
 def client_chat(session_id):
-    from app.models import ChatSession, User
-    session = ChatSession.query.get(session_id)
-    if not session or not session.is_active:
-        return "Sessão não encontrada ou encerrada", 404
+    """Chat 1a1 entre voluntário e cliente"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se a sessão está ativa
+    if session.status != 'ACTIVE':
+        return "Sessão não está ativa", 404
+        
+    # Verificar se o voluntário atual está atribuído a esta sessão
+    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+    if not volunteer or session.volunteer_id != volunteer.id:
+        return "Acesso negado a esta sessão", 403
+    
     client = session.user
+    messages = session.messages.order_by(Chat1a1Message.created_at.asc()).all()
     google_meet_url = 'https://meet.google.com/new'
-    messages = session.get_messages()
-    return render_template('chat/chat_1a1.html', client=client, google_meet_url=google_meet_url, messages=messages, session=session)
+    
+    return render_template('chat/chat_1a1.html', 
+                         client=client, 
+                         google_meet_url=google_meet_url, 
+                         messages=messages, 
+                         session=session)
+
 
 @volunteer.route('/client_chat/<int:session_id>/send', methods=['POST'])
 @login_required
 def client_send_message(session_id):
-    from app.models import ChatSession, ChatMessageType
-    from app import db
-    session = ChatSession.query.get(session_id)
-    if not session or not session.is_active:
-        return {"error": "Sessão não encontrada ou encerrada"}, 404
+    """Enviar mensagem no chat 1a1"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se a sessão está ativa
+    if session.status != 'ACTIVE':
+        return {"error": "Sessão não está ativa"}, 404
+        
+    # Verificar se o usuário pode enviar mensagens nesta sessão
+    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+    is_volunteer = volunteer and session.volunteer_id == volunteer.id
+    is_client = session.user_id == current_user.id
+    
+    if not (is_volunteer or is_client):
+        return {"error": "Acesso negado a esta sessão"}, 403
+    
     data = request.get_json()
     content = data.get('content')
+    
     if content:
-        session.add_message(content, message_type=ChatMessageType.USER, sender_id=current_user.id)
+        # Criar nova mensagem
+        message = Chat1a1Message(
+            session_id=session.id,
+            sender_id=current_user.id,
+            content=content,
+            message_type='volunteer' if is_volunteer else 'client'
+        )
+        
+        db.session.add(message)
+        session.message_count += 1
         db.session.commit()
+    
     return {"success": True}
+
+
+@volunteer.route('/api/messages/<int:session_id>')
+@login_required
+def get_messages(session_id):
+    """Buscar mensagens do chat 1a1"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se o usuário pode ver as mensagens
+    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+    is_volunteer = volunteer and session.volunteer_id == volunteer.id
+    is_client = session.user_id == current_user.id
+    
+    if not (is_volunteer or is_client):
+        return {"error": "Acesso negado a esta sessão"}, 403
+    
+    messages = session.messages.order_by(Chat1a1Message.created_at.asc()).all()
+    
+    messages_data = []
+    for message in messages:
+        # Buscar o nome do usuário diretamente do banco
+        sender = User.query.get(message.sender_id)
+        sender_name = sender.first_name if sender else 'Desconhecido'
+        
+        messages_data.append({
+            'id': message.id,
+            'content': message.content,
+            'sender_type': message.message_type,
+            'sender_name': sender_name,
+            'created_at': message.created_at.isoformat()
+        })
+    
+    return jsonify({
+        'success': True,
+        'messages': messages_data,
+        'session_status': session.status
+    })
+
+
+@volunteer.route('/end_session/<int:session_id>')
+@login_required
+def end_session(session_id):
+    """Encerrar sessão de chat 1a1"""
+    session = Chat1a1Session.query.get_or_404(session_id)
+    
+    # Verificar se o voluntário atual está atribuído a esta sessão
+    volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+    if not volunteer or session.volunteer_id != volunteer.id:
+        return "Acesso negado a esta sessão", 403
+    
+    # Encerrar a sessão
+    session.status = 'COMPLETED'
+    session.completed_at = datetime.utcnow()
+    db.session.commit()
+    
+    flash('Atendimento encerrado com sucesso!', 'success')
+    return redirect(url_for('volunteer.new_service'))

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes Aguardando Atendimento - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .header h1 {
+            color: #2d3436;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: #636e72;
+            font-size: 1.1rem;
+        }
+        
+        .stats-bar {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00b894;
+        }
+        
+        .stat-item .label {
+            color: #636e72;
+            font-size: 0.9rem;
+        }
+        
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .client-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+        
+        .client-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .priority-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .priority-critical {
+            background-color: #d63031;
+        }
+        
+        .priority-high {
+            background-color: #e17055;
+        }
+        
+        .priority-normal {
+            background-color: #00b894;
+        }
+        
+        .priority-default {
+            background-color: #636e72;
+        }
+        
+        .client-info h3 {
+            color: #2d3436;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        .client-details {
+            margin-bottom: 1.5rem;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #f1f2f6;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #636e72;
+            min-width: 100px;
+        }
+        
+        .detail-value {
+            color: #2d3436;
+            flex: 1;
+            text-align: right;
+        }
+        
+        .triage-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #00b894;
+        }
+        
+        .triage-info h4 {
+            color: #00b894;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .triage-details {
+            font-size: 0.9rem;
+            color: #636e72;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 0.7rem;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background-color: #00b894;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #00a085;
+        }
+        
+        .btn-info {
+            background-color: #0984e3;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background-color: #0770c7;
+        }
+        
+        .waiting-time {
+            color: #e17055;
+            font-weight: bold;
+        }
+        
+        .no-clients {
+            text-align: center;
+            padding: 4rem;
+            color: #636e72;
+        }
+        
+        .no-clients i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+        
+        .refresh-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #00b894;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-button:hover {
+            background: #00a085;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-heart"></i> Clientes Aguardando Atendimento</h1>
+            <p>Selecione um cliente para iniciar o atendimento</p>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="number">{{ clients_waiting|length }}</div>
+                <div class="label">Total em espera</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">{{ clients_waiting|selectattr('session.priority_level', 'equalto', 'critical')|list|length }}</div>
+                <div class="label">Urgente</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">{{ clients_waiting|selectattr('session.priority_level', 'equalto', 'high')|list|length }}</div>
+                <div class="label">Alta Prioridade</div>
+            </div>
+            <div class="stat-item">
+                <div class="number">{{ clients_waiting|selectattr('session.priority_level', 'equalto', 'normal')|list|length }}</div>
+                <div class="label">Normal</div>
+            </div>
+        </div>
+        
+        {% if clients_waiting %}
+        <div class="clients-grid">
+            {% for client_info in clients_waiting %}
+            {% set badge_color = client_info.priority_color if client_info.priority_color else '#636e72' %}
+            {% set priority_class = 'priority-' + (client_info.session.priority_level if client_info.session.priority_level else 'default') %}
+            <div class="client-card">
+                <div class="priority-badge {{ priority_class }}">
+                    {{ client_info.priority_label }}
+                </div>
+                
+                <div class="client-info">
+                    <h3>{{ client_info.client.first_name }} {{ client_info.client.last_name }}</h3>
+                    
+                    <div class="client-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Idade:</span>
+                            <span class="detail-value">{{ client_info.client.age or 'N/I' }} anos</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value">{{ client_info.client.email }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Aguardando:</span>
+                            <span class="detail-value waiting-time">
+                                {% set hours = client_info.waiting_time.seconds // 3600 %}
+                                {% set minutes = (client_info.waiting_time.seconds % 3600) // 60 %}
+                                {{ hours }}h {{ minutes }}min
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {% if client_info.triage_log %}
+                    <div class="triage-info">
+                        <h4><i class="fas fa-clipboard-list"></i> Análise da IA</h4>
+                        <div class="triage-details">
+                            <strong>Estado:</strong> {{ client_info.triage_log.emotional_state or 'N/A' }}<br>
+                            <strong>Risco:</strong> {{ client_info.triage_log.risk_level or 'N/A' }}<br>
+                            <strong>Observações:</strong> {{ client_info.triage_log.notes or 'Sem observações' }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="action-buttons">
+                        <a href="{{ url_for('volunteer.view_client_details', session_id=client_info.session.id) }}" class="btn btn-info">
+                            <i class="fas fa-eye"></i> Ver Detalhes
+                        </a>
+                        <a href="{{ url_for('volunteer.accept_client', session_id=client_info.session.id) }}" class="btn btn-primary">
+                            <i class="fas fa-comments"></i> Aceitar Atendimento
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-clients">
+            <i class="fas fa-check-circle"></i>
+            <h2>Nenhum cliente aguardando atendimento</h2>
+            <p>Todos os clientes foram atendidos. Obrigado pelo seu trabalho!</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <button class="refresh-button" onclick="window.location.reload();">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+    
+    <script>
+        // Auto-refresh a cada 30 segundos
+        setInterval(function() {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
