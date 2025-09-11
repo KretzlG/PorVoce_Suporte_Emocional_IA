@@ -198,58 +198,191 @@ body {
     background: #757575;
 }
 
-.chat-messages {
+.chat-messages,
+.messages-container {
     background: #fff;
     border-radius: 12px;
     margin: 2rem auto 0 auto;
     max-width: 900px;
-    min-height: 320px;
+    min-height: 400px;
     box-shadow: 0 2px 16px rgba(33,150,243,0.08);
     padding: 2rem 2rem 1rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     overflow-y: auto;
+    overflow-x: hidden;
+    background: #f8f9fa;
 }
 
 .chat-message {
     max-width: 75%;
     margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    padding: 15px 18px;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.8rem;
     border-radius: 20px;
     font-size: 15px;
     line-height: 1.5;
     word-wrap: break-word;
     position: relative;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px);
+    clear: both;
+    animation: fadeInUp 0.3s ease-out;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
-.from-volunteer {
-    background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
-    color: white;
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mensagens do voluntário (enviadas) - À DIREITA */
+.from-volunteer,
+.chat-message.from-volunteer {
     align-self: flex-end;
+    flex-direction: row-reverse;
     margin-left: auto;
     margin-right: 0;
-    align-items: flex-end;
-    border-bottom-right-radius: 6px;
+    justify-content: flex-end;
+    width: auto;
+    max-width: 75%;
 }
-.from-client {
-    background: rgba(255, 255, 255, 0.95);
-    color: #374151;
+
+.from-volunteer .message-avatar,
+.chat-message.from-volunteer .message-avatar {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    margin-left: 0.8rem;
+    margin-right: 0;
+    order: 2;
+}
+
+.from-volunteer .message-content,
+.chat-message.from-volunteer .message-content {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-bottom-right-radius: 6px;
+    text-align: right;
+    order: 1;
+}
+
+.from-volunteer .message-time,
+.chat-message.from-volunteer .message-time {
+    color: rgba(255, 255, 255, 0.8);
+    text-align: right;
+}
+
+/* Mensagens do cliente (recebidas) - À ESQUERDA */
+.from-client,
+.chat-message.from-client {
     align-self: flex-start;
+    flex-direction: row;
     margin-left: 0;
     margin-right: auto;
-    align-items: flex-start;
-    border-bottom-left-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    justify-content: flex-start;
+    width: auto;
+    max-width: 75%;
 }
-.chat-author {
-    font-weight: bold;
-    margin-right: 8px;
-    color: #1976d2;
+
+.from-client .message-avatar,
+.chat-message.from-client .message-avatar {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    margin-left: 0;
+    margin-right: 0.8rem;
+    order: 1;
+}
+
+.from-client .message-content,
+.chat-message.from-client .message-content {
+    background: white;
+    color: #374151;
+    border: 1px solid #fee;
+    border-bottom-left-radius: 6px;
+    text-align: left;
+    order: 2;
+}
+
+.from-client .message-time,
+.chat-message.from-client .message-time {
+    color: #6c757d;
+    text-align: left;
+}
+
+.message-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-width: 45px;
+    min-height: 45px;
+}
+
+/* Garantir que os ícones nos avatares sejam visíveis */
+.message-avatar i,
+.chat-message .message-avatar i,
+.from-volunteer .message-avatar i,
+.from-client .message-avatar i {
+    font-size: 1.2rem !important;
+    color: white !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+/* Garantir que Font Awesome seja carregado */
+.fas, .fa {
+    font-weight: 900 !important;
+    font-family: "Font Awesome 6 Free" !important;
+}
+
+/* Forçar a estrutura correta das mensagens */
+.chat-messages .chat-message.from-volunteer {
+    flex-direction: row-reverse !important;
+    justify-content: flex-start !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+.chat-messages .chat-message.from-client {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+/* Debug: Tornar avatares mais visíveis */
+.message-avatar {
+    border: 2px solid rgba(255,255,255,0.3) !important;
+    background-clip: padding-box !important;
+}
+
+.message-content {
+    padding: 1rem 1.2rem;
+    border-radius: 18px;
+    word-wrap: break-word;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    max-width: 70%;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    opacity: 0.8;
 }
 
 .chat-input {
@@ -292,6 +425,29 @@ body {
     background: #1565c0;
 }
 
+/* Estilos removidos - usando a nova estrutura com avatares */
+
+/* Clearfix para o container de mensagens */
+.chat-messages::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Efeito de nova mensagem */
+.new-message {
+    animation: highlightNewMessage 1s ease-out;
+}
+
+@keyframes highlightNewMessage {
+    0% {
+        background-color: rgba(33, 150, 243, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
 @media (max-width: 900px) {
     .chat-messages, .chat-input {
         max-width: 98vw;
@@ -302,5 +458,8 @@ body {
         flex-direction: column;
         gap: 1rem;
         padding: 1rem 1vw;
+    }
+    .chat-message {
+        max-width: 85%;
     }
 }

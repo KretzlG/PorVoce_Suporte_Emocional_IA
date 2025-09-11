@@ -4,160 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat 1a1 - Por Você</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_client.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .chat-header {
-            background: linear-gradient(135deg, #00b894, #00a085);
-            color: white;
-            padding: 1rem;
-            border-radius: 10px 10px 0 0;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .volunteer-info {
-            flex: 1;
-        }
-        
-        .volunteer-info h3 {
-            margin: 0;
-            font-size: 1.2rem;
-        }
-        
-        .volunteer-info p {
-            margin: 0.3rem 0 0 0;
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        
-        .priority-badge {
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        
-        .priority-high {
-            background-color: #e17055;
-        }
-        
-        .priority-critical {
-            background-color: #d63031;
-        }
-        
-        .priority-normal {
-            background-color: #00b894;
-        }
-        
-        .chat-container {
-            max-width: 900px;
-            margin: 2rem auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .messages-container {
-            height: 400px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: #f8f9fa;
-        }
-        
-        .message {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        
-        .message.client {
-            justify-content: flex-end;
-            flex-direction: row-reverse;
-        }
-        
-        .message.volunteer {
-            justify-content: flex-start;
-        }
-        
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            color: white;
-            flex-shrink: 0;
-        }
-        
-        .message.client .message-avatar {
-            background: #00b894;
-        }
-        
-        .message.volunteer .message-avatar {
-            background: #0984e3;
-        }
-        
-        .message-content {
-            max-width: 70%;
-            padding: 0.8rem;
-            border-radius: 15px;
-            word-wrap: break-word;
-            position: relative;
-        }
-        
-        .message.volunteer .message-content {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-bottom-left-radius: 5px;
-        }
-        
-        .message.client .message-content {
-            background: #00b894;
-            color: white;
-            border-bottom-right-radius: 5px;
-        }
-        
-        .message-time {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 0.3rem;
-        }
-        
-        .input-container {
-            display: flex;
-            gap: 0.5rem;
-            padding: 1rem;
-            border-top: 1px solid #eee;
-        }
-        
-        .message-input {
-            flex: 1;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 25px;
-            outline: none;
-        }
-        
-        .send-button {
-            background: #00b894;
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .send-button:hover {
-            background: #00a085;
-        }
-    </style>
 </head>
 <body>
     <div class="chat-container">
@@ -237,28 +85,49 @@
                 });
         }
 
+        let lastClientMessageCount = 0;
+        
         function updateMessages(messages) {
+            // Só recriar se houve mudanças
+            if (messages.length === lastClientMessageCount && lastClientMessageCount > 0) {
+                return;
+            }
+            
+            lastClientMessageCount = messages.length;
             messagesContainer.innerHTML = '';
+            
             messages.forEach(message => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${message.sender_type === 'client' ? 'client' : 'volunteer'}`;
+                const isClient = message.sender_type === 'client';
+                messageDiv.className = `message ${isClient ? 'client' : 'volunteer'}`;
                 
                 const time = new Date(message.created_at).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                const isClient = message.sender_type === 'client';
                 const avatarIcon = isClient ? 'fas fa-user' : 'fas fa-heart';
                 
-                messageDiv.innerHTML = `
-                    <div class="message-avatar">
-                        <i class="${avatarIcon}"></i>
-                    </div>
-                    <div class="message-content">
-                        ${message.content}
-                        <div class="message-time">${time}</div>
-                    </div>
-                `;
+                // Criar elementos separadamente para melhor controle
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar';
+                avatarDiv.innerHTML = `<i class="${avatarIcon}"></i>`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                const messageText = document.createElement('div');
+                messageText.textContent = message.content;
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = time;
+                
+                contentDiv.appendChild(messageText);
+                contentDiv.appendChild(timeDiv);
+                
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                
                 messagesContainer.appendChild(messageDiv);
             });
             
@@ -272,8 +141,8 @@
             }
         });
 
-        // Atualizar mensagens a cada 3 segundos
-        setInterval(loadMessages, 3000);
+        // Atualizar mensagens a cada 5 segundos para reduzir piscamento
+        setInterval(loadMessages, 5000);
         
         // Focar no input ao carregar
         messageInput.focus();

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat 1a1 - Voluntário - Por Você</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_1a1.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .chat-header {
@@ -114,12 +114,7 @@
             overflow: hidden;
         }
         
-        .messages-container {
-            height: 400px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: #f8f9fa;
-        }
+        /* Estilos movidos para chat_1a1.css */
         
         .message {
             margin-bottom: 1rem;
@@ -244,9 +239,9 @@
             </div>
         </div>
         
-        <div class="messages-container" id="messages">
+        <div class="messages-container" id="chat-messages" data-session-id="{{ session.id }}">
             {% for message in messages %}
-            <div class="message {{ 'volunteer' if message.message_type == 'volunteer' else 'client' }}">
+            <div class="chat-message {{ 'from-volunteer' if message.message_type == 'volunteer' else 'from-client' }}">
                 <div class="message-avatar">
                     {% if message.message_type == 'volunteer' %}
                         <i class="fas fa-heart"></i>
@@ -255,7 +250,7 @@
                     {% endif %}
                 </div>
                 <div class="message-content">
-                    {{ message.content }}
+                    <div>{{ message.content }}</div>
                     <div class="message-time">
                         {{ message.created_at.strftime('%H:%M') }}
                     </div>
@@ -264,158 +259,14 @@
             {% endfor %}
         </div>
         
-        <div class="input-container">
-            <input type="text" class="message-input" id="messageInput" placeholder="Digite sua resposta..." />
-            <button class="send-button" onclick="sendMessage()">
-                <i class="fas fa-paper-plane"></i> Enviar
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="Digite sua resposta..." />
+            <button id="send-btn">
+                <i class="fas fa-paper-plane"></i>
             </button>
         </div>
     </div>
 
-    <script>
-        const sessionId = parseInt('{{ session.id }}');
-        const messagesContainer = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-
-        function sendMessage() {
-            const content = messageInput.value.trim();
-            if (!content) return;
-
-            fetch(`/volunteer/client_chat/${sessionId}/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ content })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    messageInput.value = '';
-                    loadMessages(); // Recarregar mensagens
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao enviar mensagem:', error);
-            });
-        }
-
-        function loadMessages() {
-            fetch(`/volunteer/api/messages/${sessionId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updateMessages(data.messages);
-                    }
-                });
-        }
-
-        function updateMessages(messages) {
-            messagesContainer.innerHTML = '';
-            messages.forEach(message => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${message.sender_type}`;
-                
-                const time = new Date(message.created_at).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                const isVolunteer = message.sender_type === 'volunteer';
-                const avatarIcon = isVolunteer ? 'fas fa-heart' : 'fas fa-user';
-                
-                messageDiv.innerHTML = `
-                    <div class="message-avatar">
-                        <i class="${avatarIcon}"></i>
-                    </div>
-                    <div class="message-content">
-                        ${message.content}
-                        <div class="message-time">${time}</div>
-                    </div>
-                `;
-                messagesContainer.appendChild(messageDiv);
-            });
-            
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Permitir envio com Enter
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        // Atualizar mensagens a cada 3 segundos
-        setInterval(loadMessages, 3000);
-        
-        // Focar no input ao carregar
-        messageInput.focus();
-    </script>
+    <script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>
 </body>
 </html>
-    padding: 1rem 0;
-    border-bottom: 1px solid #eee;
-}
-.chat-actions .btn {
-    min-width: 160px;
-    font-size: 1rem;
-}
-.chat-message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 70%;
-}
-.from-volunteer {
-    background: #e3f2fd;
-    align-self: flex-end;
-    text-align: right;
-}
-.from-client {
-    background: #fce4ec;
-    align-self: flex-start;
-    text-align: left;
-}
-.chat-author {
-    font-weight: bold;
-    margin-right: 6px;
-}
-</style>
-<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>
-</body>
-</html>
-
-<style>
-.chat-1a1-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    border-bottom: 1px solid #eee;
-}
-.chat-actions .btn {
-    min-width: 160px;
-    font-size: 1rem;
-}
-.chat-message {
-    margin-bottom: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    max-width: 70%;
-}
-.from-volunteer {
-    background: #e3f2fd;
-    align-self: flex-end;
-    text-align: right;
-}
-.from-client {
-    background: #fce4ec;
-    align-self: flex-start;
-    text-align: left;
-}
-.chat-author {
-    font-weight: bold;
-    margin-right: 6px;
-}
-</style>
-<script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>

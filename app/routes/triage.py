@@ -203,6 +203,52 @@ def referral_form():
     """Formulário de encaminhamento para risco moderado"""
     return render_template('triage/referral_form.html')
 
+
+@triage.route('/api/triage/waiting')
+@login_required
+def api_waiting_clients():
+    """API para verificar clientes aguardando atendimento de triagem"""
+    try:
+        # Importar models necessários
+        from app.models.chat1a1 import Chat1a1Session
+        from app.models.volunteer import Volunteer
+        
+        # Verificar se o usuário atual é voluntário
+        volunteer = Volunteer.query.filter_by(user_id=current_user.id).first()
+        if not volunteer:
+            return jsonify({'waiting_count': 0, 'message': 'Usuário não é voluntário'})
+        
+        # Contar sessões 1a1 aguardando voluntário com prioridade alta/crítica
+        waiting_sessions = Chat1a1Session.query.filter(
+            Chat1a1Session.status == 'WAITING',
+            Chat1a1Session.volunteer_id.is_(None),
+            Chat1a1Session.priority_level.in_(['high', 'critical'])
+        ).count()
+        
+        # Contar triagens aguardando encaminhamento
+        waiting_triage = TriageLog.query.filter(
+            TriageLog.triage_status == 'waiting',
+            TriageLog.risk_level.in_([RiskLevel.HIGH, RiskLevel.CRITICAL])
+        ).count()
+        
+        total_waiting = waiting_sessions + waiting_triage
+        
+        return jsonify({
+            'success': True,
+            'waiting_count': total_waiting,
+            'sessions_waiting': waiting_sessions,
+            'triage_waiting': waiting_triage,
+            'message': f'{total_waiting} clientes aguardando atendimento prioritário'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'waiting_count': 0,
+            'error': f'Erro ao buscar clientes aguardando: {str(e)}'
+        }), 500
+
+
 # Telas (templates) para triagem
 # triage_popup.html: mensagem pop-up no chat
 # triage_images.html: seleção de imagens
