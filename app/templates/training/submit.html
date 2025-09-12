@@ -1,0 +1,131 @@
+<div class="content-wrapper">
+    <div class="training-header mb-4">
+        <h2><i class="fas fa-plus-circle"></i> Novo Treinamento</h2>
+        <p class="text-muted">Envie dados para treinar a inteligência artificial de apoio emocional</p>
+    </div>
+
+    <div class="training-form-container">
+        <form id="submit-form" class="training-form" method="POST" enctype="multipart/form-data" action="{{ url_for('training.submit') }}">
+            {% if csrf_token %}{{ csrf_token() }}{% endif %}
+            
+            <!-- Informações básicas -->
+            <div class="form-section">
+                <h4><i class="fas fa-info-circle"></i> Informações Básicas</h4>
+                
+                <div class="form-group">
+                    <label for="title" class="form-label required">
+                        <i class="fas fa-heading"></i> Título do Treinamento
+                    </label>
+                    <input type="text" id="title" name="title" class="form-control" 
+                           placeholder="Digite um título descritivo para este treinamento" required>
+                    <small class="form-text">Escolha um título claro que descreva o conteúdo</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">
+                        <i class="fas fa-align-left"></i> Descrição
+                    </label>
+                    <textarea id="description" name="description" class="form-control" rows="3"
+                              placeholder="Descreva o objetivo e contexto deste treinamento (opcional)"></textarea>
+                    <small class="form-text">Informações adicionais sobre o conteúdo a ser treinado</small>
+                </div>
+            </div>
+
+            <!-- Tipo de conteúdo -->
+            <div class="form-section">
+                <h4><i class="fas fa-database"></i> Tipo de Conteúdo</h4>
+                
+                <div class="content-type-selector">
+                    <div class="radio-option">
+                        <input type="radio" id="type_text" name="data_type" value="text" checked>
+                        <label for="type_text" class="radio-label">
+                            <div class="radio-icon">
+                                <i class="fas fa-keyboard"></i>
+                            </div>
+                            <div class="radio-content">
+                                <span class="radio-title">Texto Direto</span>
+                                <span class="radio-description">Digite ou cole o conteúdo diretamente no formulário</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="radio-option">
+                        <input type="radio" id="type_file" name="data_type" value="file">
+                        <label for="type_file" class="radio-label">
+                            <div class="radio-icon">
+                                <i class="fas fa-file-upload"></i>
+                            </div>
+                            <div class="radio-content">
+                                <span class="radio-title">Upload de Arquivo</span>
+                                <span class="radio-description">Envie um arquivo com o conteúdo de treinamento</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteúdo de texto -->
+            <div id="text_content_section" class="form-section content-section">
+                <h4><i class="fas fa-edit"></i> Conteúdo de Texto</h4>
+                
+                <div class="form-group">
+                    <label for="content" class="form-label required">
+                        <i class="fas fa-file-alt"></i> Texto do Treinamento
+                    </label>
+                    <textarea id="content" name="text_content" class="form-control content-textarea" rows="10"
+                              placeholder="Cole aqui o conteúdo que será usado para treinamento da IA...
+
+Exemplos:
+- Conversas de apoio emocional
+- Respostas empáticas
+- Diálogos de aconselhamento
+- Técnicas de comunicação assertiva"></textarea>
+                    <small class="form-text">
+                        <i class="fas fa-lightbulb"></i> 
+                        Forneça conteúdo de qualidade que demonstre comunicação empática e apoio emocional
+                    </small>
+                </div>
+            </div>
+
+            <!-- Upload de arquivo -->
+            <div id="file_upload_section" class="form-section content-section" style="display: none;">
+                <h4><i class="fas fa-cloud-upload-alt"></i> Upload de Arquivo</h4>
+                
+                <div class="form-group">
+                    <label for="file" class="form-label required">
+                        <i class="fas fa-paperclip"></i> Selecionar Arquivo
+                    </label>
+                    <div class="file-upload-area">
+                        <input type="file" id="file" name="file_upload" class="file-input"
+                               accept=".txt,.pdf,.doc,.docx,.odt">
+                        <div class="file-upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                            <p>Clique para selecionar um arquivo ou arraste aqui</p>
+                            <div class="file-info">
+                                <span class="file-formats">Formatos: .txt, .pdf, .doc, .docx, .odt</span>
+                                <span class="file-size">Tamanho máximo: 16MB</span>
+                            </div>
+                        </div>
+                        <div class="file-selected" style="display: none;">
+                            <i class="fas fa-file-check"></i>
+                            <span class="file-name"></span>
+                            <button type="button" class="remove-file">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-btn">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <i class="fas fa-paper-plane"></i> Enviar Treinamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

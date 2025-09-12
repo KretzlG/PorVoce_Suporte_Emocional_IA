@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Cliente - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .priority-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .priority-critical {
+            background-color: #d63031;
+        }
+        
+        .priority-high {
+            background-color: #e17055;
+        }
+        
+        .priority-normal {
+            background-color: #74b9ff;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background 0.3s ease;
+        }
+        
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .client-info {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .info-section {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        
+        .section-title {
+            color: #00b894;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #f1f2f6;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #636e72;
+            min-width: 120px;
+        }
+        
+        .detail-value {
+            color: #2d3436;
+            flex: 1;
+            text-align: right;
+        }
+        
+        .triage-analysis {
+            background: #f8f9fa;
+            border-left: 4px solid #00b894;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .risk-indicator {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .risk-baixo { background-color: #00b894; }
+        .risk-medio { background-color: #fdcb6e; color: #2d3436; }
+        .risk-alto { background-color: #e17055; }
+        .risk-critico { background-color: #d63031; }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-chat {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+        }
+        
+        .btn-chat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,184,148,0.3);
+        }
+        
+        .btn-video {
+            background: linear-gradient(135deg, #0984e3, #0770c7);
+            color: white;
+        }
+        
+        .btn-video:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(9,132,227,0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #d63031, #c0392b);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(214,48,49,0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #636e72, #2d3436);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99,110,114,0.3);
+        }
+        
+        .waiting-time {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .waiting-time .time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #d68910;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-button" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            
+            <div class="priority-badge priority-{{ session.priority_level }}">
+                {% if session.priority_level == 'critical' %}
+                    ⚡ Urgente
+                {% elif session.priority_level == 'high' %}
+                    🔥 Alta Prioridade
+                {% else %}
+                    📋 Normal
+                {% endif %}
+            </div>
+            
+            <h1><i class="fas fa-user"></i> {{ client.first_name }} {{ client.last_name }}</h1>
+            <p>Informações detalhadas do cliente aguardando atendimento</p>
+        </div>
+        
+        <div class="waiting-time">
+            <div><strong>Tempo de espera:</strong></div>
+            <div class="time" id="waiting-time" data-start="{{ session.started_at.isoformat() }}">
+                Calculando...
+            </div>
+        </div>
+        
+        <div class="client-info">
+            <div class="info-grid">
+                <div class="info-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-user-circle"></i> Dados Pessoais
+                    </h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Nome:</span>
+                        <span class="detail-value">{{ client.first_name }} {{ client.last_name }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Idade:</span>
+                        <span class="detail-value">{{ client.age or 'Não informado' }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value">{{ client.email }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Telefone:</span>
+                        <span class="detail-value">{{ client.phone or 'Não informado' }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Cadastrado em:</span>
+                        <span class="detail-value">{{ client.created_at.strftime('%d/%m/%Y') if client.created_at else 'N/A' }}</span>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-clock"></i> Sessão Atual
+                    </h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Solicitado em:</span>
+                        <span class="detail-value">{{ session.started_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Prioridade:</span>
+                        <span class="detail-value">
+                            {% if session.priority_level == 'critical' %}
+                                <span class="risk-indicator risk-critico">Crítica</span>
+                            {% elif session.priority_level == 'high' %}
+                                <span class="risk-indicator risk-alto">Alta</span>
+                            {% else %}
+                                <span class="risk-indicator risk-baixo">Normal</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value">Aguardando voluntário</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Título:</span>
+                        <span class="detail-value">{{ session.title or 'N/A' }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if triage_log %}
+            <div class="triage-analysis">
+                <h3 class="section-title">
+                    <i class="fas fa-brain"></i> Análise da IA
+                </h3>
+                <div class="info-grid">
+                    <div>
+                        <div class="detail-row">
+                            <span class="detail-label">Data da triagem:</span>
+                            <span class="detail-value">{{ triage_log.created_at.strftime('%d/%m/%Y às %H:%M') }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Estado emocional:</span>
+                            <span class="detail-value">{{ triage_log.emotional_state or 'Não informado' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Nível de risco:</span>
+                            <span class="detail-value">
+                                <span class="risk-indicator risk-{{ triage_log.risk_level|lower or 'baixo' }}">
+                                    {{ triage_log.risk_level|title or 'Baixo' }}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="detail-row">
+                            <span class="detail-label">Motivo do contato:</span>
+                            <span class="detail-value">{{ triage_log.reason or 'Não especificado' }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Observações:</span>
+                            <span class="detail-value">{{ triage_log.notes or 'Nenhuma observação' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('volunteer.accept_client', session_id=session.id) }}" class="btn btn-chat">
+                <i class="fas fa-comments"></i> Iniciar Chat
+            </a>
+            <a href="{{ url_for('volunteer.video_call', session_id=session.id) }}" class="btn btn-video">
+                <i class="fas fa-video"></i> Chamada de Vídeo
+            </a>
+            <a href="{{ url_for('volunteer.reject_client', session_id=session.id) }}" class="btn btn-danger">
+                <i class="fas fa-times"></i> Não posso atender
+            </a>
+            <a href="{{ url_for('volunteer.new_service') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar à Lista
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        function updateWaitingTime() {
+            const startTime = new Date(document.getElementById('waiting-time').dataset.start);
+            const now = new Date();
+            const diff = now - startTime;
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('waiting-time').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Atualizar tempo a cada segundo
+        updateWaitingTime();
+        setInterval(updateWaitingTime, 1000);
+    </script>
+</body>
+</html>

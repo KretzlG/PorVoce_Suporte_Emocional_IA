@@ -1,5 +1,3 @@
-
-# ...existing code...
 """
 Rotas administrativas
 """
@@ -426,3 +424,31 @@ def update_volunteer_status(volunteer_id):
             'success': False,
             'error': 'Erro ao atualizar status do voluntário'
         }), 500
+
+
+@admin.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    from app.models import User
+    user = User.query.get(user_id)
+    if not user:
+        return "Usuário não encontrado.", 404
+    if request.method == 'POST':
+        user.first_name = request.form.get('first_name')
+        user.last_name = request.form.get('last_name')
+        user.email = request.form.get('email')
+        user.phone = request.form.get('phone')
+        user.save()
+        return redirect(url_for('admin.users'))
+    return render_template('admin/edit_user.html', user=user)
+
+
+@admin.route('/delete_user/<int:user_id>', methods=['GET'])
+@login_required
+def delete_user(user_id):
+    from app.models import User
+    user = User.query.get(user_id)
+    if not user:
+        return "Usuário não encontrado.", 404
+    user.delete()
+    return redirect(url_for('admin.users'))

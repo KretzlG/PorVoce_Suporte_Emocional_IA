@@ -111,6 +111,57 @@ def api_chat_send():
                     # Usar análise básica por palavras-chave como fallback
                     detected_risk_level = ai_service.assess_risk_level(message_content)
             
+            # CRIAR LOG DE TRIAGEM SE RISCO MODERADO/ALTO/CRÍTICO
+            triage_log = None
+            if detected_risk_level in ['moderate', 'high', 'critical']:
+                from app.models.triage import TriageLog, RiskLevel
+                
+                # Converter string para enum
+                risk_enum_map = {
+                    'low': RiskLevel.LOW,
+                    'moderate': RiskLevel.MODERATE, 
+                    'high': RiskLevel.HIGH,
+                    'critical': RiskLevel.CRITICAL
+                }
+                
+                try:
+                    # Tentar criar o log de triagem com os novos campos
+                    triage_log = TriageLog(
+                        user_id=current_user.id,
+                        chat_session_id=chat_session.id,
+                        risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
+                        confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
+                        trigger_content=message_content[:500],  # Limitar tamanho
+                        context_type='chat_message',
+                        # Definir indicadores específicos baseados na análise
+                        suicidal_ideation='suicidal_ideation' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        self_harm_risk='self_harm' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        severe_depression='severe_depression' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        anxiety_disorder='anxiety_panic' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                        triage_status='waiting'  # Status para fila de voluntários
+                    )
+                    
+                    # Tentar definir novos campos se existirem
+                    try:
+                        triage_log.emotional_state = sentiment_analysis.get('emotion', 'Análise em andamento') if sentiment_analysis else 'A avaliar'
+                        triage_log.notes = sentiment_analysis.get('summary', f'Risco {detected_risk_level} detectado na conversa') if sentiment_analysis else f'Sistema detectou nível de risco: {detected_risk_level}'
+                    except AttributeError as attr_err:
+                        print(f"[DEBUG] Campos emotional_state/notes não existem ainda no BD: {attr_err}")
+                        # Continuar sem esses campos por enquanto
+                    
+                    db.session.add(triage_log)
+                    # Salvar primeiro para obter ID
+                    db.session.flush()
+                    
+                    # Salvar ID da triagem na sessão para uso posterior
+                    session['triage_id'] = triage_log.id
+                    
+                except Exception as e:
+                    print(f"[DEBUG] Erro ao criar log de triagem: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Não falhar por causa da triagem - continuar com o chat
+            
             # Adicionar mensagem do usuário COM dados da análise de sentimento
             user_message = chat_session.add_message(
                 content=message_content, 
@@ -149,6 +200,20 @@ def api_chat_send():
             if AI_AVAILABLE and ai_service and ai_service.openai_client:
                 print("[DEBUG] IA disponível, chamando generate_response...")
                 
+                # VERIFICAR SE A SESSÃO AINDA EXISTE (pode ter sido excluída)
+                current_session = ChatSession.query.filter_by(
+                    id=chat_session.id,
+                    user_id=current_user.id,
+                    status=ChatSessionStatus.ACTIVE.value
+                ).first()
+                
+                if not current_session:
+                    print("[DEBUG] Sessão foi excluída durante o processamento, cancelando resposta da IA")
+                    return jsonify({
+                        'success': False, 
+                        'error': 'Sessão foi encerrada ou excluída'
+                    }), 404
+                
                 # Buscar histórico de mensagens para contexto
                 from app.models import ChatMessage
                 conversation_history = db.session.query(ChatMessage).filter_by(
@@ -173,6 +238,20 @@ def api_chat_send():
                     )
                     print(f"[DEBUG] ai_response: {ai_response}")
                     
+                    # VERIFICAR NOVAMENTE SE A SESSÃO AINDA EXISTE ANTES DE SALVAR
+                    current_session_check = ChatSession.query.filter_by(
+                        id=chat_session.id,
+                        user_id=current_user.id,
+                        status=ChatSessionStatus.ACTIVE.value
+                    ).first()
+                    
+                    if not current_session_check:
+                        print("[DEBUG] Sessão foi excluída após gerar resposta, não salvando mensagem da IA")
+                        return jsonify({
+                            'success': False, 
+                            'error': 'Sessão foi encerrada ou excluída durante o processamento'
+                        }), 404
+                    
                     # Salvar mensagem da IA com metadados
                     ai_message = chat_session.add_message(
                         content=ai_response['message'],
@@ -183,7 +262,9 @@ def api_chat_send():
                     ai_message.ai_model_used = ai_response.get('source', 'openai')
                     ai_message.ai_confidence = ai_response.get('confidence', 0.9)
                     db.session.commit()
-                    return jsonify({
+                    
+                    # PREPARAR RESPOSTA COM DADOS DE TRIAGEM
+                    response_data = {
                         'success': True,
                         'user_message': {
                             'content': message_content,
@@ -194,8 +275,15 @@ def api_chat_send():
                             'content': ai_response['message'],
                             'timestamp': ai_message.created_at.isoformat(),
                             'sender_type': 'ai'
+                        },
+                        'risk_assessment': {
+                            'risk_level': detected_risk_level,
+                            'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
+                            'triage_id': triage_log.id if triage_log else None
                         }
-                    })
+                    }
+                    
+                    return jsonify(response_data)
                 except Exception as exc:
                     print(f"[DEBUG][ERRO] Falha ao chamar IA: {exc}")
             else:
@@ -222,7 +310,9 @@ def api_chat_send():
                 message_type=ChatMessageType.AI
             )
             db.session.commit()
-            return jsonify({
+            
+            # RESPOSTA COM DADOS DE TRIAGEM (FALLBACK)
+            response_data = {
                 'success': True,
                 'user_message': {
                     'content': message_content,
@@ -233,8 +323,15 @@ def api_chat_send():
                     'content': resposta_padrao,
                     'timestamp': ai_message.created_at.isoformat(),
                     'sender_type': 'ai'
+                },
+                'risk_assessment': {
+                    'risk_level': detected_risk_level,
+                    'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
+                    'triage_id': triage_log.id if triage_log else None
                 }
-            })
+            }
+            
+            return jsonify(response_data)
                 
         except Exception as e:
             db.session.rollback()
@@ -466,6 +563,7 @@ def get_conversations():
 @chat.route('/api/end-session', methods=['POST'])
 @login_required
 def api_end_session():
+    from datetime import timezone, datetime
     """Encerrar sessão de chat ativa"""
     try:
         data = request.get_json()
@@ -493,9 +591,32 @@ def api_end_session():
         chat_session.status = 'COMPLETED'
         chat_session.ended_at = datetime.now(timezone.utc)
         
-        if chat_session.started_at:
-            duration = chat_session.ended_at - chat_session.started_at
-            chat_session.duration_minutes = int(duration.total_seconds() / 60)
+        if chat_session.started_at and chat_session.ended_at:
+            from datetime import timezone, datetime
+            ended_at = chat_session.ended_at
+            started_at = chat_session.started_at
+            # Converter para datetime se vier como string
+            if isinstance(ended_at, str):
+                try:
+                    ended_at = datetime.fromisoformat(ended_at)
+                except Exception:
+                    ended_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+            if isinstance(started_at, str):
+                try:
+                    started_at = datetime.fromisoformat(started_at)
+                except Exception:
+                    started_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+            # Garantir timezone
+            if ended_at.tzinfo is None:
+                ended_at = ended_at.replace(tzinfo=timezone.utc)
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            try:
+                duration = ended_at - started_at
+                chat_session.duration_minutes = int(duration.total_seconds() / 60)
+            except Exception as e:
+                current_app.logger.error(f'Erro ao calcular duração da sessão: {e}')
+                chat_session.duration_minutes = 0
         
         db.session.commit()
         
@@ -541,6 +662,19 @@ def delete_conversation():
                 'error': 'Sessão não encontrada'
             }), 404
         
+        # CORREÇÃO: Deletar logs de triagem relacionados primeiro
+        try:
+            from app.models.triage import TriageLog
+            related_triage_logs = TriageLog.query.filter_by(chat_session_id=session_id).all()
+            for triage_log in related_triage_logs:
+                db.session.delete(triage_log)
+        except ImportError:
+            # Se o modelo de triagem não existir, continuar
+            pass
+        except Exception as triage_error:
+            current_app.logger.warning(f"Erro ao deletar logs de triagem: {triage_error}")
+            # Não falhar por causa dos logs de triagem
+        
         # Excluir sessão (cascade irá excluir mensagens)
         db.session.delete(chat_session)
         db.session.commit()
@@ -552,6 +686,7 @@ def delete_conversation():
         
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Erro ao excluir conversa: {str(e)}')
         return jsonify({
             'success': False,
             'error': f'Erro ao excluir conversa: {str(e)}'

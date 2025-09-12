@@ -1,4 +1,5 @@
 // Chat.js - Sistema de Chat com Histórico
+// @ts-nocheck
 let currentSessionId = null;
 let conversationToDelete = null;
 
@@ -92,47 +93,35 @@ async function loadConversationHistory() {
         
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
-        chatList.innerHTML = `
-            <div class="loading-conversations">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Erro ao carregar conversas</span>
-            </div>
-        `;
+        chatList.innerHTML = '' +
+            '<div class="loading-conversations">' +
+                '<i class="fas fa-exclamation-triangle"></i>' +
+                '<span>Erro ao carregar conversas</span>' +
+            '</div>';
     }
 }
 
-// Exibir conversas na sidebar
+// Exibir conversas no histórico
 function displayConversations(conversations) {
-    if (conversations.length === 0) {
-        chatList.innerHTML = `
-            <div class="loading-conversations">
-                <i class="fas fa-comments"></i>
-                <span>Nenhuma conversa ainda</span>
-                <small>Clique em "+" para iniciar</small>
-            </div>
-        `;
-        return;
-    }
-    
-    chatList.innerHTML = conversations.map(conv => `
-        <div class="conversation-item" data-session-id="${conv.id}">
-            <div class="conversation-avatar">
-                <i class="fas fa-user"></i>
-            </div>
-            <div class="conversation-info">
-                <div class="conversation-header">
-                    <div class="conversation-title">${conv.title || 'Conversa sem título'}</div>
-                    <div class="conversation-date">${formatDate(conv.created_at)}</div>
-                </div>
-                <div class="conversation-preview">${conv.last_message || 'Conversa iniciada'}</div>
-            </div>
-            <div class="conversation-actions">
-                <button class="delete-conversation" data-session-id="${conv.id}" title="Excluir conversa">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
+    chatList.innerHTML = conversations.map(function(conv) {
+        return '<div class="conversation-item" data-session-id="' + conv.id + '">' +
+            '<div class="conversation-avatar">' +
+                '<i class="fas fa-user"></i>' +
+            '</div>' +
+            '<div class="conversation-info">' +
+                '<div class="conversation-header">' +
+                    '<div class="conversation-title">' + (conv.title || 'Conversa sem título') + '</div>' +
+                    '<div class="conversation-date">' + formatDate(conv.created_at) + '</div>' +
+                '</div>' +
+                '<div class="conversation-preview">' + (conv.last_message || 'Conversa iniciada') + '</div>' +
+            '</div>' +
+            '<div class="conversation-actions">' +
+                '<button class="delete-conversation" data-session-id="' + conv.id + '" title="Excluir conversa">' +
+                    '<i class="fas fa-trash"></i>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    }).join('');
     
     // Adicionar event listeners
     document.querySelectorAll('.conversation-item').forEach(item => {
@@ -162,10 +151,10 @@ async function loadConversation(sessionId) {
         document.querySelectorAll('.conversation-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`[data-session-id="${sessionId}"]`).classList.add('active');
+    document.querySelector('[data-session-id="' + sessionId + '"]').classList.add('active');
         
         // Carregar mensagens
-        const response = await fetch(`/chat/api/chat/receive?session_id=${sessionId}`, {
+    const response = await fetch('/chat/api/chat/receive?session_id=' + sessionId, {
             credentials: 'include'
         });
         
@@ -183,15 +172,14 @@ async function loadConversation(sessionId) {
                     renderMessage(msg.content, msg.message_type, msg.created_at);
                 });
             } else {
-                chatMessages.innerHTML = `
-                    <div class="welcome-message">
-                        <div class="welcome-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h3>Conversa Carregada</h3>
-                        <p>Continue sua conversa onde parou.</p>
-                    </div>
-                `;
+                chatMessages.innerHTML = '' +
+                    '<div class="welcome-message">' +
+                        '<div class="welcome-icon">' +
+                            '<i class="fas fa-robot"></i>' +
+                        '</div>' +
+                        '<h3>Conversa Carregada</h3>' +
+                        '<p>Continue sua conversa onde parou.</p>' +
+                    '</div>';
             }
             
             // Habilitar input
@@ -329,6 +317,11 @@ async function sendMessage() {
         
         if (data.success && data.ai_response) {
             renderMessage(data.ai_response.content, 'ai');
+            
+            // VERIFICAR SE É NECESSÁRIO ATIVAR TRIAGEM
+            if (data.risk_assessment && data.risk_assessment.requires_triage) {
+                handleTriageActivation(data.risk_assessment);
+            }
         } else {
             showError('Erro ao obter resposta da IA');
         }
@@ -346,7 +339,7 @@ async function sendMessage() {
 // Renderizar mensagem
 function renderMessage(content, sender, timestamp = null) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
+    messageDiv.className = 'message ' + sender;
     
     // Wrapper para avatar e conteúdo
     const wrapperDiv = document.createElement('div');
@@ -391,19 +384,18 @@ function showTypingIndicator() {
     typingDiv.id = 'typing-indicator';
     typingDiv.className = 'typing-indicator';
     
-    typingDiv.innerHTML = `
-        <div class="message-avatar">
-            <i class="fas fa-robot"></i>
-        </div>
-        <div class="typing-content">
-            A IA está digitando
-            <span class="typing-dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </span>
-        </div>
-    `;
+    typingDiv.innerHTML = '' +
+        '<div class="message-avatar">' +
+            '<i class="fas fa-robot"></i>' +
+        '</div>' +
+        '<div class="typing-content">' +
+            'A IA está digitando' +
+            '<span class="typing-dots">' +
+                '<span class="dot"></span>' +
+                '<span class="dot"></span>' +
+                '<span class="dot"></span>' +
+            '</span>' +
+        '</div>';
     
     chatMessages.appendChild(typingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -492,28 +484,26 @@ function updateChatStatus(status) {
 }
 
 function showWelcomeScreen() {
-    chatMessages.innerHTML = `
-        <div class="welcome-message">
-            <div class="welcome-icon">
-                <i class="fas fa-heart"></i>
-            </div>
-            <h3>Bem-vindo ao Chat de Apoio Emocional</h3>
-            <p>Inicie uma nova conversa ou selecione uma conversa anterior do histórico.</p>
-        </div>
-    `;
+    chatMessages.innerHTML = '' +
+        '<div class="welcome-message">' +
+            '<div class="welcome-icon">' +
+                '<i class="fas fa-heart"></i>' +
+            '</div>' +
+            '<h3>Bem-vindo ao Chat de Apoio Emocional</h3>' +
+            '<p>Inicie uma nova conversa ou selecione uma conversa anterior do histórico.</p>' +
+        '</div>';
 }
 
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'message ai';
-    errorDiv.innerHTML = `
-        <div class="message-avatar">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="message-content" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">
-            ${message}
-        </div>
-    `;
+    errorDiv.innerHTML = '' +
+        '<div class="message-avatar">' +
+            '<i class="fas fa-exclamation-triangle"></i>' +
+        '</div>' +
+        '<div class="message-content" style="background: #f8d7da; color: #721c24; border-color: #f5c6cb;">' +
+            message +
+        '</div>';
     chatMessages.appendChild(errorDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -535,7 +525,7 @@ function formatDate(dateString) {
     
     if (diffDays === 1) return 'Hoje';
     if (diffDays === 2) return 'Ontem';
-    if (diffDays <= 7) return `${diffDays} dias atrás`;
+    if (diffDays <= 7) return diffDays + ' dias atrás';
     
     return date.toLocaleDateString('pt-BR');
 }
@@ -585,7 +575,7 @@ function handleFileUpload(event) {
     }
     
     // Simular upload de arquivo
-    showMessage(`📎 Arquivo anexado: ${file.name}`, 'user');
+    showMessage('📎 Arquivo anexado: ' + file.name, 'user');
     
     // Limpar input
     event.target.value = '';
@@ -600,4 +590,463 @@ function handleFileUpload(event) {
 function goBackToHome() {
     // Redirecionar para o dashboard
     window.location.href = '/dashboard';
+}
+
+// ========== FUNÇÕES DE TRIAGEM ==========
+
+/**
+ * Função para fazer scroll até o final do chat
+ */
+function scrollToBottom() {
+    try {
+        const messagesContainer = document.getElementById('chat-messages') || chatMessages;
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    } catch (error) {
+        console.warn('Erro ao fazer scroll:', error);
+    }
+}
+
+/**
+ * Ativa o fluxo de triagem quando risco moderado/alto/crítico é detectado
+ */
+async function handleTriageActivation(riskAssessment) {
+    const riskLevel = riskAssessment.risk_level;
+    const triageId = riskAssessment.triage_id;
+    
+    console.log(`[TRIAGEM] Risco ${riskLevel} detectado. Triagem ID: ${triageId}`);
+    
+    // Renderizar mensagem de triagem baseada no nível de risco
+    const triageMessage = generateTriageMessage(riskLevel);
+    renderMessage(triageMessage, 'ai'); // Usar renderMessage normal
+    
+    // Aguardar um pouco para a mensagem aparecer antes de mostrar as opções
+    setTimeout(() => {
+        // Se for risco crítico, mostrar botões de emergência imediatamente
+        if (riskLevel === 'critical') {
+            showEmergencyActions(triageId);
+        } 
+        // Para risco alto/moderado, mostrar opções de encaminhamento
+        else if (riskLevel === 'high' || riskLevel === 'moderate') {
+            showTriageOptions(triageId, riskLevel);
+        }
+    }, 500); // Delay de 500ms para melhor UX
+}
+
+/**
+ * Gera mensagem de triagem baseada no nível de risco
+ */
+function generateTriageMessage(riskLevel) {
+    const messages = {
+        'critical': `🚨 **ATENÇÃO**: Percebi que você pode estar passando por um momento muito difícil. 
+Sua segurança é minha prioridade. Gostaria de te conectar com ajuda profissional agora?`,
+        
+        'high': `⚠️ Percebo que você está enfrentando uma situação desafiadora. 
+Posso te encaminhar para conversar com um profissional que pode te dar o suporte adequado?`,
+        
+        'moderate': `💭 Noto que você pode estar precisando de um apoio adicional. 
+Gostaria que eu te conecte com alguém especializado que pode te ajudar melhor?`
+    };
+    
+    return messages[riskLevel] || messages['moderate'];
+}
+
+/**
+ * Mostra ações de emergência para risco crítico
+ */
+function showEmergencyActions(triageId) {
+    const actionsHtml = `
+        <div class="triage-emergency-actions" data-triage-id="${triageId}">
+            <div class="emergency-header">
+                <h4>🆘 Precisa de Ajuda Imediata?</h4>
+                <p>Estes contatos estão disponíveis 24 horas:</p>
+            </div>
+            
+            <div class="emergency-contacts">
+                <div class="emergency-contact">
+                    <strong>CVV - Centro de Valorização da Vida</strong>
+                    <div class="contact-info">
+                        <span class="phone">📞 188</span>
+                        <span class="description">Apoio emocional gratuito 24h</span>
+                    </div>
+                </div>
+                
+                <div class="emergency-contact">
+                    <strong>SAMU</strong>
+                    <div class="contact-info">
+                        <span class="phone">📞 192</span>
+                        <span class="description">Emergências médicas</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="triage-buttons">
+                <button class="btn-triage btn-primary" onclick="forwardToProfessional('${triageId}', 'emergency')">
+                    🏥 Quero Falar com um Profissional
+                </button>
+                <button class="btn-triage btn-secondary" onclick="continueChat('${triageId}')">
+                    💬 Continuar Conversando Aqui
+                </button>
+            </div>
+        </div>
+    `;
+    
+    renderSpecialContent(actionsHtml);
+}
+
+/**
+ * Mostra opções de triagem para risco alto/moderado
+ */
+function showTriageOptions(triageId, riskLevel) {
+    const urgencyText = riskLevel === 'high' ? 'prioritário' : 'quando possível';
+    
+    const optionsHtml = `
+        <div class="triage-options" data-triage-id="${triageId}">
+            <div class="triage-question">
+                <p><strong>Posso te encaminhar para um profissional?</strong></p>
+                <p class="triage-subtitle">Encaminhamento ${urgencyText}</p>
+            </div>
+            
+            <div class="triage-buttons">
+                <button class="btn-triage btn-primary" onclick="forwardToProfessional('${triageId}', '${riskLevel}')">
+                    ✅ Sim, quero ajuda profissional
+                </button>
+                <button class="btn-triage btn-secondary" onclick="continueChat('${triageId}')">
+                    💬 Não, quero continuar aqui
+                </button>
+            </div>
+            
+            <div class="triage-info">
+                <small>💡 Caso mude de ideia, posso te conectar com um profissional a qualquer momento.</small>
+            </div>
+        </div>
+    `;
+    
+    renderSpecialContent(optionsHtml);
+}
+
+/**
+ * Renderiza conteúdo especial (botões) no chat como mensagem separada da IA
+ */
+function renderSpecialContent(htmlContent) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message ai triage-actions';
+    
+    // Criar estrutura similar às mensagens normais da IA
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.className = 'message-wrapper';
+    
+    // Avatar do robô
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'message-avatar';
+    avatarDiv.innerHTML = '<i class="fas fa-robot"></i>';
+    
+    // Conteúdo da mensagem (só os botões/cards)
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.innerHTML = htmlContent;
+    
+    // Montar estrutura
+    wrapperDiv.appendChild(avatarDiv);
+    wrapperDiv.appendChild(contentDiv);
+    messageDiv.appendChild(wrapperDiv);
+    
+    // Adicionar ao chat
+    const messagesContainer = document.getElementById('chat-messages') || chatMessages;
+    if (messagesContainer) {
+        messagesContainer.appendChild(messageDiv);
+        
+        // Scroll direto sem dependência da função scrollToBottom
+        try {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (error) {
+            console.warn('Erro ao fazer scroll:', error);
+        }
+    }
+}
+
+/**
+ * Encaminha usuário para profissional - NOVA VERSÃO COM COLETA DE INFORMAÇÕES
+ */
+async function forwardToProfessional(triageId, urgencyLevel) {
+    try {
+        // Desabilitar botões para evitar duplo clique
+        const buttons = document.querySelectorAll(`[data-triage-id="${triageId}"] .btn-triage`);
+        buttons.forEach(btn => btn.disabled = true);
+        
+        // Se for crítico, pular coleta e encaminhar direto
+        if (urgencyLevel === 'emergency' || urgencyLevel === 'critical') {
+            await processDirectForward(triageId, urgencyLevel);
+            return;
+        }
+        
+        // Para outros casos, mostrar tela de coleta de informações
+        showTriageDataCollection(triageId, urgencyLevel);
+        
+    } catch (error) {
+        console.error('Erro ao encaminhar:', error);
+        showError('Erro ao processar encaminhamento. Tente novamente.');
+    }
+}
+
+/**
+ * Mostra tela para coletar informações adicionais da triagem
+ */
+function showTriageDataCollection(triageId, urgencyLevel) {
+    const collectionHtml = `
+        <div class="triage-data-collection" data-triage-id="${triageId}">
+            <div class="collection-header">
+                <h4>📋 Vamos Coletar Algumas Informações</h4>
+                <p>Para conectar você com o profissional mais adequado:</p>
+            </div>
+            
+            <div class="collection-form">
+                <div class="form-group">
+                    <label>Como você está se sentindo agora? (Selecione todas que se aplicam)</label>
+                    <div class="emotion-options">
+                        <div class="emotion-card" data-emotion="ansioso">
+                            <span class="emotion-icon">😰</span>
+                            <span class="emotion-text">Ansioso(a)</span>
+                        </div>
+                        <div class="emotion-card" data-emotion="triste">
+                            <span class="emotion-icon">😢</span>
+                            <span class="emotion-text">Triste</span>
+                        </div>
+                        <div class="emotion-card" data-emotion="vazio">
+                            <span class="emotion-icon">😶</span>
+                            <span class="emotion-text">Vazio(a)</span>
+                        </div>
+                        <div class="emotion-card" data-emotion="irritado">
+                            <span class="emotion-icon">😠</span>
+                            <span class="emotion-text">Irritado(a)</span>
+                        </div>
+                        <div class="emotion-card" data-emotion="confuso">
+                            <span class="emotion-icon">😵</span>
+                            <span class="emotion-text">Confuso(a)</span>
+                        </div>
+                        <div class="emotion-card" data-emotion="sem-esperanca">
+                            <span class="emotion-icon">💔</span>
+                            <span class="emotion-text">Sem esperança</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>O que mais te preocupa agora? (Opcional)</label>
+                    <textarea class="collection-textarea" id="main-concern" placeholder="Compartilhe se quiser..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Já buscou ajuda profissional antes?</label>
+                    <div class="radio-options">
+                        <label class="radio-label">
+                            <input type="radio" name="previous-help" value="sim"> Sim, já fiz terapia
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="previous-help" value="nao"> Não, seria a primeira vez
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="previous-help" value="considerando"> Estava considerando
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="collection-buttons">
+                <button class="btn-triage btn-primary" onclick="submitTriageData('${triageId}', '${urgencyLevel}')">
+                    ✅ Finalizar e Encaminhar
+                </button>
+                <button class="btn-triage btn-secondary" onclick="skipDataCollection('${triageId}', '${urgencyLevel}')">
+                    ⏭️ Pular e Encaminhar Direto
+                </button>
+            </div>
+            
+            <div class="collection-info">
+                <small>💡 Essas informações ajudarão o profissional a te atender melhor.</small>
+            </div>
+        </div>
+    `;
+    
+    renderSpecialContent(collectionHtml);
+    setupEmotionCards();
+}
+
+/**
+ * Configura interatividade dos cards de emoção
+ */
+function setupEmotionCards() {
+    document.querySelectorAll('.emotion-card').forEach(card => {
+        card.addEventListener('click', () => {
+            card.classList.toggle('selected');
+        });
+    });
+}
+
+/**
+ * Submete dados coletados da triagem
+ */
+async function submitTriageData(triageId, urgencyLevel) {
+    try {
+        // Coletar dados do formulário
+        const selectedEmotions = Array.from(document.querySelectorAll('.emotion-card.selected'))
+            .map(card => card.dataset.emotion);
+        
+        const mainConcern = document.getElementById('main-concern')?.value || '';
+        
+        const previousHelp = document.querySelector('input[name="previous-help"]:checked')?.value || 'nao-informado';
+        
+        const triageData = {
+            triage_id: triageId,
+            urgency_level: urgencyLevel,
+            selected_emotions: selectedEmotions,
+            main_concern: mainConcern,
+            previous_help: previousHelp,
+            timestamp: new Date().toISOString()
+        };
+        
+        // Enviar para o backend
+        const response = await fetch('/triage/compile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(triageData)
+        });
+        
+        if (!response.ok) throw new Error('Erro ao processar dados');
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Agora fazer o encaminhamento com os dados coletados
+            await processDirectForward(triageId, urgencyLevel, triageData);
+        } else {
+            throw new Error(result.error || 'Erro desconhecido');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao submeter dados de triagem:', error);
+        showError('Erro ao processar informações. Tentando encaminhar direto...');
+        // Fallback: encaminhar direto se houver erro
+        await processDirectForward(triageId, urgencyLevel);
+    }
+}
+
+/**
+ * Pula coleta de dados e encaminha direto
+ */
+async function skipDataCollection(triageId, urgencyLevel) {
+    await processDirectForward(triageId, urgencyLevel);
+}
+
+/**
+ * Processa encaminhamento direto para profissional
+ */
+async function processDirectForward(triageId, urgencyLevel, collectedData = null) {
+    try {
+        const response = await fetch('/triage/forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                answer: 'sim',
+                triage_id: triageId,
+                urgency_level: urgencyLevel,
+                collected_data: collectedData
+            })
+        });
+        
+        if (!response.ok) throw new Error('Erro no encaminhamento');
+        
+        const data = await response.json();
+        
+        if (data.success && data.forwarded) {
+            // Se houver URL de redirecionamento, redirecionar
+            if (data.redirect_url) {
+                // Mostrar mensagem antes de redirecionar
+                const redirectHtml = `
+                    <div class="triage-confirmation">
+                        <div class="success-icon">✅</div>
+                        <h4>Encaminhamento Realizado!</h4>
+                        <p>${data.message}</p>
+                        <div class="redirect-info">
+                            <p>Você será redirecionado em <span id="countdown">3</span> segundos...</p>
+                            <button onclick="window.location.href='${data.redirect_url}'" class="btn-primary">
+                                Ir Agora
+                            </button>
+                        </div>
+                    </div>
+                `;
+                renderSpecialContent(redirectHtml);
+                
+                // Countdown para redirecionamento
+                let seconds = 3;
+                const countdownElement = document.getElementById('countdown');
+                const countdownInterval = setInterval(() => {
+                    seconds--;
+                    if (countdownElement) {
+                        countdownElement.textContent = seconds;
+                    }
+                    if (seconds <= 0) {
+                        clearInterval(countdownInterval);
+                        window.location.href = data.redirect_url;
+                    }
+                }, 1000);
+                
+            } else {
+                // Mostrar confirmação de encaminhamento sem redirecionamento
+                const confirmationHtml = `
+                    <div class="triage-confirmation">
+                        <div class="success-icon">✅</div>
+                        <h4>Encaminhamento Realizado!</h4>
+                        <p>${data.message || 'Você foi conectado(a) com nossa equipe de profissionais.'}</p>
+                        ${collectedData ? '<p>As informações que você compartilhou foram enviadas para o profissional.</p>' : ''}
+                        <div class="next-steps">
+                            <h5>Enquanto isso:</h5>
+                            <ul>
+                                <li>💬 Continue conversando comigo se precisar</li>
+                                <li>📞 Lembre-se: CVV 188 disponível 24h</li>
+                                <li>🤝 Você não está sozinho(a)</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                renderSpecialContent(confirmationHtml);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Erro ao encaminhar:', error);
+        showError('Erro ao processar encaminhamento. Tente novamente.');
+    }
+}
+
+/**
+ * Continua chat sem encaminhamento
+ */
+async function continueChat(triageId) {
+    try {
+        // Registrar que usuário optou por não ser encaminhado
+        await fetch('/triage/forward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ 
+                answer: 'nao',
+                triage_id: triageId
+            })
+        });
+        
+        // Mostrar mensagem de apoio
+        const supportMessage = `Entendo sua escolha. Estou aqui para te apoiar. 
+Como você gostaria de continuar nossa conversa? 
+💡 *Lembre-se: posso te conectar com um profissional a qualquer momento se mudar de ideia.*`;
+        
+        renderMessage(supportMessage, 'ai');
+        
+    } catch (error) {
+        console.error('Erro ao continuar chat:', error);
+        // Não mostrar erro ao usuário, apenas continuar
+        renderMessage('Vamos continuar conversando. Como posso te ajudar agora?', 'ai');
+    }
 }

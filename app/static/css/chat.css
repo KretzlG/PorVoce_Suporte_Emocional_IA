@@ -766,3 +766,486 @@ body {
         max-width: 85%;
     }
 }
+
+/* ========== ESTILOS DE TRIAGEM ========== */
+
+/* Mensagem de ações de triagem (botões/cards) */
+.message.triage-actions {
+    max-width: 90%;
+    margin: 10px 0;
+}
+
+.message.triage-actions .message-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.message.triage-actions .message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #06b6d4;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.message.triage-actions .message-content {
+    flex: 1;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* Ações de emergência */
+.triage-emergency-actions {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #dc2626;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 4px 6px rgba(220, 38, 38, 0.1);
+}
+
+.emergency-header h4 {
+    color: #dc2626;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.emergency-header p {
+    color: #7f1d1d;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+/* Contatos de emergência */
+.emergency-contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.emergency-contact {
+    background: white;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.emergency-contact strong {
+    color: #991b1b;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.contact-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 13px;
+}
+
+.contact-info .phone {
+    background: #dc2626;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.contact-info .description {
+    color: #7f1d1d;
+}
+
+/* Opções de triagem (risco moderado/alto) */
+.triage-options {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.1);
+}
+
+.triage-question p {
+    color: #92400e;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.triage-subtitle {
+    color: #b45309;
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Botões de triagem */
+.triage-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0 10px 0;
+}
+
+.btn-triage {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.btn-triage:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-triage:active {
+    transform: translateY(0);
+}
+
+.btn-triage:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-triage.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-triage.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-triage.btn-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-triage.btn-secondary:hover {
+    background: #4b5563;
+}
+
+/* Informação de triagem */
+.triage-info {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    border-left: 3px solid #f59e0b;
+}
+
+.triage-info small {
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Confirmação de encaminhamento */
+.triage-confirmation {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid #22c55e;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px 0;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1);
+}
+
+.success-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.triage-confirmation h4 {
+    color: #15803d;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.triage-confirmation p {
+    color: #166534;
+    margin-bottom: 15px;
+}
+
+.next-steps {
+    text-align: left;
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.next-steps h5 {
+    color: #15803d;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.next-steps ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.next-steps li {
+    color: #166534;
+    font-size: 13px;
+    margin-bottom: 5px;
+    padding-left: 5px;
+}
+
+/* ========== COLETA DE DADOS DE TRIAGEM ========== */
+
+.triage-data-collection {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px solid #3b82f6;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+}
+
+.collection-header h4 {
+    color: #1e40af;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.collection-header p {
+    color: #1e3a8a;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Formulário de coleta */
+.collection-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #1e40af;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+/* Cards de emoção */
+.emotion-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.emotion-card {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.emotion-card:hover {
+    border-color: #3b82f6;
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.emotion-card.selected {
+    border-color: #3b82f6;
+    background: #dbeafe;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.emotion-icon {
+    font-size: 24px;
+    margin-bottom: 2px;
+}
+
+.emotion-text {
+    font-size: 12px;
+    color: #334155;
+    font-weight: 500;
+}
+
+/* Textarea */
+.collection-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.collection-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Opções de radio */
+.radio-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #334155;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
+}
+
+/* Botões de coleta */
+.collection-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0 10px 0;
+}
+
+/* Informação de coleta */
+.collection-info {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    border-left: 3px solid #3b82f6;
+}
+
+.collection-info small {
+    color: #1e40af;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Animação para mensagens de triagem */
+.triage-message {
+    animation: triageSlideIn 0.5s ease-out;
+}
+
+@keyframes triageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade para triagem */
+@media (max-width: 768px) {
+    .message.triage-actions {
+        max-width: 95%;
+    }
+    
+    .message.triage-actions .message-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    .triage-emergency-actions,
+    .triage-options,
+    .triage-confirmation,
+    .triage-data-collection {
+        margin: 10px 5px;
+        padding: 15px;
+    }
+    
+    .triage-buttons,
+    .collection-buttons {
+        gap: 8px;
+    }
+    
+    .btn-triage {
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+    
+    .emergency-contacts {
+        gap: 10px;
+    }
+    
+    .contact-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    /* Responsividade da coleta de dados */
+    .emotion-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .emotion-card {
+        padding: 8px 4px;
+    }
+    
+    .emotion-icon {
+        font-size: 20px;
+    }
+    
+    .emotion-text {
+        font-size: 11px;
+    }
+    
+    .collection-textarea {
+        min-height: 60px;
+        font-size: 13px;
+    }
+    
+    .collection-buttons {
+        gap: 8px;
+    }
+}

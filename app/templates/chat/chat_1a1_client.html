@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat 1a1 - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_client.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="volunteer-info">
+                <h3><i class="fas fa-user-friends"></i> Chat com {{ volunteer.user.first_name }}</h3>
+                <p>Voluntário especializado em suporte emocional</p>
+            </div>
+            <div class="priority-badge priority-{{ session.priority_level }}">
+                {{ 'Urgente' if session.priority_level == 'critical' else 'Alto' if session.priority_level == 'high' else 'Normal' }}
+            </div>
+        </div>
+        
+        <div class="messages-container" id="messages">
+            {% for message in messages %}
+            <div class="message {{ 'client' if message.sender_id == session.user_id else 'volunteer' }}">
+                <div class="message-avatar">
+                    {% if message.sender_id == session.user_id %}
+                        <i class="fas fa-user"></i>
+                    {% else %}
+                        <i class="fas fa-heart"></i>
+                    {% endif %}
+                </div>
+                <div class="message-content">
+                    {{ message.content }}
+                    <div class="message-time">
+                        {{ message.created_at.strftime('%H:%M') }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="input-container">
+            <input type="text" class="message-input" id="messageInput" placeholder="Digite sua mensagem..." />
+            <button class="send-button" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i> Enviar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = parseInt('{{ session.id }}');
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content) return;
+
+            fetch(`/volunteer/client_chat/${sessionId}/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageInput.value = '';
+                    loadMessages(); // Recarregar mensagens
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao enviar mensagem:', error);
+            });
+        }
+
+        function loadMessages() {
+            fetch(`/volunteer/api/messages/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateMessages(data.messages);
+                    }
+                });
+        }
+
+        let lastClientMessageCount = 0;
+        
+        function updateMessages(messages) {
+            // Só recriar se houve mudanças
+            if (messages.length === lastClientMessageCount && lastClientMessageCount > 0) {
+                return;
+            }
+            
+            lastClientMessageCount = messages.length;
+            messagesContainer.innerHTML = '';
+            
+            messages.forEach(message => {
+                const messageDiv = document.createElement('div');
+                const isClient = message.sender_type === 'client';
+                messageDiv.className = `message ${isClient ? 'client' : 'volunteer'}`;
+                
+                const time = new Date(message.created_at).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const avatarIcon = isClient ? 'fas fa-user' : 'fas fa-heart';
+                
+                // Criar elementos separadamente para melhor controle
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'message-avatar';
+                avatarDiv.innerHTML = `<i class="${avatarIcon}"></i>`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                const messageText = document.createElement('div');
+                messageText.textContent = message.content;
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = time;
+                
+                contentDiv.appendChild(messageText);
+                contentDiv.appendChild(timeDiv);
+                
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                
+                messagesContainer.appendChild(messageDiv);
+            });
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Permitir envio com Enter
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Atualizar mensagens a cada 5 segundos para reduzir piscamento
+        setInterval(loadMessages, 5000);
+        
+        // Focar no input ao carregar
+        messageInput.focus();
+    </script>
+</body>
+</html>

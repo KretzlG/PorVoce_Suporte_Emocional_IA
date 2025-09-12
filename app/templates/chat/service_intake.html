@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pré-Atendimento - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/service_intake.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="service-intake-container">
+        <div class="intake-header">
+            <h2>Pré-Atendimento</h2>
+            <p>Confira as informações do cliente e análise da IA antes de iniciar o chat.</p>
+        </div>
+        <div class="intake-info card mb-4 p-3">
+            <h5>Informações da Triagem</h5>
+            <ul class="list-group list-group-flush mb-2">
+                <li class="list-group-item"><strong>Nome:</strong> {{ client.first_name }} {{ client.last_name }}</li>
+                <li class="list-group-item"><strong>Idade:</strong> {{ client.age if client.age else 'Não informado' }}</li>
+                <li class="list-group-item"><strong>Motivo do contato:</strong> {{ triage.reason }}</li>
+                <li class="list-group-item"><strong>Data da triagem:</strong> {{ triage.date }}</li>
+            </ul>
+            <h5 class="mt-3">Análise da IA</h5>
+            <div class="alert alert-info">
+                <strong>Estado emocional:</strong> {{ ai_analysis.emotional_state }}<br>
+                <strong>Risco:</strong> {{ ai_analysis.risk_level }}<br>
+                <strong>Observações:</strong> {{ ai_analysis.notes }}
+            </div>
+        </div>
+        <div class="intake-actions">
+            <a href="{{ url_for('volunteer.start_chat', client_id=client.id) }}" class="btn btn-primary">
+                <i class="fas fa-comments"></i> Iniciar Chat
+            </a>
+            <a href="https://meet.google.com/new" target="_blank" class="btn btn-danger">
+                <i class="fas fa-video"></i> Chamada de Vídeo (Google Meet)
+            </a>
+            <a href="{{ url_for('chat.end_session', session_id=session.id) }}" class="btn btn-secondary">
+                <i class="fas fa-stop"></i> Encerrar Atendimento
+            </a>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/service_intake.js') }}"></script>
+</body>
+</html>

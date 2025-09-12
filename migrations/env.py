@@ -7,6 +7,10 @@ from alembic import context
 import sys
 import os
 
+# Carregar variáveis de ambiente antes de tudo
+from dotenv import load_dotenv
+load_dotenv()
+
 # Adiciona o diretório do app ao sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app import models  # importa os modelos para o autogenerate funcionar

@@ -1,0 +1,265 @@
+<!-- Visualização de Treinamento -->
+<div class="content-header">
+    <h1 class="page-title">Detalhes do Treinamento</h1>
+    <p class="page-subtitle">Informações completas do conjunto de dados enviado</p>
+</div>
+
+<div class="row">
+    <!-- Informações Principais -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>Informações Gerais</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Título:</label>
+                            <p class="form-control-plaintext">{{ training.title }}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tipo de Dados:</label>
+                            <p class="form-control-plaintext">
+                                <span class="badge {% if training.data_type.value == 'text' %}badge-primary{% else %}badge-secondary{% endif %}">
+                                    {% if training.data_type.value == 'text' %}
+                                        <i class="fas fa-font me-1"></i>TEXTO
+                                    {% else %}
+                                        <i class="fas fa-file me-1"></i>ARQUIVO
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Status:</label>
+                            <p class="form-control-plaintext">
+                                <span class="badge 
+                                    {% if training.status.value == 'approved' %}badge-success
+                                    {% elif training.status.value == 'pending' %}badge-warning
+                                    {% elif training.status.value == 'rejected' %}badge-danger
+                                    {% else %}badge-secondary{% endif %}">
+                                    {% if training.status.value == 'approved' %}
+                                        <i class="fas fa-check me-1"></i>Aprovado
+                                    {% elif training.status.value == 'pending' %}
+                                        <i class="fas fa-clock me-1"></i>Pendente
+                                    {% elif training.status.value == 'rejected' %}
+                                        <i class="fas fa-times me-1"></i>Rejeitado
+                                    {% else %}
+                                        {{ training.status.value.title() }}
+                                    {% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Enviado por:</label>
+                            <p class="form-control-plaintext">
+                                {% if current_user.is_admin %}
+                                    {{ training.submitted_by_user.name }}<br>
+                                    <small class="text-muted">{{ training.submitted_by_user.email }}</small>
+                                {% else %}
+                                    Você
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Data de Envio:</label>
+                            <p class="form-control-plaintext">
+                                {{ training.created_at.strftime('%d/%m/%Y às %H:%M') }}
+                            </p>
+                        </div>
+                        
+                        {% if training.validated_at %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Data de Validação:</label>
+                            <p class="form-control-plaintext">
+                                {{ training.validated_at.strftime('%d/%m/%Y às %H:%M') }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if training.description %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descrição:</label>
+                    <p class="form-control-plaintext">{{ training.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Conteúdo -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-text me-2"></i>Conteúdo do Treinamento</h5>
+            </div>
+            <div class="card-body">
+                {% if training.data_type.value == 'text' %}
+                <div class="content-display">
+                    <pre>{{ training.content }}</pre>
+                </div>
+                {% else %}
+                <div class="file-info">
+                    <div class="alert alert-info">
+                        <i class="fas fa-file me-2"></i>
+                        <strong>Arquivo enviado:</strong> {{ training.file_name or 'arquivo.txt' }}
+                        {% if training.file_size %}
+                        <br><small>Tamanho: {{ training.file_size }} bytes</small>
+                        {% endif %}
+                    </div>
+                    {% if training.content %}
+                    <div class="content-display mt-3">
+                        <pre>{{ training.content }}</pre>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar com Score e Validação -->
+    <div class="col-lg-4">
+        <!-- Score de Validação -->
+        {% if training.validation_score %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Score de Qualidade</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="score-circle mx-auto mb-3" data-score="{{ training.validation_score }}">
+                    <div class="progress-circle">
+                        <span class="score-text">{{ "%.0f"|format(training.validation_score * 100) }}%</span>
+                    </div>
+                </div>
+                
+                <div class="score-breakdown">
+                    {% if training.validation_score >= 0.8 %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-star me-2"></i>Excelente qualidade
+                    </div>
+                    {% elif training.validation_score >= 0.6 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-check me-2"></i>Boa qualidade
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Necessita melhorias
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Notas de Validação -->
+        {% if training.validation_notes %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-clipboard-list me-2"></i>Notas de Validação</h5>
+            </div>
+            <div class="card-body">
+                <div class="validation-notes">
+                    <pre>{{ training.validation_notes }}</pre>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Timeline de Eventos -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Histórico</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-primary"></div>
+                        <div class="timeline-content">
+                            <h6>Treinamento Enviado</h6>
+                            <p>Dados enviados para validação</p>
+                            <small>{{ training.created_at.strftime('%d/%m/%Y às %H:%M') }}</small>
+                        </div>
+                    </div>
+                    
+                    {% if training.validated_at %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker 
+                            {% if training.status.value == 'approved' %}bg-success
+                            {% elif training.status.value == 'rejected' %}bg-danger
+                            {% else %}bg-warning{% endif %}"></div>
+                        <div class="timeline-content">
+                            <h6>
+                                {% if training.status.value == 'approved' %}Aprovado
+                                {% elif training.status.value == 'rejected' %}Rejeitado
+                                {% else %}Validado{% endif %}
+                            </h6>
+                            <p>
+                                {% if training.status.value == 'approved' %}
+                                    Treinamento aprovado e adicionado ao dataset
+                                {% elif training.status.value == 'rejected' %}
+                                    Treinamento rejeitado
+                                {% else %}
+                                    Status de validação atualizado
+                                {% endif %}
+                            </p>
+                            <small>{{ training.validated_at.strftime('%d/%m/%Y às %H:%M') }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ações Admin -->
+        {% if current_user.is_admin and training.status.value == 'pending' %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs me-2"></i>Ações Administrativas</h5>
+            </div>
+            <div class="card-body">
+                <div class="admin-actions">
+                    <h6>Validar Treinamento:</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" 
+                                data-training-action="approve" 
+                                data-training-id="{{ training.id }}">
+                            <i class="fas fa-check me-2"></i>Aprovar
+                        </button>
+                        <button class="btn btn-danger" 
+                                data-training-action="reject" 
+                                data-training-id="{{ training.id }}">
+                            <i class="fas fa-times me-2"></i>Rejeitar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Botões de Navegação -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between">
+            <a href="/training/list" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar à Lista
+            </a>
+            
+            {% if current_user.is_admin or training.submitted_by == current_user.id %}
+            <div>
+                <a href="/training/submit" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Novo Treinamento
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

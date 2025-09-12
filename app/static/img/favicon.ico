@@ -1,0 +1,2 @@
+# Adicione um favicon.ico real na pasta static/img para evitar erro 404
+# Exemplo: copie o logo.png e renomeie para favicon.ico ou gere um favicon.ico online

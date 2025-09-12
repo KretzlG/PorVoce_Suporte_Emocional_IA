@@ -1,0 +1,161 @@
+<!-- Backup do submit.html original -->
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Novo Treinamento</h5>
+        </div>
+        <div class="card-body">
+            <form id="training-form" method="post" action="{{ url_for('training.submit') }}" enctype="multipart/form-data">
+                <!-- Tipo de dados -->
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Dados</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="data_type" id="data_type_text" value="text" checked>
+                        <label class="form-check-label" for="data_type_text">
+                            <i class="fas fa-edit me-2"></i>Texto Direto
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="data_type" id="data_type_file" value="file">
+                        <label class="form-check-label" for="data_type_file">
+                            <i class="fas fa-file me-2"></i>Upload de Arquivo
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Título -->
+                <div class="mb-3">
+                    <label for="title" class="form-label">Título</label>
+                    <input type="text" class="form-control" id="title" name="title" placeholder="Digite um título descritivo" required>
+                </div>
+
+                <!-- Descrição -->
+                <div class="mb-3">
+                    <label for="description" class="form-label">Descrição</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="Descreva o conteúdo do treinamento"></textarea>
+                </div>
+
+                <!-- Texto direto -->
+                <div class="mb-3" id="text-input-section">
+                    <label for="text_content" class="form-label">Conteúdo de Treinamento</label>
+                    <textarea class="form-control" id="text_content" name="text_content" rows="8" placeholder="Cole aqui o conteúdo para treinamento da IA..."></textarea>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Digite ou cole o texto que será usado para treinar a IA. Seja claro e específico.
+                    </div>
+                </div>
+
+                <!-- Upload de arquivo -->
+                <div class="mb-3" id="file-input-section" style="display: none;">
+                    <label for="file_upload" class="form-label">Arquivo de Treinamento</label>
+                    <input type="file" class="form-control" id="file_upload" name="file_upload" accept=".txt,.pdf,.doc,.docx,.odt">
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Formatos aceitos: TXT, PDF, DOC, DOCX, ODT (máximo 16MB)
+                    </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar Treinamento
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>Limpar
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Mensagens -->
+            <div id="form-message" class="mt-3"></div>
+        </div>
+    </div>
+    
+    <!-- Card de dicas -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Dicas para um Bom Treinamento</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-check-circle text-success me-2"></i>Conteúdo de Qualidade</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Use linguagem clara e empática</li>
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Inclua exemplos práticos</li>
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Foque em apoio emocional</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="fas fa-times-circle text-danger me-2"></i>Evite</h6>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Informações médicas específicas</li>
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Conteúdo ofensivo ou inadequado</li>
+                        <li><i class="fas fa-arrow-right text-primary me-2"></i>Textos muito curtos ou genéricos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Alternar entre texto e arquivo
+    const textRadio = document.getElementById('data_type_text');
+    const fileRadio = document.getElementById('data_type_file');
+    const textSection = document.getElementById('text-input-section');
+    const fileSection = document.getElementById('file-input-section');
+    
+    function toggleInputType() {
+        if (textRadio.checked) {
+            textSection.style.display = 'block';
+            fileSection.style.display = 'none';
+            document.getElementById('text_content').required = true;
+            document.getElementById('file_upload').required = false;
+        } else {
+            textSection.style.display = 'none';
+            fileSection.style.display = 'block';
+            document.getElementById('text_content').required = false;
+            document.getElementById('file_upload').required = true;
+        }
+    }
+    
+    textRadio.addEventListener('change', toggleInputType);
+    fileRadio.addEventListener('change', toggleInputType);
+    
+    // Envio do formulário via AJAX
+    const form = document.getElementById('training-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const messageDiv = document.getElementById('form-message');
+            
+            // Mostrar loading
+            messageDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Enviando...</div>';
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    messageDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check me-2"></i>' + data.message + '</div>';
+                    form.reset();
+                    toggleInputType(); // Reset visibility
+                } else {
+                    messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao enviar. Tente novamente.</div>';
+            });
+        });
+    }
+});
+</script>

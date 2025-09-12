@@ -15,7 +15,7 @@ class Config:
     
     SQLALCHEMY_DATABASE_URI = DATABASE_URL or \
     os.environ.get('DEV_DATABASE_URL') or \
-    'postgresql://postgres:141520@localhost:5432/foryou_dev'
+    'postgresql://postgres:141520@localhost:5433/foryou_dev'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,

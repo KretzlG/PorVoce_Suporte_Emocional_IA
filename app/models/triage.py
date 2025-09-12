@@ -53,13 +53,13 @@ class TriageLog(BaseModel):
     
     # Análise de risco
     risk_level = db.Column(db.Enum(RiskLevel), nullable=False)
-    confidence_score = db.Column(db.Float, nullable=True)  # 0-1
-    risk_factors = db.Column(db.Text, nullable=True)  # JSON com fatores identificados
-    
+    confidence_score = db.Column(db.Float, nullable=True)
+    risk_factors = db.Column(db.Text, nullable=True)  # JSON
+
     # Contexto da análise
-    trigger_content = db.Column(db.Text, nullable=True)  # Conteúdo que disparou a análise
-    context_type = db.Column(db.String(50), nullable=False)  # 'chat', 'diary', 'profile'
-    
+    trigger_content = db.Column(db.Text, nullable=True)
+    context_type = db.Column(db.String(50), nullable=False)
+
     # Indicadores específicos
     suicidal_ideation = db.Column(db.Boolean, default=False, nullable=False)
     self_harm_risk = db.Column(db.Boolean, default=False, nullable=False)
@@ -67,28 +67,65 @@ class TriageLog(BaseModel):
     domestic_violence = db.Column(db.Boolean, default=False, nullable=False)
     severe_depression = db.Column(db.Boolean, default=False, nullable=False)
     anxiety_disorder = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Status da triagem (novo campo)
+    triage_status = db.Column(db.String(20), default="in_progress", nullable=False)  # waiting, in_progress, completed
     
+    # Informações adicionais para exibição no pré-atendimento
+    emotional_state = db.Column(db.String(100), nullable=True)  # Estado emocional detectado
+    notes = db.Column(db.Text, nullable=True)  # Notas da análise de IA
+    volunteer_assigned = db.Column(db.Integer, db.ForeignKey('volunteers.id'), nullable=True)  # Voluntário designado
+
     # Ações tomadas
     action_taken = db.Column(db.Enum(TriageAction), nullable=True)
     action_details = db.Column(db.Text, nullable=True)
     follow_up_required = db.Column(db.Boolean, default=False, nullable=False)
     follow_up_date = db.Column(db.DateTime, nullable=True)
-    
+
     # Responsável pela análise
     analyzed_by_ai = db.Column(db.Boolean, default=True, nullable=False)
     reviewed_by_human = db.Column(db.Boolean, default=False, nullable=False)
     reviewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     review_notes = db.Column(db.Text, nullable=True)
-    
+
     # Metadados da análise
     ai_model_used = db.Column(db.String(100), nullable=True)
     processing_time_ms = db.Column(db.Integer, nullable=True)
-    keywords_detected = db.Column(db.Text, nullable=True)  # JSON
-    sentiment_score = db.Column(db.Float, nullable=True)  # -1 a 1
-    
+    keywords_detected = db.Column(db.Text, nullable=True)
+    sentiment_score = db.Column(db.Float, nullable=True)
+
     # Anonimização
     is_anonymized = db.Column(db.Boolean, default=False, nullable=False)
     anonymized_at = db.Column(db.DateTime, nullable=True)
+    def compile_triage_json(self, user, chat_messages, images_selected, resumo_contexto=None):
+        """
+        Compila os dados da triagem em JSON padronizado para IA e encaminhamento profissional.
+        user: dict com dados do usuário
+        chat_messages: lista de dicts {remetente, texto}
+        images_selected: lista de dicts {id, descricao}
+        resumo_contexto: string gerada pela IA
+        """
+        return {
+            "usuario": {
+                "id": user.get("id"),
+                "idade": user.get("idade"),
+                "idioma": user.get("idioma", "pt-BR")
+            },
+            "conversa_inicial": {
+                "nivel_risco": self.risk_level.value,
+                "mensagens": chat_messages
+            },
+            "triagem": {
+                "tipo": "forcada" if self.triage_status == "waiting" else "normal",
+                "imagens_selecionadas": images_selected
+            },
+            "dados_compilados": {
+                "qtd_imagens_selecionadas": len(images_selected),
+                "ids_imagens": [img["id"] for img in images_selected],
+                "resumo_contexto": resumo_contexto or ""
+            },
+            "timestamp": self.created_at.isoformat() if hasattr(self, "created_at") else None
+        }
     
     @property
     def is_high_risk(self):

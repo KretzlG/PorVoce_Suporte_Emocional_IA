@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aguardando Voluntário - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .waiting-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .waiting-icon {
+            font-size: 4rem;
+            color: #00b894;
+            margin-bottom: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .waiting-title {
+            font-size: 2rem;
+            color: #2d3436;
+            margin-bottom: 1rem;
+        }
+        
+        .waiting-message {
+            font-size: 1.1rem;
+            color: #636e72;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        
+        .loading-dots {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 1rem 0;
+        }
+        
+        .loading-dots div {
+            position: absolute;
+            top: 33px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #00b894;
+            animation-timing-function: cubic-bezier(0, 1, 1, 0);
+        }
+        
+        .loading-dots div:nth-child(1) {
+            left: 8px;
+            animation: loading-dots1 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(2) {
+            left: 8px;
+            animation: loading-dots2 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(3) {
+            left: 32px;
+            animation: loading-dots2 0.6s infinite;
+        }
+        
+        .loading-dots div:nth-child(4) {
+            left: 56px;
+            animation: loading-dots3 0.6s infinite;
+        }
+        
+        @keyframes loading-dots1 {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes loading-dots3 {
+            0% { transform: scale(1); }
+            100% { transform: scale(0); }
+        }
+        
+        @keyframes loading-dots2 {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(24px, 0); }
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-left: 4px solid #00b894;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            max-width: 600px;
+            text-align: left;
+        }
+        
+        .info-card h3 {
+            color: #00b894;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        .info-card ul {
+            color: #636e72;
+            padding-left: 1.5rem;
+        }
+        
+        .info-card li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .action-buttons {
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            margin: 0.5rem;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background-color: #00b894;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #00a085;
+            transform: translateY(-2px);
+        }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background-color: #ff7675;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .priority-badge.normal {
+            background-color: #00b894;
+        }
+        
+        .priority-badge.high {
+            background-color: #e17055;
+        }
+        
+        .priority-badge.critical {
+            background-color: #d63031;
+        }
+    </style>
+</head>
+<body>
+    <div class="waiting-container">
+        <div class="waiting-icon">
+            <i class="fas fa-heart"></i>
+        </div>
+        
+        <h1 class="waiting-title">Conectando você com um voluntário</h1>
+        
+        {% if session.priority_level != 'normal' %}
+        <div class="priority-badge {{ session.priority_level }}">
+            {% if session.priority_level == 'high' %}
+                🔥 Atendimento Prioritário
+            {% elif session.priority_level == 'critical' %}
+                ⚡ Atendimento Urgente
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <p class="waiting-message">
+            Estamos procurando um voluntário qualificado para te acompanhar. 
+            Nossos voluntários são pessoas treinadas e prontas para oferecer apoio emocional.
+        </p>
+        
+        <div class="loading-dots">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        
+        <div class="info-card">
+            <h3><i class="fas fa-info-circle"></i> Enquanto você aguarda:</h3>
+            <ul>
+                <li>O tempo médio de espera é de 2-5 minutos</li>
+                <li>Você será notificado quando um voluntário estiver disponível</li>
+                <li>Mantenha esta página aberta para receber atualizações</li>
+                <li>Em caso de emergência, ligue <strong>188 (CVV)</strong> ou <strong>192 (SAMU)</strong></li>
+            </ul>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/chat" class="btn btn-secondary">
+                <i class="fas fa-robot"></i> Chat com IA
+            </a>
+            <a href="/dashboard" class="btn btn-primary">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-refresh para verificar se um voluntário se conectou
+        setInterval(function() {
+            fetch('/chat1a1/status/{{ session.id }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ACTIVE') {
+                        window.location.href = '/client_chat_1a1/{{ session.id }}';
+                    }
+                })
+                .catch(error => console.error('Erro ao verificar status:', error));
+        }, 5000); // Verifica a cada 5 segundos
+    </script>
+</body>
+</html>

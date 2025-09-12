@@ -1,0 +1,78 @@
+.service-intake-container {
+    max-width: 700px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(233,30,99,0.08);
+    padding: 2.5rem 2rem;
+}
+.intake-header h2 {
+    color: #e91e63;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+.intake-header p {
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+.intake-info h5 {
+    color: #1976d2;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+.intake-info ul {
+    margin-bottom: 1rem;
+}
+.intake-info .alert-info {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: none;
+    font-size: 1rem;
+}
+.intake-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+.intake-actions .btn {
+    min-width: 180px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(233,30,99,0.08);
+    transition: background 0.2s;
+}
+.intake-actions .btn-primary {
+    background: linear-gradient(90deg, #e91e63 0%, #1976d2 100%);
+    border: none;
+    color: #fff;
+}
+.intake-actions .btn-primary:hover {
+    background: linear-gradient(90deg, #1976d2 0%, #e91e63 100%);
+}
+.intake-actions .btn-danger {
+    background: #e53935;
+    border: none;
+    color: #fff;
+}
+.intake-actions .btn-danger:hover {
+    background: #b71c1c;
+}
+.intake-actions .btn-secondary {
+    background: #757575;
+    border: none;
+    color: #fff;
+}
+.intake-actions .btn-secondary:hover {
+    background: #424242;
+}
+@media (max-width: 600px) {
+    .service-intake-container {
+        padding: 1rem;
+    }
+    .intake-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

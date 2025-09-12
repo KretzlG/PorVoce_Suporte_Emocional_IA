@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encaminhamento Profissional - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .referral-content {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .referral-header {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .referral-header h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #00b894;
+            margin-bottom: 2rem;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .timeline {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+        }
+        
+        .timeline h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .timeline-marker {
+            background: #00b894;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .timeline-content h5 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .timeline-content p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .contact-info {
+            background: #e8f5e8;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+            margin: 1.5rem 0;
+        }
+        
+        .contact-info h4 {
+            margin-top: 0;
+            color: #155724;
+        }
+        
+        .while-waiting {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+        
+        .while-waiting h4 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .while-waiting .row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .while-waiting .col-md-6 {
+            flex: 1;
+            min-width: 250px;
+            padding: 0 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .action-buttons {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .support-message {
+            background: linear-gradient(135deg, #55a3ff, #2e86de);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+        }
+        
+        .support-message h4 {
+            margin-top: 0;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        @media (max-width: 768px) {
+            .referral-content {
+                padding: 1rem;
+            }
+            
+            .action-buttons .btn {
+                display: block;
+                margin: 0.5rem 0;
+                width: 100%;
+            }
+            
+            .timeline-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .timeline-marker {
+                margin: 0 auto 1rem auto;
+            }
+            
+            .while-waiting .col-md-6 {
+                min-width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layout">
+        <!-- Área principal do chat adaptada -->
+        <div class="chat-main" style="margin-left: 0; width: 100%;">
+            <!-- Header adaptado -->
+            <div class="chat-header">
+                <div class="chat-info">
+                    <div class="chat-avatar-main">
+                        <i class="fas fa-handshake" style="color: #00b894;"></i>
+                    </div>
+                    <div class="chat-details">
+                        <h2>🤝 Encaminhamento Profissional</h2>
+                        <p class="chat-status">Encaminhamento registrado com sucesso. Você será contactado(a) por nossa equipe.</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button onclick="window.location.href='/'" class="action-btn" title="Voltar ao Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Voltar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de mensagens adaptada -->
+            <div class="chat-messages" style="padding: 0;">
+                <div class="referral-content">
+                    
+                    <div class="card">
+                        <h3>✅ Solicitação Registrada</h3>
+                        <p class="lead" style="font-size: 1.1rem; color: #666;">Sua solicitação de apoio profissional foi registrada em nosso sistema.</p>
+                        
+                        <div class="timeline">
+                            <h4>📅 O que acontece agora:</h4>
+                            <div class="timeline-item">
+                                <div class="timeline-marker">1</div>
+                                <div class="timeline-content">
+                                    <h5>Avaliação (até 24h)</h5>
+                                    <p>Nossa equipe analisará sua solicitação e definirá o melhor profissional</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-marker">2</div>
+                                <div class="timeline-content">
+                                    <h5>Contato (até 48h)</h5>
+                                    <p>Você receberá um contato com informações sobre o atendimento</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-marker">3</div>
+                                <div class="timeline-content">
+                                    <h5>Agendamento</h5>
+                                    <p>Agendar sua primeira consulta no horário mais conveniente</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="contact-info">
+                            <h4>📱 Como seremos em contato:</h4>
+                            <ul style="margin-bottom: 0;">
+                                <li>📧 E-mail com informações do profissional</li>
+                                <li>📞 Ligação para confirmar disponibilidade</li>
+                                <li>💻 Link para agendamento online</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <a href="/chat" class="btn btn-primary btn-lg">
+                            <i class="fas fa-comments"></i> Ir para Chat
+                        </a>
+                        <a href="/diary" class="btn btn-success btn-lg">
+                            <i class="fas fa-book"></i> Diário Emocional
+                        </a>
+                    </div>
+
+                    <div class="while-waiting">
+                        <h4>⏰ Enquanto aguarda o contato:</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul style="list-style: none; padding-left: 0;">
+                                    <li style="margin: 0.5rem 0;">💬 Continue usando nosso chat</li>
+                                    <li style="margin: 0.5rem 0;">📝 Mantenha um diário de sentimentos</li>
+                                    <li style="margin: 0.5rem 0;">🧘‍♀️ Pratique exercícios de relaxamento</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul style="list-style: none; padding-left: 0;">
+                                    <li style="margin: 0.5rem 0;">📞 CVV 188 sempre disponível</li>
+                                    <li style="margin: 0.5rem 0;">🏃‍♀️ Atividade física leve</li>
+                                    <li style="margin: 0.5rem 0;">👥 Converse com pessoas de confiança</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="support-message">
+                        <h4>🌟 Parabéns pela iniciativa!</h4>
+                        <p>Procurar ajuda profissional é um grande passo em direção ao seu bem-estar.</p>
+                        <p>Você demonstrou coragem e autocuidado - continue assim!</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

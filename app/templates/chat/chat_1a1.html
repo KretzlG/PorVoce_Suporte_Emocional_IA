@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat 1a1 - Voluntário - Por Você</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_1a1.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .chat-header {
+            background: linear-gradient(135deg, #0984e3, #0770c7);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .client-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .client-avatar {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .client-details h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        
+        .client-details p {
+            margin: 0.3rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn-video, .btn-end {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-video {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-video:hover {
+            background: #c0392b;
+            color: white;
+        }
+        
+        .btn-end {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-end:hover {
+            background: #7f8c8d;
+            color: white;
+        }
+        
+        .priority-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 1rem;
+        }
+        
+        .priority-high {
+            background-color: #e17055;
+        }
+        
+        .priority-critical {
+            background-color: #d63031;
+        }
+        
+        .priority-normal {
+            background-color: #00b894;
+        }
+        
+        .chat-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        /* Estilos movidos para chat_1a1.css */
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .message.volunteer {
+            justify-content: flex-end;
+            flex-direction: row-reverse;
+        }
+        
+        .message.client {
+            justify-content: flex-start;
+            flex-direction: row;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .message.volunteer .message-avatar {
+            background: #0984e3;
+        }
+        
+        .message.client .message-avatar {
+            background: #e74c3c;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 0.8rem;
+            border-radius: 15px;
+            word-wrap: break-word;
+        }
+        
+        .message.client .message-content {
+            background: #fee;
+            color: #c0392b;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .message.volunteer .message-content {
+            background: #0984e3;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .message-time {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+        
+        .message.volunteer .message-time {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+        }
+        
+        .send-button {
+            background: #0984e3;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .send-button:hover {
+            background: #0770c7;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="client-info">
+                <div class="client-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="client-details">
+                    <h3>{{ client.first_name }} {{ client.last_name }}</h3>
+                    <p>Cliente em atendimento prioritário</p>
+                </div>
+                {% if session.priority_level %}
+                <div class="priority-badge priority-{{ session.priority_level }}">
+                    {{ 'Urgente' if session.priority_level == 'critical' else 'Alto' if session.priority_level == 'high' else 'Normal' }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="header-actions">
+                <a href="{{ google_meet_url }}" target="_blank" class="btn-video">
+                    <i class="fas fa-video"></i> Chamada de Vídeo
+                </a>
+                <a href="{{ url_for('volunteer.end_session', session_id=session.id) }}" class="btn-end">
+                    <i class="fas fa-stop"></i> Encerrar
+                </a>
+            </div>
+        </div>
+        
+        <div class="messages-container" id="chat-messages" data-session-id="{{ session.id }}">
+            {% for message in messages %}
+            <div class="chat-message {{ 'from-volunteer' if message.message_type == 'volunteer' else 'from-client' }}">
+                <div class="message-avatar">
+                    {% if message.message_type == 'volunteer' %}
+                        <i class="fas fa-heart"></i>
+                    {% else %}
+                        <i class="fas fa-user"></i>
+                    {% endif %}
+                </div>
+                <div class="message-content">
+                    <div>{{ message.content }}</div>
+                    <div class="message-time">
+                        {{ message.created_at.strftime('%H:%M') }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="chat-input">
+            <input type="text" id="chat-input" placeholder="Digite sua resposta..." />
+            <button id="send-btn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/chat_1a1.js') }}"></script>
+</body>
+</html>

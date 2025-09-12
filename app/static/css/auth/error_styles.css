@@ -1,6 +1,8 @@
 /* Estilos adicionais para mensagens de erro */
 .error-messages {
     margin-bottom: 15px;
+    position: relative;
+    z-index: 1000;
 }
 
 .error-messages .error-message {
@@ -11,10 +13,85 @@
     border: 1px solid #e51b61;
     border-radius: 5px;
     font-size: 13px;
+    color: #e51b61;
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.error-messages .error-message:hover {
+    background-color: #fce4ec;
+    opacity: 0.8;
+}
+
+.success-messages {
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 1000;
+}
+
+.success-messages .success-message,
+.error-messages .success-message {
+    display: block;
+    margin-bottom: 5px;
+    padding: 10px;
+    background-color: #e8f5e8;
+    border: 1px solid #4caf50;
+    border-radius: 5px;
+    font-size: 13px;
+    color: #4caf50;
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.success-messages .success-message:hover {
+    background-color: #f1f8e9;
+    opacity: 0.8;
 }
 
 .client-error {
     color: #e51b61 !important;
     font-size: 12px !important;
     margin-top: 5px !important;
+}
+
+/* Animação de entrada */
+.error-message, .success-message {
+    animation: slideInDown 0.3s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Tooltip para indicar que pode clicar */
+.error-message::after, .success-message::after {
+    content: "Clique para fechar";
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+
+.error-message:hover::after, .success-message:hover::after {
+    opacity: 1;
 }

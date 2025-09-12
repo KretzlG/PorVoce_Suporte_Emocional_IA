@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinamento IA - ForYou</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/training.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="training-layout">
+        <!-- Sidebar com navegação do treinamento -->
+        <div class="training-sidebar">
+            <div class="sidebar-header">
+                <div class="header-title">
+                    <i class="fas fa-robot"></i>
+                    <span>Treinamento IA</span>
+                </div>
+                <div class="header-actions">
+                    <button id="back-to-home" class="action-btn back-btn" title="Voltar ao Dashboard">
+                        <i class="fas fa-home"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="training-menu" id="training-menu">
+                <nav class="nav-menu">
+                    <a class="menu-item {% if view == 'dashboard' %}active{% endif %}" href="{{ url_for('training.index') }}">
+                        <div class="menu-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="menu-content">
+                            <h4>Visão Geral</h4>
+                            <p>Dashboard principal</p>
+                        </div>
+                    </a>
+                    
+                    <a class="menu-item {% if view == 'submit' %}active{% endif %}" href="{{ url_for('training.submit') }}">
+                        <div class="menu-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="menu-content">
+                            <h4>Novo Treinamento</h4>
+                            <p>Enviar dados para treinar</p>
+                        </div>
+                    </a>
+                    
+                    <a class="menu-item {% if view == 'list' %}active{% endif %}" href="{{ url_for('training.list_trainings') }}">
+                        <div class="menu-icon">
+                            <i class="fas fa-list"></i>
+                        </div>
+                        <div class="menu-content">
+                            <h4>Meus Treinamentos</h4>
+                            <p>Histórico de envios</p>
+                        </div>
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Área principal do treinamento -->
+        <div class="training-main">
+            <!-- Header do treinamento atual -->
+            <div class="training-header">
+                <div class="training-info">
+                    <div class="training-avatar-main">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="training-details">
+                        <h2 id="training-title">Sistema de Treinamento IA</h2>
+                        <p class="training-status" id="training-status">Portal para envio e gerenciamento de dados de treinamento para a inteligência artificial de apoio emocional.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de conteúdo -->
+            <div class="training-content" id="training-content">
+                {% if view == 'submit' %}
+                    {% include 'training/submit.html' %}
+                {% elif view == 'list' %}
+                    {% include 'training/list.html' %}
+                {% elif view == 'view' %}
+                    {% include 'training/view.html' %}
+                {% else %}
+                    <!-- Estatísticas -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card stat-total">
+                                <div class="stat-icon">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number">{{ stats.total_submitted }}</div>
+                                    <div class="stat-label">Total Enviados</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card stat-approved">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number">{{ stats.approved }}</div>
+                                    <div class="stat-label">Aprovados</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card stat-pending">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number">{{ stats.pending }}</div>
+                                    <div class="stat-label">Pendentes</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="stat-card stat-rejected">
+                                <div class="stat-icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-number">{{ stats.rejected }}</div>
+                                    <div class="stat-label">Rejeitados</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações sobre o Sistema -->
+                    <div class="row mb-4">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-info-circle me-2"></i>Como Funciona o Treinamento</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-upload me-2"></i>Envio de Dados</h6>
+                                            <ul class="list-unstyled">
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Texto direto ou arquivo</li>
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Validação automática</li>
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Análise de qualidade</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-cogs me-2"></i>Processamento</h6>
+                                            <ul class="list-unstyled">
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Revisão por especialistas</li>
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Score de qualidade</li>
+                                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Aprovação final</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4">
+                            <div class="info-card">
+                                <div class="info-header">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <h5>Dicas Importantes</h5>
+                                </div>
+                                <div class="info-body">
+                                    <h6><i class="fas fa-star me-2"></i>Qualidade do Conteúdo:</h6>
+                                    <ul>
+                                        <li>Use linguagem clara e profissional</li>
+                                        <li>Inclua exemplos práticos</li>
+                                        <li>Evite informações incorretas</li>
+                                        <li>Foque em apoio emocional</li>
+                                    </ul>
+                                    
+                                    <h6 class="mt-3"><i class="fas fa-file-text me-2"></i>Formatos Aceitos:</h6>
+                                    <div class="file-formats">
+                                        <span class="badge badge-primary">TXT</span>
+                                        <span class="badge badge-primary">PDF</span>
+                                        <span class="badge badge-primary">DOC</span>
+                                        <span class="badge badge-primary">DOCX</span>
+                                        <span class="badge badge-primary">ODT</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Últimos Treinamentos -->
+                    {% if trainings %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-history me-2"></i>Últimos Treinamentos Enviados</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Título</th>
+                                            <th>Tipo</th>
+                                            <th>Status</th>
+                                            <th>Score</th>
+                                            <th>Data</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for training in trainings %}
+                                        <tr>
+                                            <td>
+                                                <div class="training-title">
+                                                    <strong>{{ training.title }}</strong>
+                                                    {% if training.description %}
+                                                    <br><small class="text-muted">{{ training.description[:100] }}{% if training.description|length > 100 %}...{% endif %}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if training.data_type.value == 'text' %}badge-primary{% else %}badge-secondary{% endif %}">
+                                                    {{ training.data_type.value.upper() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if training.status.value == 'approved' %}badge-success
+                                                    {% elif training.status.value == 'pending' %}badge-warning
+                                                    {% elif training.status.value == 'rejected' %}badge-danger
+                                                    {% else %}badge-secondary{% endif %}">
+                                                    {% if training.status.value == 'approved' %}Aprovado
+                                                    {% elif training.status.value == 'pending' %}Pendente
+                                                    {% elif training.status.value == 'rejected' %}Rejeitado
+                                                    {% else %}{{ training.status.value.title() }}{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if training.validation_score %}
+                                                <div class="score-display">
+                                                    <strong>{{ "%.0f"|format(training.validation_score * 100) }}%</strong>
+                                                </div>
+                                                {% else %}
+                                                <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="date-info">
+                                                    {{ training.created_at.strftime('%d/%m/%Y') }}<br>
+                                                    <small class="text-muted">{{ training.created_at.strftime('%H:%M') }}</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        data-training-action="view" 
+                                                        data-training-id="{{ training.id }}"
+                                                        title="Visualizar">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="text-center mt-3">
+                                <a href="/training/list" class="btn btn-primary">Ver Todos os Treinamentos</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum treinamento enviado ainda</h5>
+                            <p class="text-muted">Comece enviando seu primeiro conjunto de dados de treinamento para a IA.</p>
+                            <a href="/training/submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Enviar Primeiro Treinamento
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/training.js') }}"></script>
+</body>
+</html>

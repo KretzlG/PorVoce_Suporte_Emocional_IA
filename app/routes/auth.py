@@ -167,8 +167,13 @@ def login():
 @login_required
 def logout():
     """Logout do usuário"""
+    from flask import session
     logout_user()
-    flash('Logout realizado com sucesso!', 'info')
+    
+    # Limpar mensagens flash antigas
+    session.pop('_flashes', None)
+    
+    flash('Logout realizado com sucesso!', 'success')
     return redirect(url_for('main.index'))
 
 
