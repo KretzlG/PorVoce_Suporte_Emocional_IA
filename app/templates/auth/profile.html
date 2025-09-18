@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Por Você - Perfil{% endblock %}</title>
+    {% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth/profile.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-papQ+K6r6Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw5Qw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/base.css') }}" rel="stylesheet">
+    {% endblock %}
+</head>
+<body>
+    {% block content %}
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}">
+                <i class="fas fa-heart me-2"></i> 
+                <span style="font-weight: 700; letter-spacing: -0.5px;">Por Você</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.index') }}">Início</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('chat.chat_interface') }}">Chat</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.help_page') }}">Ajuda</a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> {{ current_user.get_full_name() }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">Perfil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Sair</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">Entrar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.register') }}">Registrar</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="auth-bg">
+      <div class="auth-center-box">
+        <h2 class="auth-title">Meu Perfil</h2>
+        <div class="profile-info">
+          <img src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="Avatar" class="profile-avatar">
+          <div class="profile-details">
+            <p><strong>Nome:</strong> {{ current_user }}</p>
+            <p><strong>E-mail:</strong> {{ current_user.email }}</p>
+            <p><strong>Senha:</strong> {{ current_user.password }}</p>
+          </div>
+        </div>
+        <hr>
+        <form class="profile-form" method="POST" action="{{ url_for('auth.profile') }}">
+          <h3 class="profile-subtitle">Configurações</h3>
+          <div class="form-group">
+            <label for="name">Nome</label>
+            <input type="text" id="name" name="name" value="{{ current_user }}" required>
+          </div>
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" name="email" value="{{ current_user.email }}" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" value="{{ password }}" required>
+          </div>
+          <button type="submit" class="btn-auth">Salvar Alterações</button>
+        </form>
+      </div>
+    </div>
+    {% endblock %}
+       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
