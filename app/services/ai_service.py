@@ -12,7 +12,11 @@ from datetime import datetime, UTC
 from typing import Dict, List, Optional
 from sqlalchemy import text
 
-import openai
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 # === DEPENDÊNCIAS OPCIONAIS ===
 try:
@@ -396,6 +400,32 @@ class AIService:
         # Usar análise de sentimento se disponível
         if sentiment_analysis:
             score = sentiment_analysis.get('score', 0)
+            emotion = sentiment_analysis.get('emotion', '')
+            
+            if emotion == 'desesperado' or score < -0.8:
+                return 'critical'
+            elif score < -0.5:
+                return 'high'
+        
+        # Verificar outras palavras-chave
+        for keyword in high_keywords:
+            if keyword in text_lower:
+                return 'high'
+        
+        for keyword in moderate_keywords:
+            if keyword in text_lower:
+                return 'moderate'
+        
+        return 'low'
+        
+        # Verificar palavras críticas
+        for keyword in critical_keywords:
+            if keyword in text_lower:
+                return 'critical'
+        
+        # Usar análise de sentimento se disponível
+        if sentiment_analysis:
+            score = sentiment_analysis.get('score', 0)
             emotion = sentiment_analysis.get('emotion', '').lower()
             intensity = sentiment_analysis.get('intensity', '').lower()
             
@@ -477,7 +507,7 @@ class AIService:
                 return None
             
             # Análise de sentimento básica
-            sentiment_result = self.analyze_text(entry_content)
+            sentiment_result = self.analyze_sentiment(entry_content)
             
             # Detectar emoções específicas usando palavras-chave
             emotions = self._detect_emotions_in_text(entry_content)
@@ -488,18 +518,23 @@ class AIService:
             # Extrair temas principais
             themes = self._extract_themes(entry_content)
             
-            return {
+            # Compilar análise completa
+            analysis = {
                 'sentiment_score': sentiment_result.get('score', 0),
-                'emotion': emotions[0] if emotions else sentiment_result.get('emotion'),
-                'confidence': sentiment_result.get('confidence', 0),
+                'primary_emotion': sentiment_result.get('emotion', 'neutro'),
+                'emotional_intensity': sentiment_result.get('intensity', 'low'),
+                'detected_emotions': emotions,
                 'risk_indicators': risk_indicators,
-                'themes': themes,
+                'main_themes': themes,
+                'analysis_timestamp': datetime.now(UTC).isoformat(),
                 'word_count': len(entry_content.split()),
-                'analysis_timestamp': datetime.now(UTC).isoformat()
+                'requires_attention': len(risk_indicators) > 0 or sentiment_result.get('score', 0) < -0.6
             }
             
+            return analysis
+            
         except Exception as e:
-            logger.error(f"Erro na análise de entrada do diário: {e}")
+            logger.error(f"Erro na análise do diário: {e}")
             return None
     
     def _detect_emotions_in_text(self, text: str) -> List[str]:

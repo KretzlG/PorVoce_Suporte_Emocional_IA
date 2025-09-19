@@ -55,20 +55,20 @@ class AIPromptManager:
         # === INSTRUÇÕES DE TOM POR NÍVEL DE RISCO ===
         self.tone_instructions = {
             'low': {
-                'primary': "Seja empático, acolhedor e encorajador.",
-                'details': "Mantenha tom leve e positivo, oferecendo suporte sem dramatizar."
+                'primary': "Seja otimista, encorajadora e energética.",
+                'details': "Use energia positiva, foque em soluções e forças da pessoa."
             },
             'moderate': {
-                'primary': "Seja empático e demonstre preocupação genuína.",
-                'details': "Mostre compreensão, valide sentimentos, sugira estratégias práticas."
+                'primary': "Seja compreensiva mas firme e esperançosa.",
+                'details': "Valide sentimentos, mas direcione para ação e crescimento."
             },
             'high': {
-                'primary': "Seja muito empático e encoraje buscar ajuda profissional.",
-                'details': "Transmita urgência sem assustar, sugira recursos concretos."
+                'primary': "Seja carinhosa mas direta sobre buscar ajuda.",
+                'details': "Transmita urgência com esperança, foque na solução imediata."
             },
             'critical': {
-                'primary': "Seja extremamente empático mas firme. Enfatize urgência de ajuda IMEDIATA.",
-                'details': "Priorize segurança, seja direto sobre necessidade de ajuda profissional."
+                'primary': "Seja firme, direta e protetiva. Priorize ação IMEDIATA.",
+                'details': "Segurança em primeiro lugar. Seja clara sobre necessidade de ajuda profissional AGORA."
             }
         }
         
@@ -89,10 +89,10 @@ class AIPromptManager:
         
         # === CONFIGURAÇÕES DE PARÂMETROS ===
         self.response_parameters = {
-            'first_interaction_max_words': 80,
-            'continuation_max_words': 100,
-            'emergency_max_words': 120,
-            'temperature_empathetic': 0.7,
+            'first_interaction_max_words': 40,
+            'continuation_max_words': 50,
+            'emergency_max_words': 60,
+            'temperature_empathetic': 0.8,
             'temperature_analytical': 0.3
         }
     
@@ -137,6 +137,10 @@ class AIPromptManager:
         if user_context and user_context.get('name'):
             user_name = user_context['name'].split()[0]
         
+        # Análise dinâmica da conversa
+        conversation_mood = self._analyze_conversation_mood(conversation_history)
+        adaptation_rules = self._get_adaptation_rules(conversation_mood, risk_level)
+        
         # Selecionar template base
         template_type = 'first_interaction' if is_first_message else 'continuation'
         base_template = self.base_prompts[template_type][provider]
@@ -146,9 +150,13 @@ class AIPromptManager:
             risk_level=risk_level.upper(),
             tone_instruction=self.tone_instructions[risk_level]['primary'],
             tone_details=self.tone_instructions[risk_level]['details'],
-            user_name_instruction=f"Use o nome {user_name}" if user_name else "",
+            user_name_instruction=f"Use {user_name}" if user_name else "",
             max_words=self.response_parameters[f'{template_type}_max_words']
         )
+        
+        # Adicionar adaptações dinâmicas
+        if adaptation_rules:
+            system_prompt += f"\n\nADAPTAÇÃO NECESSÁRIA: {adaptation_rules}"
         
         # Adicionar contexto RAG se disponível
         if rag_context:
@@ -162,9 +170,9 @@ class AIPromptManager:
         if provider == 'openai':
             messages = [{"role": "system", "content": system_prompt}]
             
-            # Adicionar histórico limitado (últimas 6 mensagens)
+            # Adicionar histórico limitado (últimas 4 mensagens para manter foco)
             if conversation_history:
-                recent_history = conversation_history[-6:]
+                recent_history = conversation_history[-4:]
                 for msg in recent_history:
                     role = "user" if msg.get('message_type') == 'USER' else "assistant"
                     messages.append({"role": role, "content": msg.get('content', '')})
@@ -210,45 +218,46 @@ class AIPromptManager:
         
         fallback_responses = {
             'critical': [
-                f"{name_prefix}estou muito preocupada com você. Por favor, busque ajuda IMEDIATAMENTE. "
-                "Ligue para o CVV: 188 (24h) ou vá ao hospital. Você não está sozinho(a). 🚨",
+                f"{name_prefix}SITUAÇÃO CRÍTICA DETECTADA! "
+                "Nossa equipe especializada foi acionada para te apoiar. 🚨",
                 
-                f"{name_prefix}percebo que você está em uma situação muito difícil. "
-                "É URGENTE que procure ajuda profissional agora. CVV: 188 (24h). Não hesite! ⚠️",
+                f"{name_prefix}TRIAGEM EMERGENCIAL ATIVADA! "
+                "Um profissional entrará em contato imediatamente. ⚠️",
                 
-                f"{name_prefix}sua segurança é prioridade. Ligue AGORA para o CVV: 188 "
-                "ou procure o hospital mais próximo. Você merece ajuda e apoio. 🆘"
+                f"{name_prefix}VOCÊ NÃO ESTÁ SOZINHO! "
+                "Nossa equipe de crise está organizando seu atendimento AGORA. 🆘"
             ],
             
             'high': [
-                f"{name_prefix}percebo que você está passando por um momento muito difícil. "
-                "Considere conversar com um profissional ou ligar para o CVV: 188. 📞",
+                f"{name_prefix}nossa triagem especializada irá te atender. "
+                "Você merece todo o suporte que podemos oferecer! 💪",
                 
-                f"{name_prefix}estou preocupada com como você está se sentindo. "
-                "Buscar ajuda profissional pode fazer muita diferença. CVV: 188 está sempre disponível. 💙",
+                f"{name_prefix}conectando você com nossa equipe de profissionais. "
+                "Juntos vamos encontrar soluções. Você tem força! 🌟",
                 
-                f"{name_prefix}suas palavras mostram uma dor profunda. "
-                "Por favor, considere falar com um psicólogo ou ligar para o CVV: 188. Você não está sozinho(a). 🤝"
+                f"{name_prefix}acionando protocolo de apoio intensivo. "
+                "Nossa plataforma está aqui para você. Dias melhores vão chegar! ☀️"
             ],
             
             'moderate': [
-                f"{name_prefix}entendo que as coisas estão pesadas para você. "
-                "Lembre-se que é normal ter altos e baixos. Quer conversar sobre isso? 💭",
+                f"{name_prefix}nossa equipe pode te oferecer suporte mais direcionado! "
+                "O que você pode fazer hoje para se cuidar melhor? 💭",
                 
-                f"{name_prefix}percebo que você está enfrentando desafios. "
-                "Às vezes ajuda falar sobre o que está sentindo. Estou aqui para te ouvir. 👂",
+                f"{name_prefix}você é mais forte do que imagina. "
+                "Vamos conectar você com recursos internos que podem ajudar? 🌟",
                 
-                f"{name_prefix}momentos difíceis fazem parte da vida, mas não precisamos enfrentá-los sozinhos. "
-                "Como posso te apoiar hoje? 🌟"
+                f"{name_prefix}isso vai passar! Nossa triagem pode organizar "
+                "um acompanhamento personalizado para você. ✨"
             ],
             
             'low': [
-                f"{name_prefix}estou aqui para te ouvir e apoiar. Como posso te ajudar hoje? 😊",
+                f"{name_prefix}que bom ter você aqui! "
+                "Conte-me como posso te apoiar hoje. 😊",
                 
-                f"{name_prefix}que bom ter você aqui! Conte-me o que está em sua mente. 💚",
+                f"{name_prefix}oi! Como você está se sentindo agora? 💚",
                 
-                f"{name_prefix}estou disponível para conversar sobre qualquer coisa que queira compartilhar. "
-                "O que gostaria de falar? 🗣️"
+                f"{name_prefix}estou aqui para te ouvir! "
+                "O que está acontecendo? 🗣️"
             ]
         }
         
@@ -256,43 +265,39 @@ class AIPromptManager:
     
     def _get_first_interaction_prompt_openai(self) -> str:
         """Template para primeira interação - OpenAI"""
-        return """Você é Íris, uma IA de apoio emocional especializada em português brasileiro.
+        return """Você é Íris, assistente de apoio emocional brasileira.
 
-CONTEXTO: PRIMEIRA interação com este usuário
-NÍVEL DE RISCO: {risk_level}
-INSTRUÇÃO DE TOM: {tone_instruction}
-DETALHES: {tone_details}
+PRIMEIRA CONVERSA | RISCO: {risk_level}
+{tone_instruction} {tone_details}
 
-DIRETRIZES PARA PRIMEIRA CONVERSA:
-- Apresente-se brevemente como Íris
-- Demonstre interesse genuíno e empatia
-- Seja acolhedora e não julgue
-- Ofereça apoio imediato
-- Crie ambiente seguro para compartilhamento
-- {user_name_instruction}
+REGRAS RÍGIDAS:
+- NUNCA se apresente após a primeira frase
+- NUNCA peça desculpas desnecessariamente  
+- NUNCA diga "entendo que", "sei que é difícil"
+- FOQUE na pessoa, não em você
+- Seja DIRETA e PRÁTICA
+- Use energia POSITIVA sempre que possível
+{user_name_instruction}
 
-LIMITE: Responda em até {max_words} palavras
-ESTILO: Natural, empático, brasileiro"""
+MÁXIMO {max_words} palavras. Seja concisa e eficaz."""
     
     def _get_continuation_prompt_openai(self) -> str:
         """Template para continuação de conversa - OpenAI"""
-        return """Você é Íris, continuando uma conversa de apoio emocional.
+        return """Continue como Íris em conversa em andamento.
 
-CONTEXTO: CONTINUAÇÃO da conversa
-NÍVEL DE RISCO: {risk_level}
-INSTRUÇÃO DE TOM: {tone_instruction}
-DETALHES: {tone_details}
+CONVERSA CONTINUADA | RISCO: {risk_level}
+{tone_instruction} {tone_details}
 
-DIRETRIZES PARA CONTINUAÇÃO:
-- Continue naturalmente, SEM se apresentar novamente
-- Mantenha consistência com conversas anteriores
-- Seja empática e ofereça apoio específico
-- Faça perguntas abertas quando apropriado
-- Valide sentimentos do usuário
-- {user_name_instruction}
+REGRAS OBRIGATÓRIAS:
+- NUNCA se apresente novamente
+- NUNCA repita frases como "estou aqui para", "sinto muito"
+- Responda DIRETAMENTE ao que foi dito
+- Adapte seu tom ao ESTADO EMOCIONAL atual
+- Seja PRÁTICA e SOLUCIONADORA
+- Use ENERGIA para motivar
+{user_name_instruction}
 
-LIMITE: Responda em até {max_words} palavras
-ESTILO: Natural, empático, consistente"""
+MÁXIMO {max_words} palavras. Vá direto ao ponto."""
     
     def _get_first_interaction_prompt_gemini(self) -> str:
         """Template para primeira interação - Gemini"""
@@ -323,14 +328,14 @@ Máximo {max_words} palavras."""
 
 ⚠️ SITUAÇÃO DE RISCO CRÍTICO DETECTADA:
 - Enfatize urgência de ajuda IMEDIATA
-- Mencione CVV: 188 (24 horas)
+- Ative triagem emergencial interna
 - Sugira procurar hospital/pronto-socorro
 - Seja firme mas empático
 - NÃO minimize a situação
 - Priorize segurança acima de tudo""",
             
             'crisis_contacts': {
-                'cvv': "CVV - Centro de Valorização da Vida: 188 (24h)",
+                'triagem_interna': "Triagem Especializada - Equipe interna disponível 24h",
                 'samu': "SAMU: 192 (emergências médicas)",
                 'emergency': "Em emergência: vá ao hospital mais próximo"
             }
@@ -339,17 +344,17 @@ Máximo {max_words} palavras."""
     def _calculate_max_tokens(self, template_type: str, risk_level: str) -> int:
         """Calcula número máximo de tokens baseado no contexto"""
         base_tokens = {
-            'first_interaction': 120,
-            'continuation': 150
+            'first_interaction': 80,
+            'continuation': 100
         }
         
-        # Aumentar tokens para situações críticas
+        # Aumentar tokens apenas para situações críticas
         if risk_level == 'critical':
-            return base_tokens.get(template_type, 150) + 50
+            return base_tokens.get(template_type, 100) + 30
         elif risk_level == 'high':
-            return base_tokens.get(template_type, 150) + 30
+            return base_tokens.get(template_type, 100) + 20
         else:
-            return base_tokens.get(template_type, 150)
+            return base_tokens.get(template_type, 100)
     
     def get_provider_config(self, provider: str) -> Dict:
         """
@@ -379,6 +384,104 @@ Máximo {max_words} palavras."""
         }
         
         return configs.get(provider, configs['openai'])
+    
+    def _analyze_conversation_mood(self, conversation_history: Optional[List]) -> str:
+        """
+        Analisa o humor geral da conversa para adaptação dinâmica
+        
+        Args:
+            conversation_history: Histórico das mensagens
+            
+        Returns:
+            String indicando o humor: 'improving', 'worsening', 'stable', 'crisis', 'unknown'
+        """
+        if not conversation_history or len(conversation_history) < 3:
+            return 'unknown'
+        
+        try:
+            # Analisa as últimas 4 mensagens do usuário
+            user_messages = [
+                msg for msg in conversation_history[-6:] 
+                if msg.get('message_type') == 'USER'
+            ][-4:]
+            
+            if len(user_messages) < 2:
+                return 'unknown'
+            
+            # Palavras que indicam melhora
+            improvement_words = [
+                'melhor', 'melhorando', 'obrigado', 'ajudou', 'consegui', 
+                'tentando', 'força', 'esperança', 'positivo', 'bem'
+            ]
+            
+            # Palavras que indicam piora
+            worsening_words = [
+                'pior', 'piorando', 'desistir', 'acabou', 'impossível', 
+                'não aguento', 'sem saída', 'desespero', 'vazio'
+            ]
+            
+            # Palavras de crise
+            crisis_words = [
+                'morrer', 'suicídio', 'acabar com tudo', 'não quero viver',
+                'me matar', 'melhor morto'
+            ]
+            
+            improvement_score = 0
+            worsening_score = 0
+            crisis_score = 0
+            
+            for msg in user_messages:
+                content = msg.get('content', '').lower()
+                
+                improvement_score += sum(1 for word in improvement_words if word in content)
+                worsening_score += sum(1 for word in worsening_words if word in content)
+                crisis_score += sum(1 for word in crisis_words if word in content)
+            
+            # Determinar humor
+            if crisis_score > 0:
+                return 'crisis'
+            elif improvement_score > worsening_score:
+                return 'improving'
+            elif worsening_score > improvement_score:
+                return 'worsening'
+            else:
+                return 'stable'
+                
+        except Exception:
+            return 'unknown'
+    
+    def _get_adaptation_rules(self, conversation_mood: str, risk_level: str) -> str:
+        """
+        Retorna regras de adaptação baseadas no humor da conversa
+        
+        Args:
+            conversation_mood: Humor detectado da conversa
+            risk_level: Nível de risco atual
+            
+        Returns:
+            String com regras específicas de adaptação
+        """
+        adaptations = {
+            'improving': "Pessoa está melhorando! Reforce progresso, seja AINDA MAIS POSITIVA e encorajadora. Celebre pequenas vitórias!",
+            
+            'worsening': "Situação piorando. Seja mais FIRME e DIRETA sobre buscar ajuda. Aumente energia positiva para contrabalançar.",
+            
+            'crisis': "CRISE DETECTADA. Seja EXTREMAMENTE DIRETA sobre buscar ajuda IMEDIATA. Priorize segurança acima de tudo.",
+            
+            'stable': "Conversa estável. Mantenha tom consistente e foque em pequenos passos para frente.",
+            
+            'unknown': "Primeira conversa ou dados insuficientes. Seja calorosa mas não excessiva."
+        }
+        
+        adaptation = adaptations.get(conversation_mood, '')
+        
+        # Ajustes específicos por risco
+        if risk_level == 'critical' and conversation_mood != 'improving':
+            adaptation += " REFORCE urgência de ajuda profissional."
+        elif risk_level == 'low' and conversation_mood == 'improving':
+            adaptation += " Use mais humor e leveza."
+            
+        return adaptation
     
     def validate_prompt_length(self, prompt: str, provider: str) -> bool:
         """
