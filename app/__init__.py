@@ -37,29 +37,9 @@ def create_app():
     sys.modules['app'].ai_service = ai_service
     sys.modules['app'].AI_AVAILABLE = AI_AVAILABLE
 
-    # Importar e registrar blueprints
-    from app.routes.main import main as main_blueprint
-    app.register_blueprint(main_blueprint)
-    from app.routes.auth import auth as auth_blueprint
-    app.register_blueprint(auth_blueprint)
-    from app.routes.chat import chat as chat_blueprint
-    app.register_blueprint(chat_blueprint, url_prefix='/chat')
-    from app.routes.api import api as api_blueprint
-    app.register_blueprint(api_blueprint)
-    from app.routes.admin import admin as admin_blueprint
-    app.register_blueprint(admin_blueprint, url_prefix='/admin')
-    from app.routes.volunteer import volunteer as volunteer_blueprint
-    app.register_blueprint(volunteer_blueprint, url_prefix='/volunteer')
-    
-    from app.routes.training import training as training_blueprint
-    app.register_blueprint(training_blueprint)
-    
-    from app.routes.diary import diary as diary_blueprint
-    app.register_blueprint(diary_blueprint)
-    
-    # Registrar blueprint de triagem
-    from app.routes.triage import triage as triage_blueprint
-    app.register_blueprint(triage_blueprint)
+    # Registrar todos os blueprints usando o novo sistema
+    from app.routes import register_all_blueprints
+    register_all_blueprints(app)
 
     return app
     # Formato dos logs

@@ -36,6 +36,14 @@ except ImportError:
 # === IMPORTAR SISTEMA DE PROMPTS ===
 from .ai_prompt import AIPromptManager
 
+# === IMPORTAR SISTEMA DE LOGGING DE TREINAMENTO ===
+from .training_usage_logger import training_usage_logger, log_ai_response_with_training_check
+
+# === IMPORTAR SISTEMAS AVANÇADOS ===
+from .advanced_rag_service import advanced_rag_service
+from .advanced_prompt_engineer import advanced_prompt_engineer, PromptContext, RiskLevel, PromptType
+from .finetuning_preparator import finetuning_preparator
+
 # Configurar logging
 logger = logging.getLogger(__name__)
 
@@ -269,11 +277,20 @@ class AIService:
 
         
         # === SISTEMA RAG INTEGRADO ===
-        self.rag = SimpleRAG()
+        self.rag = SimpleRAG()  # RAG básico para compatibilidade
         self.rag_enabled = True
+        self.advanced_rag = advanced_rag_service  # RAG avançado
         
         # === SISTEMA DE PROMPTS INTEGRADO ===
         self.prompt_manager = AIPromptManager()
+        self.advanced_prompt_engineer = advanced_prompt_engineer  # Prompt engineering avançado
+        
+        # === SISTEMA DE FINE-TUNING ===
+        self.finetuning_preparator = finetuning_preparator
+        
+        # === SISTEMA DE LOGGING DE TREINAMENTO ===
+        self.training_logger = training_usage_logger
+        self.log_training_usage = True
         
         # === CACHE E OTIMIZAÇÕES ===
         self.response_cache = {}
@@ -614,7 +631,7 @@ class AIService:
                          conversation_history: Optional[List] = None, 
                          fallback: bool = True) -> Dict:
         """
-        Gera resposta empática usando LLMs com RAG e fallback automático
+        Gera resposta empática usando LLMs com RAG avançado e Prompt Engineering
         
         Args:
             user_message: Mensagem do usuário
@@ -628,36 +645,219 @@ class AIService:
         """
         errors = []
         
-        # Buscar contexto RAG se habilitado
+        try:
+            print(f"AI_RESPONSE_START: Processando mensagem de risco {risk_level}")
+            
+            # 1. Buscar contexto avançado usando RAG
+            rag_context = None
+            if self.rag_enabled:
+                try:
+                    rag_result = self.advanced_rag.get_enhanced_context(
+                        user_message, 
+                        risk_level, 
+                        context_type='all', 
+                        limit=3
+                    )
+                    rag_context = rag_result.get('context_prompt', '')
+                    print(f"RAG_CONTEXT: {len(rag_result.get('training_data', []))} dados + {len(rag_result.get('conversation_examples', []))} conversas")
+                except Exception as e:
+                    logger.warning(f"Erro no RAG avançado: {e}")
+            
+            # 2. Preparar contexto para prompt engineering
+            prompt_context = PromptContext(
+                user_message=user_message,
+                risk_level=RiskLevel(risk_level),
+                user_name=user_context.get('name') if user_context else None,
+                session_history=conversation_history,
+                training_context=rag_context,
+                conversation_examples=rag_result.get('conversation_examples', []) if rag_context else None
+            )
+            
+            # 3. Tentar OpenAI com prompt engineering avançado
+            if self.openai_client:
+                try:
+                    return self._generate_response_openai_advanced(prompt_context)
+                except Exception as e:
+                    errors.append(f"OpenAI avançado: {str(e)}")
+                    logger.warning(f"Falha no OpenAI avançado: {e}")
+            
+            # 4. Tentar Gemini com prompt engineering avançado (fallback)
+            if self.gemini_client and fallback:
+                try:
+                    return self._generate_response_gemini_advanced(prompt_context)
+                except Exception as e:
+                    errors.append(f"Gemini avançado: {str(e)}")
+                    logger.warning(f"Falha no Gemini avançado: {e}")
+            
+            # 5. Fallback para sistema antigo
+            print("FALLBACK_TO_OLD: Usando sistema de resposta legado")
+            return self._generate_response_legacy(user_message, risk_level, user_context, conversation_history, errors)
+            
+        except Exception as e:
+            logger.error(f"Erro crítico na geração de resposta: {e}")
+            return self._generate_response_fallback(user_message, risk_level, user_context, errors + [str(e)])
+    
+    def _generate_response_openai_advanced(self, context: PromptContext) -> Dict:
+        """Gera resposta usando OpenAI com sistema avançado"""
+        
+        # Construir prompt usando prompt engineering avançado
+        prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+            context, provider='openai'
+        )
+        
+        print(f"OPENAI_ADVANCED: Prompt com {len(prompt_data['messages'])} mensagens")
+        
+        # Chamada para OpenAI
+        response = self.openai_client.chat.completions.create(
+            model=self.openai_model,
+            messages=prompt_data['messages'],
+            max_tokens=prompt_data['max_tokens'],
+            temperature=prompt_data['temperature'],
+            presence_penalty=prompt_data.get('presence_penalty', 0),
+            frequency_penalty=prompt_data.get('frequency_penalty', 0)
+        )
+        
+        ai_response = response.choices[0].message.content.strip()
+        
+        # Log do uso de dados de treinamento
+        training_usage = None
+        if self.log_training_usage:
+            try:
+                training_usage = log_ai_response_with_training_check(
+                    context.user_message, ai_response, context.risk_level.value
+                )
+                print(f"TRAINING_USAGE: {training_usage.get('used_training_data', False)}")
+            except Exception as e:
+                logger.warning(f"Erro ao logar uso de treinamento: {e}")
+        
+        result = {
+            'message': ai_response,
+            'risk_level': context.risk_level.value,
+            'confidence': 0.95,  # Alta confiança com sistema avançado
+            'source': 'openai_advanced',
+            'model': self.openai_model,
+            'rag_used': bool(context.training_context),
+            'prompt_engineering': 'advanced',
+            'timestamp': datetime.now(UTC).isoformat(),
+            'tokens_used': response.usage.total_tokens if hasattr(response, 'usage') else None
+        }
+        
+        # Adicionar informações de treinamento se disponível
+        if training_usage:
+            result['training_usage'] = training_usage
+        
+        # Adicionar contexto RAG se usado
+        if context.training_context:
+            result['rag_context_length'] = len(context.training_context)
+        
+        print(f"OPENAI_SUCCESS: Resposta gerada com {len(ai_response)} caracteres")
+        return result
+    
+    def _generate_response_gemini_advanced(self, context: PromptContext) -> Dict:
+        """Gera resposta usando Gemini com sistema avançado"""
+        
+        # Construir prompt usando prompt engineering avançado
+        prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+            context, provider='gemini'
+        )
+        
+        print(f"GEMINI_ADVANCED: Prompt com {len(prompt_data['prompt'])} caracteres")
+        
+        model = self.gemini_client.GenerativeModel(self.gemini_model)
+        response = model.generate_content(prompt_data['prompt'])
+        
+        ai_response = response.text.strip()
+        
+        # Log do uso de dados de treinamento
+        training_usage = None
+        if self.log_training_usage:
+            try:
+                training_usage = log_ai_response_with_training_check(
+                    context.user_message, ai_response, context.risk_level.value
+                )
+                print(f"TRAINING_USAGE: {training_usage.get('used_training_data', False)}")
+            except Exception as e:
+                logger.warning(f"Erro ao logar uso de treinamento: {e}")
+        
+        result = {
+            'message': ai_response,
+            'risk_level': context.risk_level.value,
+            'confidence': 0.90,  # Boa confiança com sistema avançado
+            'source': 'gemini_advanced',
+            'rag_used': bool(context.training_context),
+            'prompt_engineering': 'advanced',
+            'timestamp': datetime.now(UTC).isoformat()
+        }
+        
+        # Adicionar informações de treinamento se disponível
+        if training_usage:
+            result['training_usage'] = training_usage
+        
+        # Adicionar contexto RAG se usado
+        if context.training_context:
+            result['rag_context_length'] = len(context.training_context)
+        
+        print(f"GEMINI_SUCCESS: Resposta gerada com {len(ai_response)} caracteres")
+        return result
+    
+    def _generate_response_legacy(self, user_message: str, risk_level: str, 
+                                 user_context: Optional[Dict], 
+                                 conversation_history: Optional[List],
+                                 errors: List[str]) -> Dict:
+        """Método legado para compatibilidade"""
+        
+        print("LEGACY_RESPONSE: Usando sistema antigo")
+        
+        # Buscar contexto RAG básico se habilitado
         rag_context = None
         if self.rag_enabled:
             try:
                 rag_context = self.rag.get_relevant_context(user_message, risk_level)
             except Exception as e:
-                logger.warning(f"Erro no RAG: {e}")
+                logger.warning(f"Erro no RAG básico: {e}")
         
-        # 1. Tentar OpenAI (principal)
+        # Usar sistema antigo com RAG básico
+        is_first_message = not conversation_history or len(conversation_history) == 0
+        
+        # Construir prompt usando o sistema de prompts antigo
+        prompt_data = self.prompt_manager.build_conversation_prompt(
+            user_message=user_message,
+            risk_level=risk_level,
+            provider='openai',
+            user_context=user_context,
+            conversation_history=conversation_history,
+            rag_context=rag_context,
+            is_first_message=is_first_message
+        )
+        
+        # Tentar OpenAI
         if self.openai_client:
             try:
-                return self._generate_response_openai(
-                    user_message, risk_level, user_context, 
-                    conversation_history, rag_context
+                response = self.openai_client.chat.completions.create(
+                    model=self.openai_model,
+                    messages=prompt_data['messages'],
+                    max_tokens=prompt_data['max_tokens'],
+                    temperature=prompt_data['temperature']
                 )
+                
+                ai_response = response.choices[0].message.content.strip()
+                
+                return {
+                    'message': ai_response,
+                    'risk_level': risk_level,
+                    'confidence': 0.85,
+                    'source': 'openai_legacy',
+                    'model': self.openai_model,
+                    'rag_used': bool(rag_context),
+                    'prompt_engineering': 'legacy',
+                    'timestamp': datetime.now(UTC).isoformat(),
+                    'fallback_errors': errors
+                }
+                
             except Exception as e:
-                errors.append(f"OpenAI: {str(e)}")
-                logger.warning(f"Falha no OpenAI: {e}")
+                errors.append(f"OpenAI legacy: {str(e)}")
         
-        # 2. Tentar Gemini (fallback)
-        if self.gemini_client and fallback:
-            try:
-                return self._generate_response_gemini(
-                    user_message, risk_level, user_context, rag_context
-                )
-            except Exception as e:
-                errors.append(f"Gemini: {str(e)}")
-                logger.warning(f"Falha no Gemini: {e}")
-        
-        # 3. Resposta estática (fallback final)
+        # Fallback final
         return self._generate_response_fallback(user_message, risk_level, user_context, errors)
     
     def _generate_response_openai(self, user_message: str, risk_level: str, 
@@ -690,7 +890,17 @@ class AIService:
         
         ai_response = response.choices[0].message.content.strip()
         
-        return {
+        # Log do uso de dados de treinamento
+        training_usage = None
+        if self.log_training_usage:
+            try:
+                training_usage = log_ai_response_with_training_check(
+                    user_message, ai_response, risk_level
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao logar uso de treinamento: {e}")
+        
+        result = {
             'message': ai_response,
             'risk_level': risk_level,
             'confidence': 0.9,
@@ -699,6 +909,12 @@ class AIService:
             'rag_used': bool(rag_context),
             'timestamp': datetime.now(UTC).isoformat()
         }
+        
+        # Adicionar informações de treinamento se disponível
+        if training_usage:
+            result['training_usage'] = training_usage
+        
+        return result
     
     def _generate_response_gemini(self, user_message: str, risk_level: str, 
                                  user_context: Optional[Dict],
@@ -718,14 +934,32 @@ class AIService:
         model = self.gemini_client.GenerativeModel(self.gemini_model)
         response = model.generate_content(prompt_data['prompt'])
         
-        return {
-            'message': response.text.strip(),
+        ai_response = response.text.strip()
+        
+        # Log do uso de dados de treinamento
+        training_usage = None
+        if self.log_training_usage:
+            try:
+                training_usage = log_ai_response_with_training_check(
+                    user_message, ai_response, risk_level
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao logar uso de treinamento: {e}")
+        
+        result = {
+            'message': ai_response,
             'risk_level': risk_level,
             'confidence': 0.85,
             'source': 'gemini',
             'rag_used': bool(rag_context),
             'timestamp': datetime.now(UTC).isoformat()
         }
+        
+        # Adicionar informações de treinamento se disponível
+        if training_usage:
+            result['training_usage'] = training_usage
+        
+        return result
     
     def _generate_response_fallback(self, user_message: str, risk_level: str, 
                                    user_context: Optional[Dict], 
@@ -802,32 +1036,244 @@ class AIService:
         """Retorna estatísticas do serviço"""
         try:
             stats = {
-                'service_version': '2.1',
-                'architecture': 'modular_with_prompt_manager',
+                'service_version': '3.0',
+                'architecture': 'advanced_integrated_system',
                 'models_active': len([m for m in self.get_model_info() if m['status'] == 'active']),
                 'cache_size': len(self.response_cache),
                 'rag_enabled': self.rag_enabled,
-                'prompt_manager_active': bool(self.prompt_manager)
+                'prompt_manager_active': bool(self.prompt_manager),
+                'training_logging_enabled': self.log_training_usage,
+                'advanced_systems': {
+                    'advanced_rag': bool(self.advanced_rag),
+                    'advanced_prompt_engineer': bool(self.advanced_prompt_engineer),
+                    'finetuning_preparator': bool(self.finetuning_preparator)
+                }
             }
             
-            # Estatísticas do RAG
-            if self.rag_enabled:
+            # Estatísticas do RAG avançado
+            if self.advanced_rag:
                 try:
-                    from app import db
-                    rag_stats = db.session.execute(text("""
-                        SELECT COUNT(*) as total_good_sessions
-                        FROM chat_sessions cs 
-                        WHERE cs.user_rating >= 4
-                        AND cs.created_at >= NOW() - INTERVAL '6 months'
-                    """)).scalar()
-                    stats['rag_ready'] = rag_stats > 5
-                    stats['rag_training_data'] = rag_stats
-                except:
-                    stats['rag_ready'] = False
-                    stats['rag_training_data'] = 0
+                    rag_stats = self.advanced_rag.get_training_data_statistics()
+                    stats['advanced_rag_stats'] = rag_stats
+                except Exception as e:
+                    stats['advanced_rag_error'] = str(e)
+            
+            # Estatísticas do prompt engineering
+            if self.advanced_prompt_engineer:
+                try:
+                    prompt_stats = self.advanced_prompt_engineer.get_prompt_statistics()
+                    stats['prompt_engineering_stats'] = prompt_stats
+                except Exception as e:
+                    stats['prompt_engineering_error'] = str(e)
+            
+            # Estatísticas do fine-tuning
+            if self.finetuning_preparator:
+                try:
+                    ft_recommendations = self.finetuning_preparator.get_dataset_recommendations()
+                    stats['finetuning_recommendations'] = ft_recommendations
+                except Exception as e:
+                    stats['finetuning_error'] = str(e)
+            
+            # Estatísticas de uso de treinamento
+            if self.log_training_usage:
+                try:
+                    training_stats = self.training_logger.get_usage_statistics()
+                    stats['training_usage_stats'] = training_stats
+                except Exception as e:
+                    stats['training_usage_error'] = str(e)
             
             return stats
         except Exception as e:
+            return {'error': str(e)}
+    
+    def search_training_content(self, query: str, limit: int = 10) -> Dict:
+        """
+        Busca conteúdo nos dados de treinamento
+        """
+        try:
+            if not self.advanced_rag:
+                return {'error': 'Sistema RAG avançado não disponível'}
+            
+            results = self.advanced_rag.search_training_content(query, limit)
+            
+            return {
+                'success': True,
+                'query': query,
+                'results': results,
+                'total_found': len(results)
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro na busca de conteúdo: {e}")
+            return {'error': str(e)}
+    
+    def create_finetuning_dataset(self, dataset_type: str = 'hybrid', 
+                                 format_type: str = 'openai_chat',
+                                 max_samples: int = 1000) -> Dict:
+        """
+        Cria dataset para fine-tuning
+        
+        Args:
+            dataset_type: Tipo do dataset ('conversations', 'training_data', 'hybrid')
+            format_type: Formato ('openai_chat', 'jsonl', 'csv')
+            max_samples: Número máximo de amostras
+        """
+        try:
+            if not self.finetuning_preparator:
+                return {'error': 'Preparador de fine-tuning não disponível'}
+            
+            print(f"FINETUNING_DATASET: Criando dataset {dataset_type} formato {format_type}")
+            
+            if dataset_type == 'conversations':
+                result = self.finetuning_preparator.create_conversation_dataset(
+                    format_type=format_type,
+                    max_samples=max_samples
+                )
+            elif dataset_type == 'training_data':
+                result = self.finetuning_preparator.create_training_data_dataset(
+                    format_type=format_type,
+                    max_samples=max_samples
+                )
+            elif dataset_type == 'hybrid':
+                result = self.finetuning_preparator.create_hybrid_dataset(
+                    total_samples=max_samples,
+                    format_type=format_type
+                )
+            else:
+                return {'error': f'Tipo de dataset não suportado: {dataset_type}'}
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Erro na criação do dataset: {e}")
+            return {'error': str(e)}
+    
+    def save_finetuning_dataset(self, dataset_result: Dict, file_path: str = None) -> Dict:
+        """
+        Salva dataset de fine-tuning em arquivo
+        """
+        try:
+            if not self.finetuning_preparator:
+                return {'error': 'Preparador de fine-tuning não disponível'}
+            
+            return self.finetuning_preparator.save_dataset_to_file(dataset_result, file_path)
+            
+        except Exception as e:
+            logger.error(f"Erro ao salvar dataset: {e}")
+            return {'error': str(e)}
+    
+    def get_advanced_context(self, user_message: str, risk_level: str = 'low',
+                           context_type: str = 'all') -> Dict:
+        """
+        Obtém contexto avançado usando RAG
+        """
+        try:
+            if not self.advanced_rag:
+                return {'error': 'Sistema RAG avançado não disponível'}
+            
+            return self.advanced_rag.get_enhanced_context(
+                user_message, risk_level, context_type
+            )
+            
+        except Exception as e:
+            logger.error(f"Erro no contexto avançado: {e}")
+            return {'error': str(e)}
+    
+    def analyze_prompt_context(self, user_message: str, risk_level: str = 'low',
+                             user_context: Optional[Dict] = None) -> Dict:
+        """
+        Analisa contexto para prompt engineering
+        """
+        try:
+            if not self.advanced_prompt_engineer:
+                return {'error': 'Sistema de prompt engineering não disponível'}
+            
+            from .advanced_prompt_engineer import PromptContext, RiskLevel
+            
+            # Criar contexto
+            prompt_context = PromptContext(
+                user_message=user_message,
+                risk_level=RiskLevel(risk_level),
+                user_name=user_context.get('name') if user_context else None
+            )
+            
+            # Validar contexto
+            is_valid, errors = self.advanced_prompt_engineer.validate_prompt_context(prompt_context)
+            
+            # Construir prompt de exemplo
+            prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+                prompt_context, provider='openai'
+            )
+            
+            return {
+                'success': True,
+                'context_valid': is_valid,
+                'validation_errors': errors,
+                'prompt_preview': {
+                    'system_message': prompt_data['messages'][0]['content'][:500] + '...',
+                    'user_message': prompt_data['messages'][-1]['content'],
+                    'total_messages': len(prompt_data['messages']),
+                    'max_tokens': prompt_data['max_tokens'],
+                    'temperature': prompt_data['temperature']
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro na análise do prompt: {e}")
+            return {'error': str(e)}
+    
+    def get_system_capabilities(self) -> Dict:
+        """
+        Retorna capacidades completas do sistema
+        """
+        return {
+            'core_features': {
+                'sentiment_analysis': True,
+                'risk_assessment': True,
+                'response_generation': True,
+                'diary_analysis': True
+            },
+            'advanced_features': {
+                'advanced_rag': bool(self.advanced_rag),
+                'prompt_engineering': bool(self.advanced_prompt_engineer),
+                'finetuning_preparation': bool(self.finetuning_preparator),
+                'training_usage_logging': self.log_training_usage
+            },
+            'supported_formats': {
+                'finetuning': ['openai_chat', 'openai_completion', 'jsonl', 'csv'],
+                'rag_context': ['training_data', 'conversations', 'hybrid']
+            },
+            'models': self.get_model_info(),
+            'version': '3.0 - Integrated Advanced System'
+        }
+    
+    def get_training_usage_report(self) -> Dict:
+        """
+        Retorna relatório detalhado do uso de dados de treinamento
+        """
+        try:
+            if not self.log_training_usage:
+                return {'error': 'Logging de treinamento não está habilitado'}
+            
+            return self.training_logger.get_usage_statistics()
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar relatório de treinamento: {e}")
+            return {'error': str(e)}
+    
+    def clear_training_cache(self) -> Dict:
+        """
+        Limpa o cache de dados de treinamento
+        """
+        try:
+            if not self.log_training_usage:
+                return {'error': 'Logging de treinamento não está habilitado'}
+            
+            self.training_logger.clear_cache()
+            return {'success': True, 'message': 'Cache de treinamento limpo'}
+            
+        except Exception as e:
+            logger.error(f"Erro ao limpar cache de treinamento: {e}")
             return {'error': str(e)}
 
 

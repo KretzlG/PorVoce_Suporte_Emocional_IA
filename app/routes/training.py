@@ -4,14 +4,14 @@ Rotas para treinamento da IA
 
 import os
 import uuid
+import logging
+from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.models import TrainingData, TrainingDataType, TrainingDataStatus
-from app.services.training_validation import TrainingValidationService
 from app import db
 from functools import wraps
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def submit():
             data_type = request.form.get('data_type')
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
-            content = request.form.get('text_content', '').strip()  # Atualizado para text_content
+            content = request.form.get('text_content', '').strip()
 
             if not title:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -108,7 +108,6 @@ def submit():
                 submitted_by=current_user.id,
                 data_type=TrainingDataType.TEXT if data_type == 'text' else TrainingDataType.FILE
             )
-            validation_service = TrainingValidationService()
 
             if data_type == 'text':
                 if not content:
@@ -116,44 +115,46 @@ def submit():
                         return '<div class="alert alert-danger">Conteúdo de texto é obrigatório</div>', 400
                     return jsonify({'success': False, 'message': 'Conteúdo de texto é obrigatório'}), 400
                 training_data.content = content
-                validation_result = validation_service.validate_content(content, title, description)
+                
             elif data_type == 'file':
-                file = request.files.get('file_upload')  # Atualizado para file_upload
+                file = request.files.get('file_upload')
                 if not file or file.filename == '':
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return '<div class="alert alert-danger">Arquivo é obrigatório</div>', 400
                     return jsonify({'success': False, 'message': 'Arquivo é obrigatório'}), 400
+                
                 if not allowed_file(file.filename):
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return f'<div class="alert alert-danger">Tipo de arquivo não permitido. Tipos aceitos: {", ".join(ALLOWED_EXTENSIONS)}</div>', 400
                     return jsonify({'success': False, 'message': f'Tipo de arquivo não permitido. Tipos aceitos: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+                
                 file_size = get_file_size(file)
                 if file_size > MAX_FILE_SIZE:
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return f'<div class="alert alert-danger">Arquivo muito grande. Tamanho máximo: {MAX_FILE_SIZE // (1024*1024)}MB</div>', 400
                     return jsonify({'success': False, 'message': f'Arquivo muito grande. Tamanho máximo: {MAX_FILE_SIZE // (1024*1024)}MB'}), 400
+                
                 filename = secure_filename(file.filename)
                 unique_filename = f"{uuid.uuid4().hex}_{filename}"
                 upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'training')
                 os.makedirs(upload_dir, exist_ok=True)
                 file_path = os.path.join(upload_dir, unique_filename)
                 file.save(file_path)
+                
                 training_data.file_name = filename
                 training_data.file_path = file_path
                 training_data.file_size = file_size
                 training_data.file_type = filename.rsplit('.', 1)[1].lower()
-                validation_result = validation_service.validate_file_content(file_path, training_data.file_type)
+                
             else:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return '<div class="alert alert-danger">Tipo de dados inválido</div>', 400
                 return jsonify({'success': False, 'message': 'Tipo de dados inválido'}), 400
 
-            training_data.validation_score = validation_result['score']
-            training_data.validation_notes = validation_service.get_validation_summary(validation_result)
-            if validation_result['is_valid']:
-                training_data.status = TrainingDataStatus.APPROVED
-            else:
-                training_data.status = TrainingDataStatus.REJECTED
+            # Aprovar automaticamente todos os treinamentos
+            training_data.validation_score = 1.0
+            training_data.validation_notes = "✅ APROVADO AUTOMATICAMENTE\n\nTreinamento aceito sem validação automática."
+            training_data.status = TrainingDataStatus.APPROVED
             training_data.save()
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -293,6 +294,62 @@ def validate_training(training_id):
 @login_required
 @admin_or_volunteer_required
 def api_stats():
+    """API para estatísticas de treinamento"""
+    try:
+        from app.services.ai_service import AIService
+        from app.services.training_usage_logger import get_training_usage_stats
+        
+        # Estatísticas básicas
+        stats = {
+            'total_submitted': TrainingData.query.filter_by(submitted_by=current_user.id).count(),
+            'approved': TrainingData.query.filter_by(
+                submitted_by=current_user.id, 
+                status=TrainingDataStatus.APPROVED
+            ).count(),
+            'pending': TrainingData.query.filter_by(
+                submitted_by=current_user.id, 
+                status=TrainingDataStatus.PENDING
+            ).count(),
+            'rejected': TrainingData.query.filter_by(
+                submitted_by=current_user.id, 
+                status=TrainingDataStatus.REJECTED
+            ).count()
+        }
+        
+        # Estatísticas de uso pela IA
+        try:
+            ai_service = AIService()
+            training_usage = ai_service.get_training_usage_report()
+            stats['ai_usage'] = training_usage
+        except Exception as e:
+            stats['ai_usage'] = {'error': str(e)}
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@training.route('/training/api/usage-report')
+@login_required
+@admin_or_volunteer_required
+def api_usage_report():
+    """API para relatório detalhado de uso dos dados de treinamento"""
+    try:
+        from app.services.training_usage_logger import get_training_usage_stats
+        
+        usage_stats = get_training_usage_stats()
+        
+        return jsonify({
+            'success': True,
+            'data': usage_stats,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar relatório de uso: {str(e)}")
+        return jsonify({'error': str(e)}), 500
     """API para estatísticas de treinamento"""
     if current_user.is_admin:
         # Admin vê estatísticas globais

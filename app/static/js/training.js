@@ -489,8 +489,8 @@ const TrainingJS = {
         const fileRadio = document.getElementById('type_file');
         const textSection = document.getElementById('text_content_section');
         const fileSection = document.getElementById('file_upload_section');
-        const contentField = document.getElementById('content');
-        const fileField = document.getElementById('file');
+        const contentField = document.getElementById('text_content');
+        const fileField = document.getElementById('file_upload');
 
         // Verificar se todos os elementos existem
         if (!textRadio || !fileRadio || !textSection || !fileSection || !contentField || !fileField) {
@@ -523,7 +523,7 @@ const TrainingJS = {
      * Configurar upload de arquivo
      */
     setupFileUpload() {
-        const fileInput = document.getElementById('file');
+        const fileInput = document.getElementById('file_upload');
         const filePreview = document.getElementById('file_preview');
         const fileName = document.getElementById('file_name');
         const fileSize = document.getElementById('file_size');
@@ -541,7 +541,7 @@ const TrainingJS = {
                 if (!allowedTypes.includes(fileExtension)) {
                     this.showAlert('Tipo de arquivo não permitido. Use: ' + allowedTypes.join(', '), 'error');
                     fileInput.value = '';
-                    filePreview.style.display = 'none';
+                    if (filePreview) filePreview.style.display = 'none';
                     return;
                 }
                 
@@ -550,16 +550,16 @@ const TrainingJS = {
                 if (file.size > maxSize) {
                     this.showAlert('Arquivo muito grande. Tamanho máximo: 16MB', 'error');
                     fileInput.value = '';
-                    filePreview.style.display = 'none';
+                    if (filePreview) filePreview.style.display = 'none';
                     return;
                 }
                 
                 // Mostrar prévia
-                fileName.textContent = file.name;
-                fileSize.textContent = `(${this.formatFileSize(file.size)})`;
-                filePreview.style.display = 'block';
+                if (fileName) fileName.textContent = file.name;
+                if (fileSize) fileSize.textContent = ` (${this.formatFileSize(file.size)})`;
+                if (filePreview) filePreview.style.display = 'block';
             } else {
-                filePreview.style.display = 'none';
+                if (filePreview) filePreview.style.display = 'none';
             }
         });
     },
@@ -587,7 +587,7 @@ const TrainingJS = {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validando...';
             
-            if (loadingModal) {
+            if (loadingModal && typeof bootstrap !== 'undefined') {
                 const modal = new bootstrap.Modal(loadingModal);
                 modal.show();
             }
@@ -599,39 +599,65 @@ const TrainingJS = {
                 // Enviar requisição
                 const response = await fetch('/training/submit', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
                 
-                const result = await response.json();
-                
-                if (loadingModal) {
-                    bootstrap.Modal.getInstance(loadingModal).hide();
+                if (loadingModal && typeof bootstrap !== 'undefined') {
+                    const modalInstance = bootstrap.Modal.getInstance(loadingModal);
+                    if (modalInstance) modalInstance.hide();
                 }
                 
-                if (result.success) {
-                    this.showValidationResult(result.data, validationResult);
-                    this.showAlert('Treinamento enviado com sucesso!', 'success');
+                // Verificar se a resposta é JSON ou HTML
+                const contentType = response.headers.get('content-type');
+                let result;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
                     
-                    // Resetar formulário após sucesso
-                    setTimeout(() => {
-                        if (confirm('Deseja enviar outro treinamento?')) {
-                            form.reset();
-                            validationResult.style.display = 'none';
-                            this.setupContentTypeToggle(); // Reconfigurar após reset
-                        } else {
-                            // Carregar a página de lista via AJAX
-                            this.loadContent('/training/list', null);
-                        }
-                    }, 2000);
+                    if (result.success) {
+                        this.showValidationResult(result.data, validationResult);
+                        this.showAlert('Treinamento enviado com sucesso!', 'success');
+                        
+                        // Resetar formulário após sucesso
+                        setTimeout(() => {
+                            if (confirm('Deseja enviar outro treinamento?')) {
+                                form.reset();
+                                if (validationResult) validationResult.style.display = 'none';
+                                this.setupContentTypeToggle(); // Reconfigurar após reset
+                            } else {
+                                // Carregar a página de lista via AJAX
+                                this.loadContent('/training/list', null);
+                            }
+                        }, 2000);
+                    } else {
+                        this.showAlert(result.message || 'Erro ao enviar treinamento', 'error');
+                    }
                 } else {
-                    this.showAlert(result.message || 'Erro ao enviar treinamento', 'error');
+                    // Resposta é HTML (sucesso)
+                    const html = await response.text();
+                    
+                    if (response.ok) {
+                        // Atualizar o conteúdo com a resposta HTML
+                        const contentDiv = document.getElementById('training-content');
+                        if (contentDiv) {
+                            contentDiv.innerHTML = html;
+                        }
+                        this.showAlert('Treinamento enviado com sucesso!', 'success');
+                    } else {
+                        // Erro retornado como HTML
+                        this.showAlert('Erro ao enviar treinamento', 'error');
+                    }
                 }
                 
             } catch (error) {
                 console.error('Erro:', error);
                 
-                if (loadingModal) {
-                    bootstrap.Modal.getInstance(loadingModal).hide();
+                if (loadingModal && typeof bootstrap !== 'undefined') {
+                    const modalInstance = bootstrap.Modal.getInstance(loadingModal);
+                    if (modalInstance) modalInstance.hide();
                 }
                 
                 this.showAlert('Erro de conexão. Tente novamente.', 'error');
@@ -692,7 +718,7 @@ const TrainingJS = {
         }
         
         if (dataType === 'text') {
-            const content = form.querySelector('#content').value.trim();
+            const content = form.querySelector('#text_content').value.trim();
             if (!content) {
                 this.showAlert('Conteúdo é obrigatório', 'error');
                 return false;
@@ -702,7 +728,7 @@ const TrainingJS = {
                 return false;
             }
         } else {
-            const file = form.querySelector('#file').files[0];
+            const file = form.querySelector('#file_upload').files[0];
             if (!file) {
                 this.showAlert('Arquivo é obrigatório', 'error');
                 return false;
