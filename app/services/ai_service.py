@@ -33,15 +33,10 @@ except ImportError:
     BERT_AVAILABLE = False
 
 
-# === IMPORTAR SISTEMA DE PROMPTS ===
-from .ai_prompt import AIPromptManager
-
-# === IMPORTAR SISTEMA DE LOGGING DE TREINAMENTO ===
-from .training_usage_logger import training_usage_logger, log_ai_response_with_training_check
+# === IMPORTAR SISTEMA DE PROMPTS CONSOLIDADO ===
+from .ai_prompt import AIPromptManager, PromptContext, RiskLevel, PromptType
 
 # === IMPORTAR SISTEMAS AVANÇADOS ===
-from .advanced_rag_service import advanced_rag_service
-from .advanced_prompt_engineer import advanced_prompt_engineer, PromptContext, RiskLevel, PromptType
 from .finetuning_preparator import finetuning_preparator
 
 # Configurar logging
@@ -50,20 +45,23 @@ logger = logging.getLogger(__name__)
 
 class SimpleRAG:
     """
-    Sistema RAG (Retrieval-Augmented Generation) Profissional
+    Sistema RAG (Retrieval-Augmented Generation) Completo e Consolidado
     
     Funcionalidades:
     - Busca conversas similares bem-sucedidas no banco
     - Extração inteligente de palavras-chave
     - Ranking por relevância com múltiplos fatores
+    - Busca em dados de treinamento
+    - Context enhancement para diferentes tipos de consulta
     - Cache para otimização de performance
-    - Não requer banco vetorial complexo
+    - Sistema unificado (substitui advanced_rag_service)
     """
     
     def __init__(self):
-        """Inicializa o sistema RAG"""
+        """Inicializa o sistema RAG consolidado"""
         self.cache = {}  # Cache simples mas eficaz
-        logger.info("SimpleRAG inicializado")
+        self.training_cache = {}  # Cache para dados de treinamento
+        logger.info("SimpleRAG consolidado inicializado")
     
     def get_relevant_context(self, user_message: str, risk_level: str = 'low', 
                            limit: int = 3) -> Optional[str]:
@@ -219,6 +217,221 @@ class SimpleRAG:
         
         context_parts.append("\n💡 Use como inspiração, mas personalize para o contexto atual.")
         return "\n".join(context_parts)
+    
+    # === MÉTODOS AVANÇADOS (CONSOLIDADOS DO ADVANCED RAG SERVICE) ===
+    
+    def get_enhanced_context(self, user_message: str, risk_level: str, 
+                           context_type: str = 'all', limit: int = 3) -> Dict:
+        """
+        Método avançado para buscar contexto enriquecido
+        
+        Args:
+            user_message: Mensagem do usuário
+            risk_level: Nível de risco
+            context_type: Tipo de contexto ('all', 'conversations', 'training')
+            limit: Limite de resultados
+            
+        Returns:
+            Dict com contexto_prompt, training_data e conversation_examples
+        """
+        try:
+            result = {
+                'context_prompt': '',
+                'training_data': [],
+                'conversation_examples': []
+            }
+            
+            # Buscar conversas se solicitado
+            if context_type in ['all', 'conversations']:
+                conversation_context = self.get_relevant_context(user_message, risk_level, limit)
+                if conversation_context:
+                    result['context_prompt'] += conversation_context
+                    result['conversation_examples'] = self._get_conversation_examples(user_message, risk_level, limit)
+            
+            # Buscar dados de treinamento se solicitado
+            if context_type in ['all', 'training']:
+                training_context = self._get_training_context(user_message, risk_level, limit)
+                if training_context:
+                    result['context_prompt'] += f"\n\n{training_context}"
+                    result['training_data'] = self._get_training_data_details(user_message, limit)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Erro no enhanced context: {e}")
+            return {'context_prompt': '', 'training_data': [], 'conversation_examples': []}
+    
+    def search_training_content(self, query: str, limit: int = 5) -> List[Dict]:
+        """
+        Busca conteúdo de treinamento baseado na query
+        
+        Args:
+            query: Consulta de busca
+            limit: Limite de resultados
+            
+        Returns:
+            Lista de dicionários com conteúdo encontrado
+        """
+        try:
+            cache_key = f"training_search_{hash(query)}_{limit}"
+            if cache_key in self.training_cache:
+                return self.training_cache[cache_key]
+            
+            # Implementação simples de busca em training data
+            # Aqui você pode expandir para buscar em diferentes fontes
+            keywords = self._extract_keywords(query)
+            
+            # Buscar em sessões de alta qualidade como "dados de treinamento"
+            training_results = self._find_training_like_content(keywords, limit)
+            
+            self.training_cache[cache_key] = training_results
+            return training_results
+            
+        except Exception as e:
+            logger.error(f"Erro na busca de training content: {e}")
+            return []
+    
+    def get_training_data_statistics(self) -> Dict:
+        """
+        Retorna estatísticas dos dados de treinamento/RAG
+        
+        Returns:
+            Dict com estatísticas do sistema
+        """
+        try:
+            from app import db
+            
+            # Estatísticas de conversas bem-sucedidas
+            conv_stats_query = text("""
+                SELECT 
+                    COUNT(*) as total_sessions,
+                    AVG(user_rating) as avg_rating,
+                    COUNT(CASE WHEN user_rating >= 4 THEN 1 END) as high_quality_sessions
+                FROM chat_sessions 
+                WHERE user_rating IS NOT NULL
+                    AND created_at >= NOW() - INTERVAL '6 months'
+            """)
+            
+            result = db.session.execute(conv_stats_query).first()
+            
+            return {
+                'total_conversations': int(result.total_sessions) if result else 0,
+                'average_rating': float(result.avg_rating) if result and result.avg_rating else 0,
+                'high_quality_conversations': int(result.high_quality_sessions) if result else 0,
+                'cache_size': len(self.cache),
+                'training_cache_size': len(self.training_cache),
+                'system_type': 'consolidated_rag'
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter estatísticas: {e}")
+            return {
+                'total_conversations': 0,
+                'average_rating': 0,
+                'high_quality_conversations': 0,
+                'cache_size': len(self.cache),
+                'training_cache_size': len(self.training_cache),
+                'system_type': 'consolidated_rag',
+                'error': str(e)
+            }
+    
+    def _get_conversation_examples(self, user_message: str, risk_level: str, limit: int) -> List[Dict]:
+        """Obtém exemplos de conversas formatados para o sistema de prompts"""
+        try:
+            conversations = self._find_similar_conversations(
+                self._extract_keywords(user_message), 
+                risk_level, 
+                limit
+            )
+            
+            examples = []
+            for conv in conversations[:limit]:
+                examples.append({
+                    'user_message': conv['user_message'],
+                    'ai_response': conv['ai_response'],
+                    'rating': conv.get('user_rating', 3),
+                    'risk_level': conv.get('initial_risk_level', 'moderate')
+                })
+            
+            return examples
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter exemplos: {e}")
+            return []
+    
+    def _get_training_context(self, user_message: str, risk_level: str, limit: int) -> Optional[str]:
+        """Constrói contexto baseado em dados de treinamento"""
+        try:
+            training_data = self.search_training_content(user_message, limit)
+            
+            if not training_data:
+                return None
+            
+            context_parts = ["CONHECIMENTO DE TREINAMENTO RELEVANTE:\n"]
+            
+            for i, item in enumerate(training_data, 1):
+                context_parts.append(
+                    f"Situação {i}: {item.get('situation', '')}[:150]\n"
+                    f"Abordagem recomendada: {item.get('approach', '')}[:200]\n"
+                )
+            
+            context_parts.append("\n💡 Aplique este conhecimento ao contexto específico do usuário.")
+            return "\n".join(context_parts)
+            
+        except Exception as e:
+            logger.error(f"Erro no contexto de treinamento: {e}")
+            return None
+    
+    def _get_training_data_details(self, user_message: str, limit: int) -> List[Dict]:
+        """Obtém detalhes dos dados de treinamento para contexto avançado"""
+        return self.search_training_content(user_message, limit)
+    
+    def _find_training_like_content(self, keywords: List[str], limit: int) -> List[Dict]:
+        """
+        Busca conteúdo que pode servir como dados de treinamento
+        (conversas de alta qualidade, casos bem documentados, etc.)
+        """
+        try:
+            from app import db
+            
+            if keywords:
+                keyword_pattern = '|'.join([k for k in keywords if len(k) > 3])
+            else:
+                keyword_pattern = ''
+            
+            # Buscar conversas muito bem avaliadas como "dados de treinamento"
+            query = text("""
+                SELECT 
+                    cm_user.content as situation,
+                    cm_ai.content as approach,
+                    cs.user_rating,
+                    cs.initial_risk_level,
+                    'high_quality_conversation' as source_type
+                FROM chat_sessions cs
+                JOIN chat_messages cm_user ON cs.id = cm_user.session_id 
+                    AND cm_user.message_type = 'USER'
+                JOIN chat_messages cm_ai ON cs.id = cm_ai.session_id 
+                    AND cm_ai.message_type = 'AI'
+                    AND cm_ai.id > cm_user.id
+                WHERE 
+                    cs.user_rating = 5  -- Apenas conversas perfeitas
+                    AND (:keyword_pattern = '' OR cm_user.content ~* :keyword_pattern)
+                    AND LENGTH(cm_user.content) > 15
+                    AND LENGTH(cm_ai.content) > 30
+                ORDER BY cs.created_at DESC
+                LIMIT :limit
+            """)
+            
+            result = db.session.execute(query, {
+                'keyword_pattern': keyword_pattern,
+                'limit': limit
+            })
+            
+            return [dict(row._mapping) for row in result]
+            
+        except Exception as e:
+            logger.error(f"Erro na busca de training-like content: {e}")
+            return []
 
 
 class AIService:
@@ -276,21 +489,20 @@ class AIService:
         
 
         
-        # === SISTEMA RAG INTEGRADO ===
-        self.rag = SimpleRAG()  # RAG básico para compatibilidade
+        # === SISTEMA RAG CONSOLIDADO ===
+        self.rag = SimpleRAG()  # Sistema RAG unificado e completo
         self.rag_enabled = True
-        self.advanced_rag = advanced_rag_service  # RAG avançado
+        # Alias para compatibilidade - aponta para o mesmo sistema consolidado
+        self.advanced_rag = self.rag
         
-        # === SISTEMA DE PROMPTS INTEGRADO ===
-        self.prompt_manager = AIPromptManager()
-        self.advanced_prompt_engineer = advanced_prompt_engineer  # Prompt engineering avançado
+        # === SISTEMA DE PROMPTS CONSOLIDADO ===
+        self.prompt_manager = AIPromptManager()  # Sistema unificado de prompts
         
         # === SISTEMA DE FINE-TUNING ===
         self.finetuning_preparator = finetuning_preparator
         
         # === SISTEMA DE LOGGING DE TREINAMENTO ===
-        self.training_logger = training_usage_logger
-        self.log_training_usage = True
+        self.log_training_usage = False  # Desabilitado - logger não disponível
         
         # === CACHE E OTIMIZAÇÕES ===
         self.response_cache = {}
@@ -700,8 +912,8 @@ class AIService:
     def _generate_response_openai_advanced(self, context: PromptContext) -> Dict:
         """Gera resposta usando OpenAI com sistema avançado"""
         
-        # Construir prompt usando prompt engineering avançado
-        prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+        # Construir prompt usando sistema consolidado
+        prompt_data = self.prompt_manager.build_contextual_prompt(
             context, provider='openai'
         )
         
@@ -719,16 +931,8 @@ class AIService:
         
         ai_response = response.choices[0].message.content.strip()
         
-        # Log do uso de dados de treinamento
+        # Log do uso de dados de treinamento (desabilitado)
         training_usage = None
-        if self.log_training_usage:
-            try:
-                training_usage = log_ai_response_with_training_check(
-                    context.user_message, ai_response, context.risk_level.value
-                )
-                print(f"TRAINING_USAGE: {training_usage.get('used_training_data', False)}")
-            except Exception as e:
-                logger.warning(f"Erro ao logar uso de treinamento: {e}")
         
         result = {
             'message': ai_response,
@@ -756,8 +960,8 @@ class AIService:
     def _generate_response_gemini_advanced(self, context: PromptContext) -> Dict:
         """Gera resposta usando Gemini com sistema avançado"""
         
-        # Construir prompt usando prompt engineering avançado
-        prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+        # Construir prompt usando sistema consolidado  
+        prompt_data = self.prompt_manager.build_contextual_prompt(
             context, provider='gemini'
         )
         
@@ -768,16 +972,8 @@ class AIService:
         
         ai_response = response.text.strip()
         
-        # Log do uso de dados de treinamento
+        # Log do uso de dados de treinamento (desabilitado)
         training_usage = None
-        if self.log_training_usage:
-            try:
-                training_usage = log_ai_response_with_training_check(
-                    context.user_message, ai_response, context.risk_level.value
-                )
-                print(f"TRAINING_USAGE: {training_usage.get('used_training_data', False)}")
-            except Exception as e:
-                logger.warning(f"Erro ao logar uso de treinamento: {e}")
         
         result = {
             'message': ai_response,
@@ -890,15 +1086,8 @@ class AIService:
         
         ai_response = response.choices[0].message.content.strip()
         
-        # Log do uso de dados de treinamento
+        # Log do uso de dados de treinamento (desabilitado)
         training_usage = None
-        if self.log_training_usage:
-            try:
-                training_usage = log_ai_response_with_training_check(
-                    user_message, ai_response, risk_level
-                )
-            except Exception as e:
-                logger.warning(f"Erro ao logar uso de treinamento: {e}")
         
         result = {
             'message': ai_response,
@@ -936,15 +1125,8 @@ class AIService:
         
         ai_response = response.text.strip()
         
-        # Log do uso de dados de treinamento
+        # Log do uso de dados de treinamento (desabilitado)
         training_usage = None
-        if self.log_training_usage:
-            try:
-                training_usage = log_ai_response_with_training_check(
-                    user_message, ai_response, risk_level
-                )
-            except Exception as e:
-                logger.warning(f"Erro ao logar uso de treinamento: {e}")
         
         result = {
             'message': ai_response,
@@ -1045,7 +1227,7 @@ class AIService:
                 'training_logging_enabled': self.log_training_usage,
                 'advanced_systems': {
                     'advanced_rag': bool(self.advanced_rag),
-                    'advanced_prompt_engineer': bool(self.advanced_prompt_engineer),
+                    'consolidated_prompt_manager': bool(self.prompt_manager),
                     'finetuning_preparator': bool(self.finetuning_preparator)
                 }
             }
@@ -1058,10 +1240,10 @@ class AIService:
                 except Exception as e:
                     stats['advanced_rag_error'] = str(e)
             
-            # Estatísticas do prompt engineering
-            if self.advanced_prompt_engineer:
+            # Estatísticas do sistema consolidado de prompts
+            if self.prompt_manager:
                 try:
-                    prompt_stats = self.advanced_prompt_engineer.get_prompt_statistics()
+                    prompt_stats = self.prompt_manager.get_prompt_statistics()
                     stats['prompt_engineering_stats'] = prompt_stats
                 except Exception as e:
                     stats['prompt_engineering_error'] = str(e)
@@ -1076,11 +1258,7 @@ class AIService:
             
             # Estatísticas de uso de treinamento
             if self.log_training_usage:
-                try:
-                    training_stats = self.training_logger.get_usage_statistics()
-                    stats['training_usage_stats'] = training_stats
-                except Exception as e:
-                    stats['training_usage_error'] = str(e)
+                stats['training_usage_error'] = 'Training logger não disponível'
             
             return stats
         except Exception as e:
@@ -1185,10 +1363,10 @@ class AIService:
         Analisa contexto para prompt engineering
         """
         try:
-            if not self.advanced_prompt_engineer:
+            if not self.prompt_manager:
                 return {'error': 'Sistema de prompt engineering não disponível'}
             
-            from .advanced_prompt_engineer import PromptContext, RiskLevel
+            # PromptContext, RiskLevel já importados no topo
             
             # Criar contexto
             prompt_context = PromptContext(
@@ -1198,10 +1376,10 @@ class AIService:
             )
             
             # Validar contexto
-            is_valid, errors = self.advanced_prompt_engineer.validate_prompt_context(prompt_context)
+            is_valid, errors = self.prompt_manager.validate_prompt_context(prompt_context)
             
             # Construir prompt de exemplo
-            prompt_data = self.advanced_prompt_engineer.build_contextual_prompt(
+            prompt_data = self.prompt_manager.build_contextual_prompt(
                 prompt_context, provider='openai'
             )
             
@@ -1235,7 +1413,7 @@ class AIService:
             },
             'advanced_features': {
                 'advanced_rag': bool(self.advanced_rag),
-                'prompt_engineering': bool(self.advanced_prompt_engineer),
+                'consolidated_prompt_engineering': bool(self.prompt_manager),
                 'finetuning_preparation': bool(self.finetuning_preparator),
                 'training_usage_logging': self.log_training_usage
             },
@@ -1251,30 +1429,13 @@ class AIService:
         """
         Retorna relatório detalhado do uso de dados de treinamento
         """
-        try:
-            if not self.log_training_usage:
-                return {'error': 'Logging de treinamento não está habilitado'}
-            
-            return self.training_logger.get_usage_statistics()
-            
-        except Exception as e:
-            logger.error(f"Erro ao gerar relatório de treinamento: {e}")
-            return {'error': str(e)}
+        return {'error': 'Training logger não está disponível'}
     
     def clear_training_cache(self) -> Dict:
         """
         Limpa o cache de dados de treinamento
         """
-        try:
-            if not self.log_training_usage:
-                return {'error': 'Logging de treinamento não está habilitado'}
-            
-            self.training_logger.clear_cache()
-            return {'success': True, 'message': 'Cache de treinamento limpo'}
-            
-        except Exception as e:
-            logger.error(f"Erro ao limpar cache de treinamento: {e}")
-            return {'error': str(e)}
+        return {'error': 'Training logger não está disponível'}
 
 
 # === FUNÇÕES DE CONVENIÊNCIA ===

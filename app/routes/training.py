@@ -297,7 +297,6 @@ def api_stats():
     """API para estatísticas de treinamento"""
     try:
         from app.services.ai_service import AIService
-        from app.services.training_usage_logger import get_training_usage_stats
         
         # Estatísticas básicas
         stats = {
@@ -336,14 +335,11 @@ def api_stats():
 @admin_or_volunteer_required
 def api_usage_report():
     """API para relatório detalhado de uso dos dados de treinamento"""
-    try:
-        from app.services.training_usage_logger import get_training_usage_stats
-        
-        usage_stats = get_training_usage_stats()
-        
+    try:        
         return jsonify({
-            'success': True,
-            'data': usage_stats,
+            'success': False,
+            'error': 'Training usage logger não disponível',
+            'data': {},
             'timestamp': datetime.now().isoformat()
         })
         

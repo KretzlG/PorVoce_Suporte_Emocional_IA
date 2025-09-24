@@ -10,10 +10,7 @@ from typing import Dict, List, Optional
 
 # Importar serviços
 from app.services.ai_service import AIService
-from app.services.advanced_rag_service import advanced_rag_service
-from app.services.advanced_prompt_engineer import advanced_prompt_engineer
 from app.services.finetuning_preparator import finetuning_preparator
-from app.services.training_usage_logger import training_usage_logger
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +34,19 @@ def health_check():
                     'capabilities': ai_service.get_system_capabilities()
                 },
                 'advanced_rag': {
-                    'status': 'active' if advanced_rag_service else 'inactive',
-                    'cache_size': len(getattr(advanced_rag_service, 'cache', {})) if advanced_rag_service else 0
+                    'status': 'active - consolidated in ai_service',
+                    'cache_size': len(getattr(ai_service.rag, 'cache', {})) if ai_service.rag else 0
                 },
                 'prompt_engineer': {
-                    'status': 'active' if advanced_prompt_engineer else 'inactive',
-                    'templates_count': len(getattr(advanced_prompt_engineer, 'prompt_templates', {})) if advanced_prompt_engineer else 0
+                    'status': 'active - consolidated in ai_service',
+                    'templates_count': len(getattr(ai_service.prompt_manager, 'prompt_templates', {})) if ai_service.prompt_manager else 0
                 },
                 'finetuning_preparator': {
                     'status': 'active' if finetuning_preparator else 'inactive',
                     'supported_formats': ['openai_chat', 'jsonl', 'csv'] if finetuning_preparator else []
                 },
                 'training_logger': {
-                    'status': 'active' if training_usage_logger else 'inactive'
+                    'status': 'inactive - not available'
                 }
             }
         }
@@ -84,19 +81,21 @@ def get_training_statistics():
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        # Estatísticas específicas do RAG
-        if advanced_rag_service:
-            try:
-                stats['rag'] = advanced_rag_service.get_training_data_statistics()
-            except Exception as e:
-                stats['rag_error'] = str(e)
+        # Estatísticas específicas do RAG (consolidado)
+        try:
+            ai_service = AIService()
+            if ai_service.rag:
+                stats['rag'] = ai_service.rag.get_training_data_statistics()
+        except Exception as e:
+            stats['rag_error'] = str(e)
         
-        # Estatísticas do prompt engineering
-        if advanced_prompt_engineer:
-            try:
-                stats['prompt_engineering'] = advanced_prompt_engineer.get_prompt_statistics()
-            except Exception as e:
-                stats['prompt_engineering_error'] = str(e)
+        # Estatísticas do prompt engineering (consolidado)
+        try:
+            ai_service = AIService()
+            if ai_service.prompt_manager:
+                stats['prompt_engineering'] = ai_service.prompt_manager.get_prompt_statistics()
+        except Exception as e:
+            stats['prompt_engineering_error'] = str(e)
         
         # Recomendações de fine-tuning
         if finetuning_preparator:
@@ -106,11 +105,7 @@ def get_training_statistics():
                 stats['finetuning_error'] = str(e)
         
         # Estatísticas de uso de treinamento
-        if training_usage_logger:
-            try:
-                stats['training_usage'] = training_usage_logger.get_usage_statistics()
-            except Exception as e:
-                stats['training_usage_error'] = str(e)
+        stats['training_usage_error'] = 'Training logger não disponível'
         
         return jsonify(stats)
         
@@ -382,8 +377,8 @@ def get_system_config():
                 'log_training_usage': ai_service.log_training_usage
             },
             'advanced_systems': {
-                'rag_cache_size': len(getattr(advanced_rag_service, 'cache', {})) if advanced_rag_service else 0,
-                'prompt_templates': len(getattr(advanced_prompt_engineer, 'prompt_templates', {})) if advanced_prompt_engineer else 0,
+                'rag_cache_size': len(getattr(ai_service.rag, 'cache', {})) if ai_service.rag else 0,
+                'prompt_templates': len(getattr(ai_service.prompt_manager, 'prompt_templates', {})) if ai_service.prompt_manager else 0,
                 'supported_formats': ['openai_chat', 'jsonl', 'csv'] if finetuning_preparator else []
             },
             'capabilities': ai_service.get_system_capabilities()
@@ -401,25 +396,12 @@ def get_system_config():
 def get_debug_logs():
     """Retorna logs recentes para debug"""
     try:
-        # Ler logs recentes do training_usage_logger
-        if training_usage_logger:
-            try:
-                logs = training_usage_logger.get_recent_logs(limit=50)
-                return jsonify({
-                    'success': True,
-                    'logs': logs,
-                    'timestamp': datetime.utcnow().isoformat()
-                })
-            except Exception as e:
-                return jsonify({
-                    'success': False,
-                    'error': f'Erro ao acessar logs: {str(e)}'
-                })
-        else:
-            return jsonify({
-                'success': False,
-                'error': 'Sistema de logging não disponível'
-            })
+        # Training logger não disponível
+        return jsonify({
+            'success': False,
+            'error': 'Training logger não está disponível',
+            'logs': []
+        })
         
     except Exception as e:
         logger.error(f"Erro nos logs de debug: {e}")
