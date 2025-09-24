@@ -24,7 +24,13 @@ chat = Blueprint('chat', __name__)
 @login_required
 def chat_interface():
     """Interface principal do chat"""
-    return render_template('chat/chat.html')
+    return render_template('chat/chat_vue.html')
+
+@chat.route('/vue')
+@login_required
+def chat_interface_vue():
+    """Interface moderna do chat com Vue.js"""
+    return render_template('chat/chat_vue.html')
 
 
 @chat.route('/new-session', methods=['POST'])

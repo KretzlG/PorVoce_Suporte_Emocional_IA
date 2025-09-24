@@ -1,0 +1,826 @@
+{% extends "base_vue.html" %}
+
+{% block title %}Chat - Suporte Emocional{% endblock %}
+
+{% block content %}
+<!-- Chat Interface Vue Component -->
+<div id="chat-app">
+    <v-container fluid class="pa-0" style="height: calc(100vh - 64px);">
+        <v-row no-gutters style="height: 100%;">
+            
+            <!-- Sidebar Esquerda - Desktop -->
+            <v-col cols="12" md="3" v-if="!$vuetify.display.mobile || showSidebar">
+                <v-card class="h-100" flat>
+                    
+                    <!-- Header Sidebar -->
+                    <v-card-title class="gradient-hope white--text d-flex align-center">
+                        <v-icon class="mr-2">mdi-chat</v-icon>
+                        <span>Conversas</span>
+                        <v-spacer></v-spacer>
+                        <v-btn 
+                            icon 
+                            size="small"
+                            @click="showSidebar = false"
+                            v-if="$vuetify.display.mobile"
+                        >
+                            <v-icon color="white">mdi-close</v-icon>
+                        </v-btn>
+                    </v-card-title>
+                    
+                    <!-- Novo Chat Button -->
+                    <v-card-text class="pa-2">
+                        <v-btn 
+                            block
+                            color="primary"
+                            variant="elevated"
+                            prepend-icon="mdi-plus"
+                            @click="startNewChat"
+                            :loading="isCreatingSession"
+                            class="mb-4"
+                        >
+                            Nova Conversa
+                        </v-btn>
+                        
+                        <!-- Lista de Conversas -->
+                        <v-list density="compact">
+                            <v-list-subheader>Conversas Recentes</v-list-subheader>
+                            
+                            <v-list-item 
+                                v-for="conversation in conversations" 
+                                :key="conversation.id"
+                                @click="selectConversation(conversation)"
+                                :active="currentSessionId === conversation.id"
+                                lines="two"
+                            >
+                                <template v-slot:prepend>
+                                    <v-avatar :color="getStatusColor(conversation.status)" size="small">
+                                        <v-icon color="white">{{ getStatusIcon(conversation.status) }}</v-icon>
+                                    </v-avatar>
+                                </template>
+                                
+                                <v-list-item-title class="text-truncate">
+                                    {{ conversation.title }}
+                                </v-list-item-title>
+                                
+                                <v-list-item-subtitle class="text-truncate">
+                                    {{ conversation.last_message }}
+                                </v-list-item-subtitle>
+                                
+                                <template v-slot:append>
+                                    <v-btn
+                                        icon="mdi-delete"
+                                        size="x-small"
+                                        variant="text"
+                                        @click.stop="deleteConversation(conversation)"
+                                    ></v-btn>
+                                </template>
+                            </v-list-item>
+                            
+                            <v-list-item v-if="conversations.length === 0">
+                                <v-list-item-title class="text-center grey--text">
+                                    Nenhuma conversa ainda
+                                </v-list-item-title>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+            
+            <!-- Área Principal do Chat -->
+            <v-col cols="12" :md="showSidebar || !$vuetify.display.mobile ? 9 : 12">
+                <v-card class="h-100 d-flex flex-column" flat>
+                    
+                    <!-- Header do Chat -->
+                    <v-card-title class="gradient-hope white--text d-flex align-center">
+                        <v-btn 
+                            icon 
+                            size="small"
+                            @click="showSidebar = true"
+                            v-if="$vuetify.display.mobile && !showSidebar"
+                            class="mr-2"
+                        >
+                            <v-icon color="white">mdi-menu</v-icon>
+                        </v-btn>
+                        
+                        <v-avatar color="white" class="mr-3" size="40">
+                            <v-icon color="primary">mdi-robot</v-icon>
+                        </v-avatar>
+                        
+                        <div class="flex-grow-1">
+                            <div class="font-weight-bold">Assistente IA Empática</div>
+                            <div class="caption d-flex align-center">
+                                <v-icon size="small" color="success" class="mr-1">mdi-circle</v-icon>
+                                Online - Pronta para ajudar
+                            </div>
+                        </div>
+                        
+                        <!-- Chat Actions -->
+                        <v-menu offset-y>
+                            <template v-slot:activator="{ props }">
+                                <v-btn icon v-bind="props">
+                                    <v-icon color="white">mdi-dots-vertical</v-icon>
+                                </v-btn>
+                            </template>
+                            <v-list>
+                                <v-list-item @click="clearCurrentChat">
+                                    <template v-slot:prepend>
+                                        <v-icon>mdi-broom</v-icon>
+                                    </template>
+                                    <v-list-item-title>Limpar Chat</v-list-item-title>
+                                </v-list-item>
+                                <v-list-item @click="exportChat">
+                                    <template v-slot:prepend>
+                                        <v-icon>mdi-download</v-icon>
+                                    </template>
+                                    <v-list-item-title>Exportar</v-list-item-title>
+                                </v-list-item>
+                                <v-list-item @click="endCurrentSession">
+                                    <template v-slot:prepend>
+                                        <v-icon>mdi-stop</v-icon>
+                                    </template>
+                                    <v-list-item-title>Encerrar Sessão</v-list-item-title>
+                                </v-list-item>
+                            </v-list>
+                        </v-menu>
+                    </v-card-title>
+                    
+                    <!-- Seletor de Humor -->
+                    <v-card-text class="pa-2 border-b">
+                        <div class="text-caption mb-2 font-weight-medium">Como você está se sentindo?</div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <v-chip
+                                v-for="(mood, key) in moods"
+                                :key="key"
+                                :color="currentMood === key ? mood.color : 'grey-lighten-3'"
+                                :variant="currentMood === key ? 'elevated' : 'outlined'"
+                                size="small"
+                                @click="setMood(key)"
+                                class="mood-chip"
+                            >
+                                {{ mood.emoji }} {{ mood.label }}
+                            </v-chip>
+                        </div>
+                    </v-card-text>
+                    
+                    <!-- Área de Mensagens -->
+                    <v-card-text 
+                        ref="messagesContainer" 
+                        class="flex-grow-1 overflow-y-auto pa-4"
+                        style="max-height: calc(100vh - 300px);"
+                    >
+                        <!-- Welcome Message -->
+                        <div v-if="messages.length === 0" class="text-center pa-8">
+                            <v-avatar size="80" color="primary" class="mb-4">
+                                <v-icon size="40" color="white">mdi-robot</v-icon>
+                            </v-avatar>
+                            <h3 class="text-h6 mb-2">Olá! Como posso ajudá-lo hoje?</h3>
+                            <p class="text-body-2 grey--text">
+                                Sou sua assistente de apoio emocional. Fique à vontade para compartilhar seus sentimentos.
+                            </p>
+                            
+                            <!-- Sugestões Rápidas -->
+                            <div class="mt-6">
+                                <div class="text-caption mb-2">Sugestões para começar:</div>
+                                <div class="d-flex flex-wrap gap-2 justify-center">
+                                    <v-chip
+                                        v-for="suggestion in quickSuggestions"
+                                        :key="suggestion"
+                                        @click="useSuggestion(suggestion)"
+                                        variant="outlined"
+                                        size="small"
+                                        class="suggestion-chip"
+                                    >
+                                        {{ suggestion }}
+                                    </v-chip>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Messages -->
+                        <div v-for="message in messages" :key="message.id" class="mb-4">
+                            <div :class="getMessageClass(message)">
+                                <v-card
+                                    :color="getMessageColor(message)"
+                                    :variant="message.sender_type === 'user' ? 'elevated' : 'outlined'"
+                                    class="pa-3"
+                                    :class="getMessageCardClass(message)"
+                                >
+                                    <!-- Emergency Message Alert -->
+                                    <v-alert
+                                        v-if="message.type === 'emergency'"
+                                        type="error"
+                                        density="compact"
+                                        class="mb-3"
+                                    >
+                                        <template v-slot:prepend>
+                                            <v-icon>mdi-alert</v-icon>
+                                        </template>
+                                        <strong>Mensagem de Emergência</strong>
+                                    </v-alert>
+                                    
+                                    <!-- Message Content -->
+                                    <div 
+                                        v-html="formatMessage(message.content)"
+                                        class="text-body-1"
+                                        :class="{ 'white--text': message.sender_type === 'user' }"
+                                    ></div>
+                                    
+                                    <!-- Message Footer -->
+                                    <div class="d-flex align-center justify-between mt-2">
+                                        <div class="caption" :class="{ 'white--text': message.sender_type === 'user' }">
+                                            {{ formatTime(message.timestamp) }}
+                                            <v-chip
+                                                v-if="message.mood && message.sender_type === 'user'"
+                                                size="x-small"
+                                                variant="text"
+                                                class="ml-2"
+                                            >
+                                                {{ getMoodEmoji(message.mood) }}
+                                            </v-chip>
+                                        </div>
+                                        
+                                        <!-- Message Status -->
+                                        <div v-if="message.sender_type === 'user' && message.status">
+                                            <v-icon 
+                                                size="small" 
+                                                :color="getStatusIconColor(message.status)"
+                                            >
+                                                {{ getStatusIconName(message.status) }}
+                                            </v-icon>
+                                        </div>
+                                    </div>
+                                </v-card>
+                            </div>
+                        </div>
+                        
+                        <!-- Typing Indicator -->
+                        <div v-if="isTyping" class="d-flex justify-start mb-4">
+                            <v-card variant="outlined" class="pa-3" style="max-width: 80px;">
+                                <div class="d-flex align-center">
+                                    <v-progress-circular
+                                        indeterminate
+                                        size="16"
+                                        width="2"
+                                        color="primary"
+                                    ></v-progress-circular>
+                                    <span class="ml-2 caption">Digitando...</span>
+                                </div>
+                            </v-card>
+                        </div>
+                    </v-card-text>
+                    
+                    <!-- Input Area -->
+                    <v-card-actions class="pa-4 border-t">
+                        <v-textarea
+                            v-model="currentMessage"
+                            placeholder="Digite sua mensagem..."
+                            variant="outlined"
+                            auto-grow
+                            rows="1"
+                            max-rows="4"
+                            hide-details
+                            @keydown.enter.exact.prevent="sendMessage"
+                            @keydown.enter.shift="newLine"
+                            :disabled="!currentSessionId || isSending"
+                            class="flex-grow-1"
+                        >
+                            <template v-slot:append>
+                                <v-btn
+                                    icon
+                                    color="primary"
+                                    :disabled="!currentMessage.trim() || !currentSessionId || isSending"
+                                    @click="sendMessage"
+                                    :loading="isSending"
+                                >
+                                    <v-icon>mdi-send</v-icon>
+                                </v-btn>
+                            </template>
+                        </v-textarea>
+                    </v-card-actions>
+                    
+                    <!-- Help Text -->
+                    <v-card-text class="pa-2 text-center">
+                        <div class="caption grey--text d-flex align-center justify-center">
+                            <v-icon size="small" class="mr-1">mdi-shield-check</v-icon>
+                            Suas conversas são confidenciais e seguras
+                            <span class="mx-2">|</span>
+                            <v-icon size="small" class="mr-1">mdi-clock</v-icon>
+                            Disponível 24/7
+                        </div>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- Emergency Dialog -->
+    <v-dialog v-model="showEmergencyDialog" max-width="600">
+        <v-card>
+            <v-card-title class="gradient-hope white--text d-flex align-center">
+                <v-icon class="mr-2">mdi-alert</v-icon>
+                Risco Detectado - Busque Ajuda Imediata
+            </v-card-title>
+            
+            <v-card-text class="pa-6">
+                <v-alert type="error" prominent class="mb-4">
+                    <strong>Sua segurança é nossa prioridade!</strong>
+                    <br>Detectamos que você pode estar passando por uma crise emocional.
+                </v-alert>
+                
+                <div class="text-body-1 mb-4">
+                    Por favor, entre em contato com um dos serviços de apoio abaixo imediatamente:
+                </div>
+                
+                <v-row>
+                    <v-col cols="6" v-for="contact in emergencyContacts" :key="contact.name">
+                        <v-card 
+                            variant="outlined" 
+                            class="text-center pa-4 smooth-transition"
+                            :color="contact.color"
+                            @click="callEmergency(contact.number)"
+                            style="cursor: pointer;"
+                        >
+                            <v-icon size="40" :color="contact.color" class="mb-2">{{ contact.icon }}</v-icon>
+                            <div class="font-weight-bold">{{ contact.name }}</div>
+                            <div class="text-h5 font-weight-bold" :class="contact.color + '--text'">{{ contact.number }}</div>
+                            <div class="caption">{{ contact.description }}</div>
+                        </v-card>
+                    </v-col>
+                </v-row>
+                
+                <v-alert type="info" class="mt-4">
+                    <template v-slot:prepend>
+                        <v-icon>mdi-information</v-icon>
+                    </template>
+                    Você também pode procurar o pronto-socorro mais próximo ou conversar com alguém de confiança.
+                </v-alert>
+            </v-card-text>
+            
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn variant="text" @click="showEmergencyDialog = false">
+                    Continuar Conversa
+                </v-btn>
+                <v-btn color="primary" @click="acknowledgeEmergency">
+                    Entendi, buscarei ajuda
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+</div>
+
+<script>
+    // Chat Vue App
+    const chatApp = createApp({
+        data() {
+            return {
+                // Chat State
+                currentSessionId: null,
+                messages: [],
+                conversations: [],
+                currentMessage: '',
+                isTyping: false,
+                isSending: false,
+                isCreatingSession: false,
+                
+                // UI State
+                showSidebar: true,
+                showEmergencyDialog: false,
+                currentMood: 'neutral',
+                
+                // Mood Options
+                moods: {
+                    happy: { emoji: '😊', label: 'Feliz', color: 'success' },
+                    sad: { emoji: '😢', label: 'Triste', color: 'info' },
+                    anxious: { emoji: '😰', label: 'Ansioso', color: 'warning' },
+                    angry: { emoji: '😠', label: 'Irritado', color: 'error' },
+                    neutral: { emoji: '😐', label: 'Neutro', color: 'grey' },
+                    confused: { emoji: '😕', label: 'Confuso', color: 'purple' }
+                },
+                
+                // Quick Suggestions
+                quickSuggestions: [
+                    "Como você está se sentindo hoje?",
+                    "Preciso conversar sobre ansiedade",
+                    "Estou me sentindo triste",
+                    "Quero técnicas de relaxamento",
+                    "Preciso de ajuda para dormir",
+                    "Como lidar com estresse?"
+                ],
+                
+                // Emergency Contacts
+                emergencyContacts: [
+                    {
+                        name: 'CVV',
+                        number: '188',
+                        description: '24h - Gratuito',
+                        icon: 'mdi-phone',
+                        color: 'primary'
+                    },
+                    {
+                        name: 'SAMU',
+                        number: '192',
+                        description: 'Emergências médicas',
+                        icon: 'mdi-ambulance',
+                        color: 'error'
+                    },
+                    {
+                        name: 'Polícia',
+                        number: '190',
+                        description: 'Emergências',
+                        icon: 'mdi-shield',
+                        color: 'warning'
+                    },
+                    {
+                        name: 'Bombeiros',
+                        number: '193',
+                        description: 'Emergências',
+                        icon: 'mdi-fire-truck',
+                        color: 'orange'
+                    }
+                ]
+            }
+        },
+        
+        async mounted() {
+            await this.loadConversations();
+            
+            // Auto-hide sidebar on mobile
+            if (this.$vuetify.display.mobile) {
+                this.showSidebar = false;
+            }
+        },
+        
+        methods: {
+            // Chat Management
+            async startNewChat() {
+                this.isCreatingSession = true;
+                try {
+                    const response = await axios.post('{{ url_for("chat.new_session") }}');
+                    if (response.data.success) {
+                        this.currentSessionId = response.data.session_id;
+                        this.messages = [];
+                        await this.loadConversations();
+                        
+                        if (this.$vuetify.display.mobile) {
+                            this.showSidebar = false;
+                        }
+                        
+                        this.showNotification('Nova conversa iniciada!', 'success');
+                    }
+                } catch (error) {
+                    this.showNotification('Erro ao iniciar nova conversa', 'error');
+                } finally {
+                    this.isCreatingSession = false;
+                }
+            },
+            
+            async selectConversation(conversation) {
+                this.currentSessionId = conversation.id;
+                await this.loadMessages();
+                
+                if (this.$vuetify.display.mobile) {
+                    this.showSidebar = false;
+                }
+            },
+            
+            async loadConversations() {
+                try {
+                    const response = await axios.get('{{ url_for("chat.api_conversations") }}');
+                    if (response.data.success) {
+                        this.conversations = response.data.conversations;
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar conversas:', error);
+                }
+            },
+            
+            async loadMessages() {
+                if (!this.currentSessionId) return;
+                
+                try {
+                    const response = await axios.get(`{{ url_for("chat.api_chat_receive") }}?session_id=${this.currentSessionId}`);
+                    if (response.data.success) {
+                        this.messages = response.data.messages;
+                        this.$nextTick(() => {
+                            this.scrollToBottom();
+                        });
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar mensagens:', error);
+                }
+            },
+            
+            async sendMessage() {
+                if (!this.currentMessage.trim() || !this.currentSessionId || this.isSending) return;
+                
+                this.isSending = true;
+                const messageContent = this.currentMessage;
+                this.currentMessage = '';
+                
+                // Add user message immediately for better UX
+                const userMessage = {
+                    id: Date.now(),
+                    content: messageContent,
+                    sender_type: 'user',
+                    timestamp: new Date().toISOString(),
+                    mood: this.currentMood,
+                    status: 'sending'
+                };
+                
+                this.messages.push(userMessage);
+                this.scrollToBottom();
+                
+                try {
+                    this.isTyping = true;
+                    
+                    const response = await axios.post('{{ url_for("chat.api_chat_send") }}', {
+                        message: messageContent,
+                        session_id: this.currentSessionId,
+                        mood: this.currentMood
+                    });
+                    
+                    this.isTyping = false;
+                    
+                    if (response.data.success) {
+                        // Update user message status
+                        userMessage.status = 'sent';
+                        
+                        // Add AI response
+                        const aiMessage = {
+                            id: Date.now() + 1,
+                            content: response.data.ai_response.content,
+                            sender_type: 'ai',
+                            timestamp: response.data.ai_response.timestamp,
+                            type: response.data.ai_response.type || null
+                        };
+                        
+                        this.messages.push(aiMessage);
+                        
+                        // Check for emergency
+                        if (response.data.risk_assessment && 
+                            response.data.risk_assessment.risk_level === 'critical') {
+                            this.showEmergencyDialog = true;
+                        }
+                        
+                        this.scrollToBottom();
+                        await this.loadConversations(); // Update conversation list
+                        
+                    } else {
+                        userMessage.status = 'error';
+                        this.showNotification('Erro ao enviar mensagem', 'error');
+                    }
+                } catch (error) {
+                    this.isTyping = false;
+                    userMessage.status = 'error';
+                    this.showNotification('Erro ao enviar mensagem', 'error');
+                } finally {
+                    this.isSending = false;
+                }
+            },
+            
+            async deleteConversation(conversation) {
+                if (!confirm(`Excluir a conversa "${conversation.title}"?`)) return;
+                
+                try {
+                    const response = await axios.delete('{{ url_for("chat.delete_conversation") }}', {
+                        data: { session_id: conversation.id }
+                    });
+                    
+                    if (response.data.success) {
+                        await this.loadConversations();
+                        
+                        if (this.currentSessionId === conversation.id) {
+                            this.currentSessionId = null;
+                            this.messages = [];
+                        }
+                        
+                        this.showNotification('Conversa excluída', 'success');
+                    }
+                } catch (error) {
+                    this.showNotification('Erro ao excluir conversa', 'error');
+                }
+            },
+            
+            async endCurrentSession() {
+                if (!this.currentSessionId) return;
+                
+                try {
+                    const response = await axios.post('{{ url_for("chat.api_end_session") }}', {
+                        session_id: this.currentSessionId
+                    });
+                    
+                    if (response.data.success) {
+                        await this.loadConversations();
+                        this.showNotification('Sessão encerrada', 'success');
+                    }
+                } catch (error) {
+                    this.showNotification('Erro ao encerrar sessão', 'error');
+                }
+            },
+            
+            // UI Methods
+            setMood(mood) {
+                this.currentMood = mood;
+            },
+            
+            useSuggestion(suggestion) {
+                this.currentMessage = suggestion;
+                this.$nextTick(() => {
+                    const textarea = this.$refs.messageInput?.$el?.querySelector('textarea');
+                    if (textarea) textarea.focus();
+                });
+            },
+            
+            clearCurrentChat() {
+                if (confirm('Limpar todas as mensagens desta conversa?')) {
+                    this.messages = [];
+                    this.showNotification('Chat limpo', 'success');
+                }
+            },
+            
+            exportChat() {
+                const chatData = this.messages.map(msg => ({
+                    timestamp: new Date(msg.timestamp).toLocaleString('pt-BR'),
+                    sender: msg.sender_type === 'user' ? 'Você' : 'Assistente IA',
+                    content: msg.content,
+                    mood: msg.mood
+                }));
+                
+                const dataStr = JSON.stringify(chatData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `chat-export-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                this.showNotification('Chat exportado!', 'success');
+            },
+            
+            callEmergency(number) {
+                if (confirm(`Ligar para ${number}?`)) {
+                    window.open(`tel:${number}`, '_self');
+                }
+            },
+            
+            acknowledgeEmergency() {
+                this.showEmergencyDialog = false;
+                this.showNotification('Lembre-se: sua vida é valiosa!', 'info');
+            },
+            
+            scrollToBottom() {
+                this.$nextTick(() => {
+                    const container = this.$refs.messagesContainer;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+            },
+            
+            // Utility Methods
+            getMessageClass(message) {
+                return message.sender_type === 'user' 
+                    ? 'd-flex justify-end' 
+                    : 'd-flex justify-start';
+            },
+            
+            getMessageColor(message) {
+                return message.sender_type === 'user' ? 'primary' : 'grey-lighten-4';
+            },
+            
+            getMessageCardClass(message) {
+                const baseClass = 'message-bubble';
+                const maxWidth = message.sender_type === 'user' ? 'user-message' : 'ai-message';
+                const emergency = message.type === 'emergency' ? 'emergency-message' : '';
+                return `${baseClass} ${maxWidth} ${emergency}`.trim();
+            },
+            
+            formatMessage(content) {
+                // Basic formatting - you can enhance this
+                return content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            },
+            
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            },
+            
+            getMoodEmoji(mood) {
+                return this.moods[mood]?.emoji || '😐';
+            },
+            
+            getStatusColor(status) {
+                const colors = {
+                    'ACTIVE': 'success',
+                    'COMPLETED': 'grey',
+                    'CANCELLED': 'error'
+                };
+                return colors[status] || 'grey';
+            },
+            
+            getStatusIcon(status) {
+                const icons = {
+                    'ACTIVE': 'mdi-play-circle',
+                    'COMPLETED': 'mdi-check-circle',
+                    'CANCELLED': 'mdi-close-circle'
+                };
+                return icons[status] || 'mdi-help-circle';
+            },
+            
+            getStatusIconColor(status) {
+                const colors = {
+                    'sending': 'warning',
+                    'sent': 'success',
+                    'error': 'error'
+                };
+                return colors[status] || 'grey';
+            },
+            
+            getStatusIconName(status) {
+                const icons = {
+                    'sending': 'mdi-clock',
+                    'sent': 'mdi-check',
+                    'error': 'mdi-alert-circle'
+                };
+                return icons[status] || 'mdi-help-circle';
+            },
+            
+            showNotification(message, type = 'info') {
+                // This would integrate with Vuetify's snackbar
+                console.log(`${type.toUpperCase()}: ${message}`);
+            },
+            
+            newLine() {
+                this.currentMessage += '\n';
+            }
+        }
+    });
+    
+    // Mount the chat app
+    if (document.getElementById('chat-app')) {
+        chatApp.use(vuetify).mount('#chat-app');
+    }
+</script>
+
+<style scoped>
+    .message-bubble {
+        max-width: 70%;
+        animation: slideInMessage 0.3s ease-out;
+    }
+    
+    .user-message {
+        margin-left: auto;
+    }
+    
+    .ai-message {
+        margin-right: auto;
+    }
+    
+    .emergency-message {
+        border-left: 4px solid #f44336;
+    }
+    
+    .mood-chip {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .mood-chip:hover {
+        transform: scale(1.05);
+    }
+    
+    .suggestion-chip {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .suggestion-chip:hover {
+        transform: translateY(-2px);
+    }
+    
+    .border-t {
+        border-top: 1px solid rgba(0,0,0,0.12);
+    }
+    
+    .border-b {
+        border-bottom: 1px solid rgba(0,0,0,0.12);
+    }
+    
+    @keyframes slideInMessage {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}

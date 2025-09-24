@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Por Você - Suporte Emocional{% endblock %}</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1976d2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Por Você">
+    <meta name="description" content="Suporte emocional com IA - Cuidando da sua saúde mental 24h">
+    
+    <!-- PWA Icons -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='img/icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='img/icon-512x512.png') }}">
+    
+    <!-- Vuetify 3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.css" rel="stylesheet">
+    
+    <!-- Material Design Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.3.67/css/materialdesignicons.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts - Roboto (Material Design) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Custom Material Theme CSS -->
+    <style>
+        /* Material Design 3 Custom Theme for Mental Health */
+        :root {
+            /* Primary Colors - Calming Blue */
+            --md-primary: #1976d2;
+            --md-primary-variant: #1565c0;
+            --md-on-primary: #ffffff;
+            
+            /* Secondary Colors - Therapeutic Green */
+            --md-secondary: #4caf50;
+            --md-secondary-variant: #388e3c;
+            --md-on-secondary: #ffffff;
+            
+            /* Background Colors */
+            --md-background: #fafafa;
+            --md-surface: #ffffff;
+            --md-on-background: #212121;
+            --md-on-surface: #212121;
+            
+            /* Error Colors */
+            --md-error: #f44336;
+            --md-on-error: #ffffff;
+            
+            /* Success Colors */
+            --md-success: #4caf50;
+            --md-warning: #ff9800;
+            --md-info: #2196f3;
+            
+            /* Mental Health Specific Colors */
+            --md-calm: #81c784;
+            --md-hope: #64b5f6;
+            --md-comfort: #ffb74d;
+            --md-trust: #9575cd;
+        }
+        
+        /* Material Design 3 Elevation Shadows */
+        .elevation-1 { box-shadow: 0 2px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+        .elevation-2 { box-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.24); }
+        .elevation-3 { box-shadow: 0 8px 16px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.24); }
+        .elevation-4 { box-shadow: 0 16px 32px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.24); }
+        
+        /* Glassmorphism for Mental Health UI */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        /* Smooth Animations */
+        .smooth-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Mental Health Themed Gradients */
+        .gradient-calm {
+            background: linear-gradient(135deg, #81c784 0%, #4caf50 100%);
+        }
+        
+        .gradient-hope {
+            background: linear-gradient(135deg, #64b5f6 0%, #1976d2 100%);
+        }
+        
+        .gradient-comfort {
+            background: linear-gradient(135deg, #ffb74d 0%, #ff9800 100%);
+        }
+        
+        .gradient-trust {
+            background: linear-gradient(135deg, #9575cd 0%, #7b1fa2 100%);
+        }
+        
+        /* Chat specific styles */
+        .chat-container {
+            height: calc(100vh - 128px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            margin-bottom: 16px;
+            animation: slideInMessage 0.3s ease-out;
+        }
+        
+        .message-user {
+            margin-left: auto;
+        }
+        
+        .message-ai {
+            margin-right: auto;
+        }
+        
+        @keyframes slideInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Floating Action Button for Emergency */
+        .fab-emergency {
+            position: fixed !important;
+            bottom: 80px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
+        }
+        
+        /* Mood Selector */
+        .mood-selector {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .mood-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .mood-chip:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Progress indicators for mental health */
+        .mental-health-progress {
+            background: linear-gradient(90deg, #f44336 0%, #ff9800 50%, #4caf50 100%);
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        /* Accessibility improvements */
+        .high-contrast {
+            filter: contrast(150%);
+        }
+        
+        .large-text {
+            font-size: 1.2em !important;
+        }
+        
+        /* Loading states */
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .message-bubble {
+                max-width: 90%;
+            }
+            
+            .mood-selector {
+                justify-content: center;
+            }
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div id="app">
+        <v-app :theme="currentTheme">
+            <!-- App Bar Principal -->
+            <v-app-bar 
+                :elevation="2" 
+                color="primary"
+                density="comfortable"
+                prominent
+            >
+                <template v-slot:prepend>
+                    <v-app-bar-nav-icon 
+                        @click="drawer = !drawer"
+                        v-if="$vuetify.display.mobile"
+                    ></v-app-bar-nav-icon>
+                </template>
+                
+                <v-toolbar-title class="d-flex align-center">
+                    <v-icon class="mr-2" color="white">mdi-heart-pulse</v-icon>
+                    <span class="font-weight-bold">Por Você</span>
+                </v-toolbar-title>
+                
+                <v-spacer></v-spacer>
+                
+                <!-- Desktop Navigation -->
+                <template v-if="!$vuetify.display.mobile">
+                    <v-btn 
+                        variant="text" 
+                        :to="{ name: 'home' }"
+                        color="white"
+                    >
+                        <v-icon left>mdi-home</v-icon>
+                        Início
+                    </v-btn>
+                    
+                    {% if current_user.is_authenticated %}
+                    <v-btn 
+                        variant="text"
+                        :to="{ name: 'dashboard' }"
+                        color="white"
+                    >
+                        <v-icon left>mdi-view-dashboard</v-icon>
+                        Dashboard
+                    </v-btn>
+                    
+                    <v-btn 
+                        variant="text"
+                        :to="{ name: 'chat' }"
+                        color="white"
+                    >
+                        <v-icon left>mdi-chat</v-icon>
+                        Chat
+                    </v-btn>
+                    {% endif %}
+                    
+                    <v-btn 
+                        variant="text"
+                        :to="{ name: 'help' }"
+                        color="white"
+                    >
+                        <v-icon left>mdi-help-circle</v-icon>
+                        Ajuda
+                    </v-btn>
+                </template>
+                
+                <!-- User Menu -->
+                {% if current_user.is_authenticated %}
+                <v-menu offset-y>
+                    <template v-slot:activator="{ props }">
+                        <v-btn 
+                            v-bind="props"
+                            icon
+                            color="white"
+                        >
+                            <v-avatar size="36" color="secondary">
+                                <v-icon>mdi-account</v-icon>
+                            </v-avatar>
+                        </v-btn>
+                    </template>
+                    
+                    <v-list>
+                        <v-list-item>
+                            <v-list-item-title>{{ current_user.get_full_name() }}</v-list-item-title>
+                            <v-list-item-subtitle>{{ current_user.email }}</v-list-item-subtitle>
+                        </v-list-item>
+                        
+                        <v-divider></v-divider>
+                        
+                        <v-list-item :to="{ name: 'profile' }">
+                            <template v-slot:prepend>
+                                <v-icon>mdi-account-circle</v-icon>
+                            </template>
+                            <v-list-item-title>Perfil</v-list-item-title>
+                        </v-list-item>
+                        
+                        <v-list-item @click="toggleTheme">
+                            <template v-slot:prepend>
+                                <v-icon>{% raw %}{{ currentTheme === 'dark' ? 'mdi-white-balance-sunny' : 'mdi-moon-waning-crescent' }}{% endraw %}</v-icon>
+                            </template>
+                            <v-list-item-title>{% raw %}{{ currentTheme === 'dark' ? 'Tema Claro' : 'Tema Escuro' }}{% endraw %}</v-list-item-title>
+                        </v-list-item>
+                        
+                        <v-divider></v-divider>
+                        
+                        <v-list-item href="{{ url_for('auth.logout') }}">
+                            <template v-slot:prepend>
+                                <v-icon color="error">mdi-logout</v-icon>
+                            </template>
+                            <v-list-item-title>Sair</v-list-item-title>
+                        </v-list-item>
+                    </v-list>
+                </v-menu>
+                {% else %}
+                <v-btn 
+                    variant="outlined"
+                    color="white"
+                    href="{{ url_for('auth.login') }}"
+                    class="mr-2"
+                >
+                    Entrar
+                </v-btn>
+                <v-btn 
+                    variant="elevated"
+                    color="secondary"
+                    href="{{ url_for('auth.register') }}"
+                >
+                    Registrar
+                </v-btn>
+                {% endif %}
+            </v-app-bar>
+            
+            <!-- Navigation Drawer Mobile -->
+            <v-navigation-drawer
+                v-model="drawer"
+                temporary
+                location="left"
+            >
+                <v-list>
+                    <v-list-item :to="{ name: 'home' }">
+                        <template v-slot:prepend>
+                            <v-icon>mdi-home</v-icon>
+                        </template>
+                        <v-list-item-title>Início</v-list-item-title>
+                    </v-list-item>
+                    
+                    {% if current_user.is_authenticated %}
+                    <v-list-item :to="{ name: 'dashboard' }">
+                        <template v-slot:prepend>
+                            <v-icon>mdi-view-dashboard</v-icon>
+                        </template>
+                        <v-list-item-title>Dashboard</v-list-item-title>
+                    </v-list-item>
+                    
+                    <v-list-item :to="{ name: 'chat' }">
+                        <template v-slot:prepend>
+                            <v-icon>mdi-chat</v-icon>
+                        </template>
+                        <v-list-item-title>Chat</v-list-item-title>
+                    </v-list-item>
+                    {% endif %}
+                    
+                    <v-list-item :to="{ name: 'help' }">
+                        <template v-slot:prepend>
+                            <v-icon>mdi-help-circle</v-icon>
+                        </template>
+                        <v-list-item-title>Ajuda</v-list-item-title>
+                    </v-list-item>
+                </v-list>
+            </v-navigation-drawer>
+            
+            <!-- Emergency Alert Banner -->
+            {% if show_emergency_banner %}
+            <v-alert
+                type="error"
+                prominent
+                closable
+                class="ma-0"
+            >
+                <template v-slot:prepend>
+                    <v-icon>mdi-alert</v-icon>
+                </template>
+                <strong>Emergência:</strong>
+                Se você está pensando em se machucar, procure ajuda imediata:
+                <strong>CVV: 188</strong> | <strong>SAMU: 192</strong>
+            </v-alert>
+            {% endif %}
+            
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <v-container fluid class="pa-2">
+                    {% for category, message in messages %}
+                    <v-alert
+                        :type="getAlertType('{{ category }}')"
+                        closable
+                        class="mb-2"
+                    >
+                        {{ message }}
+                    </v-alert>
+                    {% endfor %}
+                </v-container>
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Main Content Area -->
+            <v-main>
+                <router-view></router-view>
+                {% block content %}{% endblock %}
+            </v-main>
+            
+            <!-- Emergency FAB -->
+            <v-btn
+                class="fab-emergency"
+                icon
+                size="large"
+                @click="showEmergencyDialog = true"
+            >
+                <v-icon>mdi-phone</v-icon>
+            </v-btn>
+            
+            <!-- Footer -->
+            <v-footer color="primary" class="white--text">
+                <v-container>
+                    <v-row align="center" justify="space-between">
+                        <v-col cols="12" md="6">
+                            <div class="d-flex align-center">
+                                <v-icon class="mr-2">mdi-heart-pulse</v-icon>
+                                <span class="font-weight-bold">Por Você</span>
+                                <span class="ml-2">- Suporte emocional com IA</span>
+                            </div>
+                        </v-col>
+                        <v-col cols="12" md="6" class="text-right">
+                            <div class="d-flex justify-end align-center">
+                                <v-icon class="mr-1">mdi-shield-check</v-icon>
+                                <span class="caption">100% Seguro e Confidencial</span>
+                            </div>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </v-footer>
+            
+            <!-- Emergency Dialog -->
+            <v-dialog v-model="showEmergencyDialog" max-width="500">
+                <emergency-contacts @close="showEmergencyDialog = false"></emergency-contacts>
+            </v-dialog>
+            
+            <!-- Loading Overlay -->
+            <v-overlay 
+                v-model="isLoading" 
+                class="align-center justify-center"
+            >
+                <v-progress-circular
+                    color="primary"
+                    indeterminate
+                    size="64"
+                ></v-progress-circular>
+            </v-overlay>
+        </v-app>
+    </div>
+    
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3.3.8/dist/vue.global.js"></script>
+    
+    <!-- Vuetify 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.0/dist/vuetify.min.js"></script>
+    
+    <!-- Vue Router -->
+    <script src="https://unpkg.com/vue-router@4.2.5/dist/vue-router.global.js"></script>
+    
+    <!-- Axios for HTTP requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Base Vue App -->
+    <script>
+        const { createApp } = Vue;
+        const { createVuetify } = Vuetify;
+        const { createRouter, createWebHistory } = VueRouter;
+        
+        // Vuetify Configuration with Material Design 3
+        const vuetify = createVuetify({
+            theme: {
+                defaultTheme: 'light',
+                themes: {
+                    light: {
+                        colors: {
+                            primary: '#1976d2',
+                            secondary: '#4caf50',
+                            accent: '#81c784',
+                            error: '#f44336',
+                            warning: '#ff9800',
+                            info: '#2196f3',
+                            success: '#4caf50',
+                            surface: '#ffffff',
+                            background: '#fafafa',
+                        }
+                    },
+                    dark: {
+                        colors: {
+                            primary: '#1976d2',
+                            secondary: '#4caf50',
+                            accent: '#81c784',
+                            error: '#f44336',
+                            warning: '#ff9800',
+                            info: '#2196f3',
+                            success: '#4caf50',
+                        }
+                    }
+                }
+            },
+            display: {
+                mobileBreakpoint: 'sm',
+                thresholds: {
+                    xs: 0,
+                    sm: 600,
+                    md: 960,
+                    lg: 1264,
+                    xl: 1904,
+                }
+            }
+        });
+        
+        // Emergency Contacts Component
+        const EmergencyContacts = {
+            template: `
+                <v-card>
+                    <v-card-title class="d-flex align-center gradient-hope white--text">
+                        <v-icon class="mr-2">mdi-alert</v-icon>
+                        Contatos de Emergência
+                    </v-card-title>
+                    
+                    <v-card-text class="pa-4">
+                        <v-alert type="error" prominent class="mb-4">
+                            <strong>Se você está pensando em se machucar, procure ajuda imediatamente!</strong>
+                        </v-alert>
+                        
+                        <v-row>
+                            <v-col cols="6" sm="3" v-for="contact in emergencyContacts" :key="contact.name">
+                                <v-card 
+                                    variant="outlined" 
+                                    class="text-center pa-3 smooth-transition"
+                                    :color="contact.color"
+                                    @click="callNumber(contact.number)"
+                                    style="cursor: pointer;"
+                                >
+                                    <v-icon size="48" :color="contact.color" class="mb-2">{% raw %}{{ contact.icon }}{% endraw %}</v-icon>
+                                    <div class="font-weight-bold">{% raw %}{{ contact.name }}{% endraw %}</div>
+                                    <div class="text-h5 font-weight-bold" :class="contact.color + '--text'">{% raw %}{{ contact.number }}{% endraw %}</div>
+                                    <div class="caption">{% raw %}{{ contact.description }}{% endraw %}</div>
+                                </v-card>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                    
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" @click="$emit('close')">Fechar</v-btn>
+                    </v-card-actions>
+                </v-card>
+            `,
+            data() {
+                return {
+                    emergencyContacts: [
+                        {
+                            name: 'CVV',
+                            number: '188',
+                            description: '24h - Gratuito',
+                            icon: 'mdi-phone',
+                            color: 'primary'
+                        },
+                        {
+                            name: 'SAMU',
+                            number: '192',
+                            description: 'Emergências médicas',
+                            icon: 'mdi-ambulance',
+                            color: 'error'
+                        },
+                        {
+                            name: 'Polícia',
+                            number: '190',
+                            description: 'Emergências',
+                            icon: 'mdi-shield',
+                            color: 'warning'
+                        },
+                        {
+                            name: 'Bombeiros',
+                            number: '193',
+                            description: 'Emergências',
+                            icon: 'mdi-fire-truck',
+                            color: 'orange'
+                        }
+                    ]
+                }
+            },
+            methods: {
+                callNumber(number) {
+                    if (confirm(`Ligar para ${number}?`)) {
+                        window.open(`tel:${number}`, '_self');
+                    }
+                }
+            },
+            emits: ['close']
+        };
+        
+        // Main Vue App
+        const app = createApp({
+            data() {
+                return {
+                    drawer: false,
+                    currentTheme: 'light',
+                    showEmergencyDialog: false,
+                    isLoading: false,
+                }
+            },
+            methods: {
+                toggleTheme() {
+                    this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+                    localStorage.setItem('theme', this.currentTheme);
+                },
+                getAlertType(category) {
+                    const types = {
+                        'error': 'error',
+                        'success': 'success',
+                        'warning': 'warning',
+                        'info': 'info'
+                    };
+                    return types[category] || 'info';
+                },
+                showLoading() {
+                    this.isLoading = true;
+                },
+                hideLoading() {
+                    this.isLoading = false;
+                }
+            },
+            mounted() {
+                // Load saved theme
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    this.currentTheme = savedTheme;
+                }
+                
+                // Register service worker for PWA
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/sw.js');
+                }
+            },
+            components: {
+                EmergencyContacts
+            }
+        });
+        
+        app.use(vuetify);
+        app.mount('#app');
+        
+        // Global error handler
+        window.addEventListener('unhandledrejection', event => {
+            console.error('Unhandled promise rejection:', event.reason);
+        });
+        
+        // Global utilities
+        window.showNotification = (message, type = 'info') => {
+            // This would integrate with Vuetify's snackbar system
+            console.log(`${type.toUpperCase()}: ${message}`);
+        };
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo circular -->
+  <circle cx="96" cy="96" r="96" fill="#4DB6AC"/>
+  
+  <!-- Coração estilizado -->
+  <path d="M96 140C96 140 56 110 56 80C56 68 66 58 78 58C87 58 96 67 96 67C96 67 105 58 114 58C126 58 136 68 136 80C136 110 96 140 96 140Z" fill="white"/>
+  
+  <!-- Texto PV -->
+  <text x="96" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">PV</text>
+</svg>

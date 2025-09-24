@@ -1,0 +1,514 @@
+{% extends "base_vue.html" %}
+
+{% block title %}Por Você - Suporte Emocional com IA{% endblock %}
+
+{% block content %}
+<!-- Home Page Vue Component -->
+<div id="home-page">
+    <!-- Hero Section -->
+    <v-container fluid class="pa-0">
+        <v-row no-gutters>
+            <v-col cols="12">
+                <v-card 
+                    class="gradient-hope d-flex align-center justify-center"
+                    height="600"
+                    flat
+                >
+                    <v-container class="text-center">
+                        <v-row justify="center" align="center">
+                            <v-col cols="12" md="8" lg="6">
+                                <!-- Hero Icon with Animation -->
+                                <v-avatar 
+                                    size="120" 
+                                    color="white" 
+                                    class="mb-8 elevation-8"
+                                    style="animation: pulse 2s infinite;"
+                                >
+                                    <v-icon size="60" color="primary">mdi-heart-pulse</v-icon>
+                                </v-avatar>
+                                
+                                <!-- Hero Title -->
+                                <h1 class="text-h2 text-md-h1 font-weight-bold white--text mb-4">
+                                    Você não está <span class="text-secondary">sozinho</span>
+                                </h1>
+                                
+                                <!-- Hero Subtitle -->
+                                <p class="text-h6 text-md-h5 white--text mb-8 opacity-90">
+                                    Suporte emocional imediato com IA avançada, disponível 24h por dia, 7 dias por semana.
+                                    <br>Sua saúde mental é nossa prioridade.
+                                </p>
+                                
+                                <!-- CTA Buttons -->
+                                <div class="d-flex flex-column flex-sm-row gap-4 justify-center">
+                                    {% if not current_user.is_authenticated %}
+                                    <v-btn
+                                        href="{{ url_for('auth.register') }}"
+                                        size="x-large"
+                                        color="secondary"
+                                        variant="elevated"
+                                        class="text-none font-weight-bold"
+                                        prepend-icon="mdi-account-plus"
+                                    >
+                                        Começar Agora - Gratuito
+                                    </v-btn>
+                                    
+                                    <v-btn
+                                        href="{{ url_for('auth.login') }}"
+                                        size="x-large"
+                                        color="white"
+                                        variant="outlined"
+                                        class="text-none font-weight-bold"
+                                        prepend-icon="mdi-login"
+                                    >
+                                        Já tenho conta
+                                    </v-btn>
+                                    {% else %}
+                                        {% if current_user.is_admin %}
+                                        <v-btn
+                                            href="{{ url_for('admin.dashboard') }}"
+                                            size="x-large"
+                                            color="secondary"
+                                            variant="elevated"
+                                            class="text-none font-weight-bold"
+                                            prepend-icon="mdi-view-dashboard"
+                                        >
+                                            Meu Dashboard
+                                        </v-btn>
+                                        {% elif current_user.is_volunteer %}
+                                        <v-btn
+                                            href="{{ url_for('volunteer.dashboard') }}"
+                                            size="x-large"
+                                            color="secondary"
+                                            variant="elevated"
+                                            class="text-none font-weight-bold"
+                                            prepend-icon="mdi-view-dashboard"
+                                        >
+                                            Dashboard Voluntário
+                                        </v-btn>
+                                        {% else %}
+                                        <v-btn
+                                            href="{{ url_for('main.dashboard') }}"
+                                            size="x-large"
+                                            color="secondary"
+                                            variant="elevated"
+                                            class="text-none font-weight-bold"
+                                            prepend-icon="mdi-view-dashboard"
+                                        >
+                                            Meu Dashboard
+                                        </v-btn>
+                                        
+                                        <v-btn
+                                            href="{{ url_for('chat.chat_interface') }}"
+                                            size="x-large"
+                                            color="white"
+                                            variant="outlined"
+                                            class="text-none font-weight-bold"
+                                            prepend-icon="mdi-chat"
+                                        >
+                                            Iniciar Chat
+                                        </v-btn>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </v-col>
+                        </v-row>
+                    </v-container>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- Statistics Section -->
+    <v-container class="py-12">
+        <v-row>
+                <v-col cols="6" md="3" v-for="stat in statistics" :key="stat.value">
+                    <v-card 
+                        class="text-center pa-6 elevation-2 smooth-transition"
+                        @mouseenter="stat.animated = true"
+                        height="150"
+                    >
+                        <div 
+                            class="text-h3 font-weight-bold primary--text mb-2"
+                            :class="{ 'animate-number': stat.animated }"
+                        >
+                            {% raw %}{{ stat.value }}{% endraw %}
+                        </div>
+                        <div class="text-body-1 grey--text">{% raw %}{{ stat.label }}{% endraw %}</div>
+                    </v-card>
+                </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- Features Section -->
+    <v-container class="py-12">
+        <div class="text-center mb-12">
+            <h2 class="text-h3 font-weight-bold mb-4">Como podemos te ajudar</h2>
+            <p class="text-h6 grey--text">
+                Nossa plataforma oferece suporte completo para sua saúde mental através de tecnologia avançada e cuidado humano.
+            </p>
+        </div>
+        
+        <v-row>
+            <v-col cols="12" md="6" lg="3" v-for="(feature, index) in features" :key="feature.title">
+                <v-card 
+                    class="pa-6 text-center smooth-transition elevation-2"
+                    height="300"
+                    @mouseenter="animateFeature(index)"
+                    :class="{ 'elevation-8': feature.animated }"
+                >
+                    <v-avatar 
+                        size="80" 
+                        :color="feature.color"
+                        class="mb-4"
+                        :class="{ 'animate-bounce': feature.animated }"
+                    >
+                        <v-icon size="40" color="white">{% raw %}{{ feature.icon }}{% endraw %}</v-icon>
+                    </v-avatar>
+                    
+                    <h3 class="text-h5 font-weight-bold mb-4">{% raw %}{{ feature.title }}{% endraw %}</h3>
+                    <p class="text-body-1 grey--text">{% raw %}{{ feature.description }}{% endraw %}</p>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- How it Works Section -->
+    <v-container fluid class="gradient-calm py-12">
+        <v-container>
+            <div class="text-center mb-12">
+                <h2 class="text-h3 font-weight-bold white--text mb-4">Como funciona</h2>
+                <p class="text-h6 white--text opacity-90">
+                    Um processo simples e seguro para você receber o apoio que precisa
+                </p>
+            </div>
+            
+            <v-row>
+                <v-col cols="12" md="4" v-for="(step, index) in steps" :key="step.title">
+                    <div class="text-center">
+                        <v-avatar 
+                            size="80" 
+                            color="white" 
+                            class="mb-4 elevation-4"
+                        >
+                            <span class="text-h4 font-weight-bold primary--text">{% raw %}{{ index + 1 }}{% endraw %}</span>
+                        </v-avatar>
+                        
+                        <h3 class="text-h5 font-weight-bold white--text mb-4">{% raw %}{{ step.title }}{% endraw %}</h3>
+                        <p class="text-body-1 white--text opacity-90">{% raw %}{{ step.description }}{% endraw %}</p>
+                    </div>
+                </v-col>
+            </v-row>
+        </v-container>
+    </v-container>
+    
+    <!-- Testimonials Section -->
+    <v-container class="py-12">
+        <div class="text-center mb-12">
+            <h2 class="text-h3 font-weight-bold mb-4">O que dizem nossos usuários</h2>
+            <p class="text-h6 grey--text">
+                Histórias reais de pessoas que encontraram apoio e esperança
+            </p>
+        </div>
+        
+        <v-row>
+            <v-col cols="12" md="4" v-for="testimonial in testimonials" :key="testimonial.name">
+                <v-card class="pa-6 elevation-2 smooth-transition" height="250">
+                    <div class="d-flex align-center mb-4">
+                        <v-avatar :color="testimonial.color" class="mr-4">
+                            <v-icon color="white">mdi-account</v-icon>
+                        </v-avatar>
+                        <div>
+                            <div class="font-weight-bold">{% raw %}{{ testimonial.name }}{% endraw %}</div>
+                            <div class="caption grey--text">{% raw %}{{ testimonial.period }}{% endraw %}</div>
+                        </div>
+                    </div>
+                    
+                    <blockquote class="text-body-2 font-italic mb-4">
+                        "{% raw %}{{ testimonial.quote }}{% endraw %}"
+                    </blockquote>
+                    
+                    <v-rating
+                        v-model="testimonial.rating"
+                        color="warning"
+                        density="compact"
+                        readonly
+                    ></v-rating>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- Emergency Section -->
+    <v-container fluid class="gradient-trust py-12">
+        <v-container>
+            <div class="text-center mb-8">
+                <v-icon size="80" color="white" class="mb-4">mdi-alert</v-icon>
+                <h2 class="text-h3 font-weight-bold white--text mb-4">Precisa de ajuda imediata?</h2>
+                <p class="text-h6 white--text opacity-90 mb-8">
+                    Em situações de emergência, não hesite em buscar apoio profissional imediato
+                </p>
+            </div>
+            
+            <v-row>
+                <v-col cols="6" md="3" v-for="contact in emergencyContacts" :key="contact.name">
+                    <v-card 
+                        class="text-center pa-6 smooth-transition glass-effect"
+                        @click="callEmergency(contact.number)"
+                        style="cursor: pointer;"
+                    >
+                        <v-icon size="48" :color="contact.color" class="mb-2">{% raw %}{{ contact.icon }}{% endraw %}</v-icon>
+                        <div class="font-weight-bold text-h6 mb-2">{% raw %}{{ contact.name }}{% endraw %}</div>
+                        <div class="text-h4 font-weight-bold" :class="contact.color + '--text'">{% raw %}{{ contact.number }}{% endraw %}</div>
+                        <div class="caption">{% raw %}{{ contact.description }}{% endraw %}</div>
+                    </v-card>
+                </v-col>
+            </v-row>
+            
+            <div class="text-center mt-8">
+                <v-icon color="white" class="mr-2">mdi-heart</v-icon>
+                <span class="text-h6 white--text font-weight-bold">
+                    Sua vida é valiosa e você merece ajuda!
+                </span>
+                <v-icon color="white" class="ml-2">mdi-heart</v-icon>
+            </div>
+        </v-container>
+    </v-container>
+    
+    <!-- CTA Final Section -->
+    <v-container class="py-16">
+        <v-card class="gradient-hope pa-12 text-center elevation-8">
+            <h2 class="text-h3 text-md-h2 font-weight-bold white--text mb-6">
+                Pronto para dar o primeiro passo?
+            </h2>
+            
+            <p class="text-h6 white--text opacity-90 mb-8">
+                Junte-se a milhares de pessoas que já encontraram apoio e esperança. 
+                <br>Comece sua jornada para o bem-estar emocional hoje mesmo.
+            </p>
+            
+            <div class="d-flex flex-column flex-sm-row gap-4 justify-center mb-8">
+                {% if not current_user.is_authenticated %}
+                <v-btn
+                    href="{{ url_for('auth.register') }}"
+                    size="x-large"
+                    color="white"
+                    class="text-none font-weight-bold primary--text"
+                    prepend-icon="mdi-rocket"
+                >
+                    Começar Gratuitamente
+                </v-btn>
+                
+                <v-btn
+                    href="{{ url_for('main.help_page') }}"
+                    size="x-large"
+                    variant="outlined"
+                    color="white"
+                    class="text-none font-weight-bold"
+                    prepend-icon="mdi-help-circle"
+                >
+                    Saber Mais
+                </v-btn>
+                {% else %}
+                <v-btn
+                    href="{{ url_for('chat.chat_interface') }}"
+                    size="x-large"
+                    color="white"
+                    class="text-none font-weight-bold primary--text"
+                    prepend-icon="mdi-chat"
+                >
+                    Iniciar Conversa
+                </v-btn>
+                
+                <v-btn
+                    href="{{ url_for('main.dashboard') }}"
+                    size="x-large"
+                    variant="outlined"
+                    color="white"
+                    class="text-none font-weight-bold"
+                    prepend-icon="mdi-view-dashboard"
+                >
+                    Ver Dashboard
+                </v-btn>
+                {% endif %}
+            </div>
+            
+            <!-- Trust Badges -->
+            <v-row justify="center" class="opacity-80">
+                <v-col cols="auto" v-for="badge in trustBadges" :key="badge.text">
+                    <div class="d-flex align-center white--text">
+                        <v-icon class="mr-2" color="white">{% raw %}{{ badge.icon }}{% endraw %}</v-icon>
+                        <span class="text-body-2">{% raw %}{{ badge.text }}{% endraw %}</span>
+                    </div>
+                </v-col>
+            </v-row>
+        </v-card>
+    </v-container>
+</div>
+
+<script>
+    // Home page Vue component data and methods
+    const homePageApp = createApp({
+        data() {
+            return {
+                statistics: [
+                    { value: '24/7', label: 'Disponibilidade', animated: false },
+                    { value: '95%', label: 'Satisfação', animated: false },
+                    { value: '1000+', label: 'Usuários Ajudados', animated: false },
+                    { value: '100%', label: 'Privacidade', animated: false }
+                ],
+                
+                features: [
+                    {
+                        title: 'Chat com IA Empática',
+                        description: 'Converse com nossa IA treinada especialmente para oferecer apoio emocional personalizado e compreensivo.',
+                        icon: 'mdi-robot',
+                        color: 'primary',
+                        animated: false
+                    },
+                    {
+                        title: 'Triagem Inteligente',
+                        description: 'Análise em tempo real do seu estado emocional para direcionamento adequado e resposta personalizada.',
+                        icon: 'mdi-brain',
+                        color: 'secondary',
+                        animated: false
+                    },
+                    {
+                        title: 'Diário Emocional',
+                        description: 'Registre seus sentimentos e acompanhe sua evolução emocional com insights personalizados.',
+                        icon: 'mdi-book-heart',
+                        color: 'accent',
+                        animated: false
+                    },
+                    {
+                        title: 'Conexão Profissional',
+                        description: 'Encaminhamento automático para profissionais qualificados quando necessário, garantindo cuidado especializado.',
+                        icon: 'mdi-hand-heart',
+                        color: 'warning',
+                        animated: false
+                    }
+                ],
+                
+                steps: [
+                    {
+                        title: 'Inicie uma conversa',
+                        description: 'Compartilhe seus sentimentos em um ambiente completamente seguro e confidencial. Nossa IA está aqui para escutar.'
+                    },
+                    {
+                        title: 'Receba apoio personalizado',
+                        description: 'Nossa IA analisa sua situação e oferece apoio empático, técnicas de relaxamento e orientações úteis adaptadas ao seu caso.'
+                    },
+                    {
+                        title: 'Conecte-se com especialistas',
+                        description: 'Se necessário, você será direcionado para profissionais de saúde mental qualificados para um acompanhamento especializado.'
+                    }
+                ],
+                
+                testimonials: [
+                    {
+                        name: 'Ana M.',
+                        period: 'Usuária há 6 meses',
+                        quote: 'A IA realmente me entendeu quando mais precisei. Foi como ter um amigo disponível 24h que sempre soube o que dizer.',
+                        rating: 5,
+                        color: 'primary'
+                    },
+                    {
+                        name: 'Carlos R.',
+                        period: 'Usuário há 3 meses',
+                        quote: 'O encaminhamento para um profissional foi perfeito. A plataforma soube exatamente quando eu precisava de mais ajuda.',
+                        rating: 5,
+                        color: 'secondary'
+                    },
+                    {
+                        name: 'Maria S.',
+                        period: 'Usuária há 1 ano',
+                        quote: 'O diário emocional me ajudou a entender meus padrões. Consigo ver minha evolução e isso me motiva muito.',
+                        rating: 5,
+                        color: 'accent'
+                    }
+                ],
+                
+                emergencyContacts: [
+                    {
+                        name: 'CVV',
+                        number: '188',
+                        description: '24h - Gratuito',
+                        icon: 'mdi-phone',
+                        color: 'primary'
+                    },
+                    {
+                        name: 'SAMU',
+                        number: '192',
+                        description: 'Emergências médicas',
+                        icon: 'mdi-ambulance',
+                        color: 'error'
+                    },
+                    {
+                        name: 'Polícia',
+                        number: '190',
+                        description: 'Emergências',
+                        icon: 'mdi-shield',
+                        color: 'warning'
+                    },
+                    {
+                        name: 'Bombeiros',
+                        number: '193',
+                        description: 'Emergências',
+                        icon: 'mdi-fire-truck',
+                        color: 'orange'
+                    }
+                ],
+                
+                trustBadges: [
+                    { icon: 'mdi-shield-check', text: '100% Seguro e Confidencial' },
+                    { icon: 'mdi-clock', text: 'Disponível 24/7' },
+                    { icon: 'mdi-heart', text: 'Suporte Empático' }
+                ]
+            }
+        },
+        
+        methods: {
+            animateFeature(index) {
+                this.features[index].animated = true;
+                setTimeout(() => {
+                    this.features[index].animated = false;
+                }, 1000);
+            },
+            
+            callEmergency(number) {
+                if (confirm(`Ligar para ${number}?`)) {
+                    window.open(`tel:${number}`, '_self');
+                }
+            }
+        }
+    });
+    
+    // Mount only if element exists
+    if (document.getElementById('home-page')) {
+        homePageApp.use(vuetify).mount('#home-page');
+    }
+</script>
+
+<style scoped>
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    @keyframes animate-bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .animate-number {
+        animation: pulse 0.5s ease-in-out;
+    }
+    
+    .animate-bounce {
+        animation: animate-bounce 1s ease-in-out;
+    }
+    
+    .gap-4 {
+        gap: 16px;
+    }
+</style>
+{% endblock %}

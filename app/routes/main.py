@@ -16,6 +16,16 @@ main = Blueprint('main', __name__)
 @main.route('/home')
 def index():
     """Página inicial"""
+    return render_template('index_vue.html')
+
+@main.route('/vue')
+def index_vue():
+    """Página inicial moderna com Vue.js"""
+    return render_template('index_vue.html')
+
+@main.route('/legacy')
+def index_legacy():
+    """Página inicial legada"""
     return render_template('landing.html')
 
 
@@ -179,7 +189,26 @@ def help_page():
 @main.route('/dashboard')
 @login_required
 def dashboard():
-    """Redireciona para o dashboard correto conforme o papel do usuário"""
+    """Dashboard moderno com Vue.js"""
+    if current_user.is_admin:
+        return redirect(url_for('admin.dashboard'))
+    elif current_user.is_volunteer:
+        return redirect(url_for('volunteer.dashboard'))
+    elif current_user.is_client:
+        return render_template('dashboards/client/dashboard_vue.html')
+    else:
+        return redirect(url_for('auth.logout'))
+
+@main.route('/dashboard/vue')
+@login_required
+def dashboard_vue():
+    """Dashboard moderno com Vue.js"""
+    return render_template('dashboards/client/dashboard_vue.html')
+
+@main.route('/dashboard/legacy')
+@login_required
+def dashboard_legacy():
+    """Dashboard legado"""
     if current_user.is_admin:
         return redirect(url_for('admin.dashboard'))
     elif current_user.is_volunteer:

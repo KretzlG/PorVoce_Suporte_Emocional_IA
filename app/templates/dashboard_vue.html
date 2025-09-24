@@ -1,0 +1,703 @@
+{% extends "base_vue.html" %}
+
+{% block title %}Dashboard - Por Você{% endblock %}
+
+{% block content %}
+<!-- Dashboard Vue Component -->
+<div id="dashboard-app">
+    <v-container class="pa-6">
+        
+        <!-- Welcome Section -->
+        <v-row class="mb-6">
+            <v-col cols="12">
+                <v-card class="gradient-hope pa-6" elevation="8">
+                    <v-row align="center">
+                        <v-col cols="12" md="8">
+                            <h1 class="text-h3 font-weight-bold white--text mb-2">
+                                Olá, {{ current_user.get_full_name() if current_user.is_authenticated else 'Usuário' }}! 👋
+                            </h1>
+                            <p class="text-h6 white--text opacity-90 mb-4">
+                                Como você está se sentindo hoje? Estamos aqui para apoiá-lo em sua jornada de bem-estar emocional.
+                            </p>
+                            <div class="d-flex flex-wrap gap-3">
+                                <v-btn 
+                                    color="white"
+                                    variant="elevated"
+                                    prepend-icon="mdi-chat"
+                                    size="large"
+                                    href="{{ url_for('chat.chat_interface') }}"
+                                >
+                                    Iniciar Chat
+                                </v-btn>
+                                <v-btn 
+                                    color="white"
+                                    variant="outlined"
+                                    prepend-icon="mdi-book-heart"
+                                    size="large"
+                                    href="{{ url_for('diary.diary_interface') if url_for is defined else '#' }}"
+                                >
+                                    Diário Emocional
+                                </v-btn>
+                            </div>
+                        </v-col>
+                        <v-col cols="12" md="4" class="text-center">
+                            <v-avatar size="120" color="white" class="elevation-4">
+                                <v-icon size="60" color="primary">mdi-account-heart</v-icon>
+                            </v-avatar>
+                        </v-col>
+                    </v-row>
+                </v-card>
+            </v-col>
+        </v-row>
+        
+        <!-- Quick Stats -->
+        <v-row class="mb-6">
+            <v-col cols="6" md="3" v-for="stat in quickStats" :key="stat.title">
+                <v-card 
+                    class="pa-4 text-center smooth-transition"
+                    :color="stat.color"
+                    variant="elevated"
+                    @click="navigateToStat(stat)"
+                    style="cursor: pointer;"
+                >
+                    <v-avatar :color="stat.iconColor" size="56" class="mb-3">
+                        <v-icon :color="stat.textColor" size="28">{{ stat.icon }}</v-icon>
+                    </v-avatar>
+                    <div class="text-h4 font-weight-bold" :class="stat.textColor + '--text'">
+                        {{ stat.value }}
+                    </div>
+                    <div class="text-body-2" :class="stat.subtitleColor + '--text'">
+                        {{ stat.title }}
+                    </div>
+                </v-card>
+            </v-col>
+        </v-row>
+        
+        <!-- Main Dashboard Content -->
+        <v-row>
+            
+            <!-- Left Column -->
+            <v-col cols="12" md="8">
+                
+                <!-- Recent Activity -->
+                <v-card class="mb-6" elevation="2">
+                    <v-card-title class="d-flex align-center">
+                        <v-icon class="mr-2">mdi-history</v-icon>
+                        Atividade Recente
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" size="small">Ver Tudo</v-btn>
+                    </v-card-title>
+                    
+                    <v-card-text>
+                        <v-timeline density="compact" align="start">
+                            <v-timeline-item 
+                                v-for="activity in recentActivities" 
+                                :key="activity.id"
+                                :dot-color="activity.color"
+                                size="small"
+                            >
+                                <template v-slot:icon>
+                                    <v-icon size="16">{{ activity.icon }}</v-icon>
+                                </template>
+                                
+                                <v-card variant="outlined" class="mb-2">
+                                    <v-card-text class="pa-3">
+                                        <div class="d-flex justify-space-between align-start">
+                                            <div>
+                                                <div class="font-weight-medium">{{ activity.title }}</div>
+                                                <div class="text-caption grey--text">{{ activity.description }}</div>
+                                            </div>
+                                            <v-chip size="x-small" variant="text">
+                                                {{ formatRelativeTime(activity.timestamp) }}
+                                            </v-chip>
+                                        </div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-timeline-item>
+                            
+                            <v-timeline-item v-if="recentActivities.length === 0">
+                                <v-card variant="outlined">
+                                    <v-card-text class="text-center grey--text">
+                                        <v-icon class="mb-2">mdi-information</v-icon>
+                                        <div>Nenhuma atividade recente</div>
+                                        <div class="text-caption">Comece uma conversa para ver atividades aqui</div>
+                                    </v-card-text>
+                                </v-card>
+                            </v-timeline-item>
+                        </v-timeline>
+                    </v-card-text>
+                </v-card>
+                
+                <!-- Mood Tracker -->
+                <v-card class="mb-6" elevation="2">
+                    <v-card-title class="d-flex align-center">
+                        <v-icon class="mr-2">mdi-emoticon-happy</v-icon>
+                        Acompanhamento de Humor
+                        <v-spacer></v-spacer>
+                        <v-btn variant="text" size="small" @click="openMoodDialog">
+                            Registrar Humor
+                        </v-btn>
+                    </v-card-title>
+                    
+                    <v-card-text>
+                        <div class="mb-4">
+                            <div class="text-h6 mb-2">Humor Atual</div>
+                            <div class="d-flex align-center">
+                                <v-avatar :color="currentMoodData.color" class="mr-3">
+                                    <span class="text-h6">{{ currentMoodData.emoji }}</span>
+                                </v-avatar>
+                                <div>
+                                    <div class="font-weight-medium">{% raw %}{{ currentMoodData.label }}{% endraw %}</div>
+                                    <div class="text-caption grey--text">
+                                        Registrado {% raw %}{{ formatRelativeTime(moodHistory[0]?.timestamp || new Date()) }}{% endraw %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mood History Chart Placeholder -->
+                        <div class="mb-4">
+                            <div class="text-h6 mb-2">Últimos 7 dias</div>
+                            <div class="d-flex align-center justify-space-between">
+                                <div 
+                                    v-for="(day, index) in moodWeekHistory" 
+                                    :key="index"
+                                    class="text-center"
+                                >
+                                    <div class="caption grey--text mb-1">{{ day.day }}</div>
+                                    <v-avatar :color="day.mood ? getMoodColor(day.mood) : 'grey-lighten-3'" size="32">
+                                        <span v-if="day.mood">{{ getMoodEmoji(day.mood) }}</span>
+                                        <v-icon v-else size="16" color="grey">mdi-minus</v-icon>
+                                    </v-avatar>
+                                </div>
+                            </div>
+                        </div>
+                    </v-card-text>
+                </v-card>
+                
+            </v-col>
+            
+            <!-- Right Column -->
+            <v-col cols="12" md="4">
+                
+                <!-- Quick Actions -->
+                <v-card class="mb-6" elevation="2">
+                    <v-card-title class="d-flex align-center">
+                        <v-icon class="mr-2">mdi-flash</v-icon>
+                        Ações Rápidas
+                    </v-card-title>
+                    
+                    <v-card-text class="pa-2">
+                        <v-list density="compact">
+                            <v-list-item 
+                                v-for="action in quickActions" 
+                                :key="action.title"
+                                @click="performQuickAction(action)"
+                                :prepend-icon="action.icon"
+                                :title="action.title"
+                                :subtitle="action.description"
+                            >
+                                <template v-slot:append>
+                                    <v-icon>mdi-chevron-right</v-icon>
+                                </template>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+                
+                <!-- Resources -->
+                <v-card class="mb-6" elevation="2">
+                    <v-card-title class="d-flex align-center">
+                        <v-icon class="mr-2">mdi-library</v-icon>
+                        Recursos de Bem-estar
+                    </v-card-title>
+                    
+                    <v-card-text class="pa-2">
+                        <v-list density="compact">
+                            <v-list-item 
+                                v-for="resource in wellnessResources" 
+                                :key="resource.title"
+                                :href="resource.link"
+                                :target="resource.external ? '_blank' : '_self'"
+                                :prepend-icon="resource.icon"
+                                :title="resource.title"
+                                :subtitle="resource.description"
+                            >
+                                <template v-slot:append>
+                                    <v-icon v-if="resource.external">mdi-open-in-new</v-icon>
+                                    <v-icon v-else>mdi-chevron-right</v-icon>
+                                </template>
+                            </v-list-item>
+                        </v-list>
+                    </v-card-text>
+                </v-card>
+                
+                <!-- Emergency Section -->
+                <v-card color="error" class="mb-6" elevation="4">
+                    <v-card-title class="white--text d-flex align-center">
+                        <v-icon class="mr-2" color="white">mdi-alert</v-icon>
+                        Precisa de Ajuda Imediata?
+                    </v-card-title>
+                    
+                    <v-card-text class="white--text">
+                        <p class="mb-4 text-body-2">
+                            Se você está pensando em se machucar ou precisa de apoio urgente:
+                        </p>
+                        
+                        <div class="d-flex flex-column gap-2">
+                            <v-btn 
+                                v-for="contact in emergencyContacts.slice(0, 2)" 
+                                :key="contact.name"
+                                color="white"
+                                variant="elevated"
+                                size="small"
+                                @click="callEmergency(contact.number)"
+                                class="justify-start"
+                            >
+                                <v-icon class="mr-2" color="error">{{ contact.icon }}</v-icon>
+                                {{ contact.name }}: {{ contact.number }}
+                            </v-btn>
+                        </div>
+                        
+                        <v-btn 
+                            variant="outlined" 
+                            color="white" 
+                            size="small" 
+                            block 
+                            class="mt-3"
+                            @click="showAllEmergencyContacts"
+                        >
+                            Ver Todos os Contatos
+                        </v-btn>
+                    </v-card-text>
+                </v-card>
+                
+            </v-col>
+        </v-row>
+    </v-container>
+    
+    <!-- Mood Dialog -->
+    <v-dialog v-model="showMoodDialog" max-width="500">
+        <v-card>
+            <v-card-title class="gradient-hope white--text">
+                <v-icon class="mr-2">mdi-emoticon-happy</v-icon>
+                Como você está se sentindo?
+            </v-card-title>
+            
+            <v-card-text class="pa-6">
+                <div class="text-body-1 mb-4">
+                    Registre seu humor atual para acompanhar seu bem-estar ao longo do tempo.
+                </div>
+                
+                <v-row>
+                    <v-col cols="4" v-for="(mood, key) in moods" :key="key">
+                        <v-card
+                            variant="outlined"
+                            class="text-center pa-4 smooth-transition mood-card"
+                            :class="{ 'selected': selectedMood === key }"
+                            :color="selectedMood === key ? mood.color : 'default'"
+                            @click="selectedMood = key"
+                            style="cursor: pointer;"
+                        >
+                            <div class="text-h3 mb-2">{{ mood.emoji }}</div>
+                            <div class="text-body-2 font-weight-medium">{{ mood.label }}</div>
+                        </v-card>
+                    </v-col>
+                </v-row>
+                
+                <v-textarea
+                    v-model="moodNote"
+                    label="Observações (opcional)"
+                    placeholder="Como você está se sentindo? O que está acontecendo?"
+                    rows="3"
+                    variant="outlined"
+                    class="mt-4"
+                ></v-textarea>
+            </v-card-text>
+            
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn variant="text" @click="closeMoodDialog">
+                    Cancelar
+                </v-btn>
+                <v-btn 
+                    color="primary" 
+                    @click="saveMood"
+                    :disabled="!selectedMood"
+                    :loading="savingMood"
+                >
+                    Salvar Humor
+                </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+</div>
+
+<script>
+    // Dashboard Vue App
+    const dashboardApp = createApp({
+        data() {
+            return {
+                // Mood tracking
+                showMoodDialog: false,
+                selectedMood: null,
+                moodNote: '',
+                savingMood: false,
+                currentMood: 'neutral',
+                
+                // Moods configuration
+                moods: {
+                    excellent: { emoji: '🤩', label: 'Excelente', color: 'green' },
+                    good: { emoji: '😊', label: 'Bem', color: 'light-green' },
+                    okay: { emoji: '😐', label: 'Ok', color: 'yellow' },
+                    sad: { emoji: '😢', label: 'Triste', color: 'blue' },
+                    anxious: { emoji: '😰', label: 'Ansioso', color: 'orange' },
+                    angry: { emoji: '😠', label: 'Irritado', color: 'red' }
+                },
+                
+                // Mock data for demo
+                quickStats: [
+                    {
+                        title: 'Conversas',
+                        value: '12',
+                        icon: 'mdi-chat',
+                        color: 'primary',
+                        iconColor: 'white',
+                        textColor: 'white',
+                        subtitleColor: 'white',
+                        route: '/chat'
+                    },
+                    {
+                        title: 'Dias Consecutivos',
+                        value: '7',
+                        icon: 'mdi-calendar-check',
+                        color: 'success',
+                        iconColor: 'white',
+                        textColor: 'white',
+                        subtitleColor: 'white',
+                        route: '/diary'
+                    },
+                    {
+                        title: 'Humor Médio',
+                        value: '😊',
+                        icon: 'mdi-emoticon-happy',
+                        color: 'warning',
+                        iconColor: 'white',
+                        textColor: 'white',
+                        subtitleColor: 'white',
+                        route: '#mood'
+                    },
+                    {
+                        title: 'Progresso',
+                        value: '85%',
+                        icon: 'mdi-trending-up',
+                        color: 'info',
+                        iconColor: 'white',
+                        textColor: 'white',
+                        subtitleColor: 'white',
+                        route: '#progress'
+                    }
+                ],
+                
+                recentActivities: [
+                    {
+                        id: 1,
+                        title: 'Chat com IA',
+                        description: 'Conversa sobre técnicas de relaxamento',
+                        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+                        icon: 'mdi-chat',
+                        color: 'primary'
+                    },
+                    {
+                        id: 2,
+                        title: 'Diário Emocional',
+                        description: 'Registrou sentimentos do dia',
+                        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+                        icon: 'mdi-book-heart',
+                        color: 'success'
+                    },
+                    {
+                        id: 3,
+                        title: 'Humor Registrado',
+                        description: 'Humor: Bem 😊',
+                        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+                        icon: 'mdi-emoticon-happy',
+                        color: 'warning'
+                    }
+                ],
+                
+                quickActions: [
+                    {
+                        title: 'Iniciar Nova Conversa',
+                        description: 'Fale com nossa IA empática',
+                        icon: 'mdi-chat-plus',
+                        action: 'newChat'
+                    },
+                    {
+                        title: 'Escrever no Diário',
+                        description: 'Registre seus sentimentos',
+                        icon: 'mdi-pencil',
+                        action: 'newDiaryEntry'
+                    },
+                    {
+                        title: 'Exercício de Respiração',
+                        description: 'Técnica 4-7-8 para relaxar',
+                        icon: 'mdi-lungs',
+                        action: 'breathingExercise'
+                    },
+                    {
+                        title: 'Meditação Guiada',
+                        description: '5 minutos de mindfulness',
+                        icon: 'mdi-meditation',
+                        action: 'meditation'
+                    }
+                ],
+                
+                wellnessResources: [
+                    {
+                        title: 'Técnicas de Respiração',
+                        description: 'Aprenda a controlar a ansiedade',
+                        icon: 'mdi-lungs',
+                        link: '/resources/breathing',
+                        external: false
+                    },
+                    {
+                        title: 'Exercícios de Mindfulness',
+                        description: 'Pratique a atenção plena',
+                        icon: 'mdi-meditation',
+                        link: '/resources/mindfulness',
+                        external: false
+                    },
+                    {
+                        title: 'Centro de Valorização da Vida',
+                        description: 'CVV - Apoio emocional 24h',
+                        icon: 'mdi-heart',
+                        link: 'https://www.cvv.org.br',
+                        external: true
+                    },
+                    {
+                        title: 'Mapa da Saúde Mental',
+                        description: 'Encontre profissionais próximos',
+                        icon: 'mdi-map-marker-heart',
+                        link: 'https://mapadasaudemental.com.br',
+                        external: true
+                    }
+                ],
+                
+                emergencyContacts: [
+                    {
+                        name: 'CVV',
+                        number: '188',
+                        description: '24h - Gratuito',
+                        icon: 'mdi-phone'
+                    },
+                    {
+                        name: 'SAMU',
+                        number: '192',
+                        description: 'Emergências médicas',
+                        icon: 'mdi-ambulance'
+                    }
+                ],
+                
+                moodHistory: [
+                    { mood: 'good', timestamp: new Date(), note: 'Sentindo-me bem hoje!' }
+                ],
+                
+                moodWeekHistory: this.generateWeekMoodHistory()
+            }
+        },
+        
+        computed: {
+            currentMoodData() {
+                return this.moods[this.currentMood] || this.moods.neutral;
+            }
+        },
+        
+        methods: {
+            // Navigation
+            navigateToStat(stat) {
+                if (stat.route.startsWith('#')) {
+                    // Handle in-page navigation
+                    console.log('Navigate to:', stat.route);
+                } else {
+                    window.location.href = stat.route;
+                }
+            },
+            
+            // Quick Actions
+            performQuickAction(action) {
+                switch (action.action) {
+                    case 'newChat':
+                        window.location.href = '{{ url_for("chat.chat_interface") }}';
+                        break;
+                    case 'newDiaryEntry':
+                        window.location.href = '{{ url_for("diary.diary_interface") if url_for is defined else "#" }}';
+                        break;
+                    case 'breathingExercise':
+                        this.startBreathingExercise();
+                        break;
+                    case 'meditation':
+                        this.startMeditation();
+                        break;
+                    default:
+                        console.log('Unknown action:', action.action);
+                }
+            },
+            
+            // Mood Management
+            openMoodDialog() {
+                this.selectedMood = this.currentMood;
+                this.moodNote = '';
+                this.showMoodDialog = true;
+            },
+            
+            closeMoodDialog() {
+                this.showMoodDialog = false;
+                this.selectedMood = null;
+                this.moodNote = '';
+            },
+            
+            async saveMood() {
+                if (!this.selectedMood) return;
+                
+                this.savingMood = true;
+                
+                try {
+                    // Here you would send to your Flask API
+                    const response = await fetch('/api/mood/record', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            mood: this.selectedMood,
+                            note: this.moodNote,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        this.currentMood = this.selectedMood;
+                        this.moodHistory.unshift({
+                            mood: this.selectedMood,
+                            timestamp: new Date(),
+                            note: this.moodNote
+                        });
+                        
+                        this.showNotification('Humor registrado com sucesso!', 'success');
+                        this.closeMoodDialog();
+                    } else {
+                        throw new Error('Erro ao salvar humor');
+                    }
+                } catch (error) {
+                    this.showNotification('Erro ao registrar humor', 'error');
+                } finally {
+                    this.savingMood = false;
+                }
+            },
+            
+            // Wellness Activities
+            startBreathingExercise() {
+                // Open breathing exercise modal/page
+                this.showNotification('Iniciando exercício de respiração...', 'info');
+            },
+            
+            startMeditation() {
+                // Open meditation modal/page
+                this.showNotification('Iniciando meditação guiada...', 'info');
+            },
+            
+            // Emergency
+            callEmergency(number) {
+                if (confirm(`Ligar para ${number}?`)) {
+                    window.open(`tel:${number}`, '_self');
+                }
+            },
+            
+            showAllEmergencyContacts() {
+                // This would open the emergency contacts dialog from base template
+                this.$root.showEmergencyDialog = true;
+            },
+            
+            // Utility Methods
+            formatRelativeTime(date) {
+                const now = new Date();
+                const diff = now - new Date(date);
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const days = Math.floor(hours / 24);
+                
+                if (days > 0) return `${days}d atrás`;
+                if (hours > 0) return `${hours}h atrás`;
+                return 'Agora há pouco';
+            },
+            
+            getMoodColor(mood) {
+                return this.moods[mood]?.color || 'grey';
+            },
+            
+            getMoodEmoji(mood) {
+                return this.moods[mood]?.emoji || '😐';
+            },
+            
+            generateWeekMoodHistory() {
+                const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                const week = [];
+                const today = new Date();
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dayName = days[date.getDay()];
+                    
+                    // Mock mood data
+                    const moods = ['good', 'okay', 'excellent', null, 'sad', 'good', 'okay'];
+                    const mood = moods[6 - i];
+                    
+                    week.push({
+                        day: dayName,
+                        date: date,
+                        mood: mood
+                    });
+                }
+                
+                return week;
+            },
+            
+            showNotification(message, type = 'info') {
+                console.log(`${type.toUpperCase()}: ${message}`);
+                // This would integrate with Vuetify's snackbar
+            }
+        }
+    });
+    
+    // Mount the dashboard app
+    if (document.getElementById('dashboard-app')) {
+        dashboardApp.use(vuetify).mount('#dashboard-app');
+    }
+</script>
+
+<style scoped>
+    .mood-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .mood-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .mood-card.selected {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    
+    .gap-3 {
+        gap: 12px;
+    }
+    
+    .gap-2 {
+        gap: 8px;
+    }
+</style>
+{% endblock %}

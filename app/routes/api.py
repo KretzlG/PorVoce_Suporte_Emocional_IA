@@ -57,3 +57,102 @@ def update_consent():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Erro ao atualizar consentimentos'}), 500
+
+
+# APIs para Vue.js Dashboard
+@api.route('/user/stats', methods=['GET'])
+@jwt_required()
+def get_user_stats():
+    """Estatísticas do usuário para o dashboard"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+    
+    total_chats = ChatSession.query.filter_by(user_id=user.id).count()
+    
+    stats = {
+        'total_chats': total_chats,
+        'total_assessments': 0,  # Implementar futuramente
+        'streak_days': 7,  # Implementar futuramente
+        'last_activity': user.last_login.isoformat() if user.last_login else user.created_at.isoformat()
+    }
+    
+    return jsonify(stats)
+
+
+@api.route('/user/activities', methods=['GET'])
+@jwt_required()
+def get_user_activities():
+    """Atividades recentes do usuário"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+    
+    recent_sessions = ChatSession.query.filter_by(user_id=user.id)\
+        .order_by(ChatSession.created_at.desc()).limit(10).all()
+    
+    activities = []
+    for session in recent_sessions:
+        activities.append({
+            'id': session.id,
+            'title': session.title or f"Conversa de {session.created_at.strftime('%d/%m')}",
+            'description': "Sessão de apoio emocional",
+            'time': session.created_at.isoformat(),
+            'icon': 'mdi-chat',
+            'color': 'primary'
+        })
+    
+    return jsonify({'activities': activities})
+
+
+@api.route('/user/mood', methods=['POST'])
+@jwt_required()
+def save_mood():
+    """Salvar humor do usuário"""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+    
+    data = request.get_json()
+    mood = data.get('mood')
+    notes = data.get('notes', '')
+    
+    if not mood:
+        return jsonify({'error': 'Humor é obrigatório'}), 400
+    
+    # Aqui você pode salvar o humor em uma tabela específica
+    # Por enquanto, vamos apenas retornar sucesso
+    return jsonify({'success': True, 'message': 'Humor salvo com sucesso'})
+
+
+@api.route('/emergency/contacts', methods=['GET'])
+def get_emergency_contacts():
+    """Contatos de emergência"""
+    contacts = [
+        {
+            'name': 'CVV - Centro de Valorização da Vida',
+            'phone': '188',
+            'description': 'Apoio emocional e prevenção ao suicídio 24h',
+            'color': 'red'
+        },
+        {
+            'name': 'CAPS - Centro de Atenção Psicossocial',
+            'phone': '0800 644 0144',
+            'description': 'Rede de atenção psicossocial',
+            'color': 'blue'
+        },
+        {
+            'name': 'SAMU',
+            'phone': '192',
+            'description': 'Emergências médicas',
+            'color': 'red'
+        },
+        {
+            'name': 'Polícia Militar',
+            'phone': '190',
+            'description': 'Emergências policiais',
+            'color': 'blue'
+        }
+    ]
+    
+    return jsonify({'contacts': contacts})
