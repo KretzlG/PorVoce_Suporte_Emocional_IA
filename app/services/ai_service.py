@@ -875,7 +875,7 @@ class AIService:
                 except Exception as e:
                     logger.warning(f"Erro no RAG avançado: {e}")
             
-            # 2. Preparar contexto para prompt engineering
+            # 2. Preparar contexto para prompt engineering (incluindo triagem)
             prompt_context = PromptContext(
                 user_message=user_message,
                 risk_level=RiskLevel(risk_level),
@@ -884,6 +884,31 @@ class AIService:
                 training_context=rag_context,
                 conversation_examples=rag_result.get('conversation_examples', []) if rag_context else None
             )
+            
+            # 2.1. Adicionar contexto de triagem se disponível
+            if user_context:
+                triage_triggered = user_context.get('triage_triggered', False)
+                triage_status = user_context.get('triage_status')
+                triage_declined_reason = user_context.get('triage_declined_reason')
+                
+                # Construir contexto de triagem para a IA
+                triage_context_info = ""
+                if triage_triggered:
+                    if triage_status == 'declined':
+                        triage_context_info = f"\n\nCONTEXTO IMPORTANTE: O usuário recusou participar da triagem psicológica. "
+                        if triage_declined_reason:
+                            triage_context_info += f"Motivo: {triage_declined_reason}. "
+                        triage_context_info += "Seja respeitoso com essa decisão, mas mantenha-se atento aos sinais de risco. Não insista na triagem, mas continue oferecendo apoio emocional."
+                    elif triage_status == 'initiated':
+                        triage_context_info = f"\n\nCONTEXTO: O usuário iniciou o processo de triagem psicológica. Apoie e encoraje a continuidade deste processo."
+                    elif triage_status == 'completed':
+                        triage_context_info = f"\n\nCONTEXTO: O usuário completou a triagem psicológica. Use essas informações para personalizar melhor suas respostas."
+                
+                # Adicionar ao contexto de treinamento
+                if triage_context_info and prompt_context.training_context:
+                    prompt_context.training_context += triage_context_info
+                elif triage_context_info:
+                    prompt_context.training_context = triage_context_info
             
             # 3. Tentar OpenAI com prompt engineering avançado
             if self.openai_client:

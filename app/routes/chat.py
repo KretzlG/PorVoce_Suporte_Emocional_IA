@@ -6,6 +6,7 @@ import json
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from app.models import ChatSession
+from app.models.chat import ChatSessionStatus
 from app import db
 from datetime import datetime, timezone, timedelta
 
@@ -229,11 +230,19 @@ def api_chat_send():
                         'created_at': msg.created_at.isoformat()
                     })
                 
+                # Preparar contexto de usuário incluindo informações de triagem
+                user_context = {
+                    'name': getattr(current_user, 'first_name', ''),
+                    'triage_triggered': getattr(chat_session, 'triage_triggered', False),
+                    'triage_status': getattr(chat_session, 'triage_status', None),
+                    'triage_declined_reason': getattr(chat_session, 'triage_declined_reason', None)
+                }
+                
                 try:
                     ai_response = ai_service.generate_response(
                         user_message=message_content,
                         risk_level=detected_risk_level,
-                        user_context={'name': getattr(current_user, 'first_name', '')},
+                        user_context=user_context,
                         conversation_history=history_list
                     )
                     print(f"[DEBUG] ai_response: {ai_response}")
@@ -716,3 +725,173 @@ def close_inactive_sessions(minutes=3):
     
     db.session.commit()
     return result.rowcount
+
+
+@chat.route('/triage/initiated', methods=['POST'])
+@login_required
+def triage_initiated():
+    """Marca que a triagem foi iniciada para a sessão atual"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID da sessão é obrigatório'
+            }), 400
+        
+        # Buscar sessão ativa do usuário
+        chat_session = ChatSession.query.filter_by(
+            id=session_id,
+            user_id=current_user.id,
+            status=ChatSessionStatus.ACTIVE.value
+        ).first()
+        
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada ou inativa'
+            }), 404
+        
+        # Marcar triagem como iniciada
+        chat_session.triage_triggered = True
+        chat_session.triage_status = 'initiated'
+        
+        # Opcional: salvar contexto adicional
+        triage_context = data.get('context', {})
+        if triage_context:
+            import json
+            chat_session.triage_context = json.dumps(triage_context, ensure_ascii=False)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Triagem marcada como iniciada',
+            'triage_status': 'initiated'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro ao marcar triagem iniciada: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
+
+
+@chat.route('/triage/declined', methods=['POST'])
+@login_required
+def triage_declined():
+    """Marca que o usuário recusou a triagem"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        reason = data.get('reason', 'Não informado')
+        
+        if not session_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID da sessão é obrigatório'
+            }), 400
+        
+        # Buscar sessão ativa do usuário
+        chat_session = ChatSession.query.filter_by(
+            id=session_id,
+            user_id=current_user.id,
+            status=ChatSessionStatus.ACTIVE.value
+        ).first()
+        
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada ou inativa'
+            }), 404
+        
+        # Marcar triagem como recusada
+        chat_session.triage_triggered = True
+        chat_session.triage_status = 'declined'
+        chat_session.triage_declined_reason = reason
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Triagem marcada como recusada',
+            'triage_status': 'declined'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro ao marcar triagem recusada: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
+
+
+@chat.route('/triage/completed', methods=['POST'])
+@login_required
+def triage_completed():
+    """Marca que a triagem foi completada"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({
+                'success': False,
+                'error': 'ID da sessão é obrigatório'
+            }), 400
+        
+        # Buscar sessão ativa do usuário
+        chat_session = ChatSession.query.filter_by(
+            id=session_id,
+            user_id=current_user.id,
+            status=ChatSessionStatus.ACTIVE.value
+        ).first()
+        
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada ou inativa'
+            }), 404
+        
+        # Marcar triagem como completada
+        chat_session.triage_triggered = True
+        chat_session.triage_status = 'completed'
+        
+        # Opcional: salvar resultados da triagem
+        triage_results = data.get('results', {})
+        if triage_results:
+            import json
+            existing_context = {}
+            if chat_session.triage_context:
+                try:
+                    existing_context = json.loads(chat_session.triage_context)
+                except:
+                    pass
+            
+            existing_context.update({
+                'results': triage_results,
+                'completed_at': datetime.now(timezone.utc).isoformat()
+            })
+            
+            chat_session.triage_context = json.dumps(existing_context, ensure_ascii=False)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Triagem marcada como completada',
+            'triage_status': 'completed'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro ao marcar triagem completada: {str(e)}')
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500

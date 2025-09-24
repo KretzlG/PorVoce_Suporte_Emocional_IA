@@ -70,6 +70,12 @@ class ChatSession(BaseModel):
     final_risk_level = db.Column(db.String(20), nullable=True)
     risk_factors = db.Column(db.Text, nullable=True)  # JSON com fatores identificados
     
+    # Contexto de triagem
+    triage_triggered = db.Column(db.Boolean, default=False, nullable=False)  # Se triagem foi acionada
+    triage_status = db.Column(db.String(20), nullable=True)  # initiated, completed, declined, interrupted
+    triage_declined_reason = db.Column(db.Text, nullable=True)  # Motivo da recusa se aplicável
+    triage_context = db.Column(db.Text, nullable=True)  # JSON com contexto da triagem
+    
     # Feedback e avaliação
     user_rating = db.Column(db.Integer, nullable=True)  # 1-5
     user_feedback = db.Column(db.Text, nullable=True)
