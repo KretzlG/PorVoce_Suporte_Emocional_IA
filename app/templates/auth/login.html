@@ -58,6 +58,27 @@
 
         <script src="static/js/auth/show_password.js"></script>
         <script src="static/js/notifications.js"></script>
+
+        <!-- Validação de segurança para login -->
+        <script>
+        document.querySelector('.login-form').addEventListener('submit', function(e) {
+            // E-mail: formato válido
+            const email = document.querySelector('input[name="email"]').value;
+            if (!/^\S+@\S+\.\S+$/.test(email)) {
+                alert('Digite um e-mail válido.');
+                e.preventDefault();
+                return;
+            }
+
+            // Senha: mínimo 8 caracteres
+            const senha = document.querySelector('input[name="password"]').value;
+            if (senha.length < 8) {
+                alert('A senha deve ter pelo menos 8 caracteres.');
+                e.preventDefault();
+                return;
+            }
+        });
+        </script>
     </body>
 
 </html>

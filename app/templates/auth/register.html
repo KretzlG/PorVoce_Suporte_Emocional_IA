@@ -87,6 +87,71 @@
 
         <script src="static/js/auth/show_password.js"></script>
         <script src="static/js/notifications.js"></script>
+
+        <!-- Máscaras e validações de segurança -->
+        <script>
+        // Máscara para telefone (formato brasileiro)
+        document.querySelector('input[name="phone"]').addEventListener('input', function(e) {
+            let x = e.target.value.replace(/\D/g, '').slice(0, 11);
+            if (x.length > 10) {
+                e.target.value = x.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (x.length > 5) {
+                e.target.value = x.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else if (x.length > 2) {
+                e.target.value = x.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+            } else {
+                e.target.value = x;
+            }
+        });
+
+        // Validação de nome: só letras e espaços
+        document.querySelector('input[name="first_name"]').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^A-Za-zÀ-ÿ\s]/g, '');
+        });
+
+        // Validação ao enviar o formulário
+        document.querySelector('.register-form').addEventListener('submit', function(e) {
+            // Nome: só letras e espaços
+            const nome = document.querySelector('input[name="first_name"]').value;
+            if (!/^([A-Za-zÀ-ÿ]+\s?)+$/.test(nome)) {
+                alert('O nome deve conter apenas letras e espaços.');
+                e.preventDefault();
+                return;
+            }
+
+            // E-mail: formato válido
+            const email = document.querySelector('input[name="email"]').value;
+            if (!/^\S+@\S+\.\S+$/.test(email)) {
+                alert('Digite um e-mail válido.');
+                e.preventDefault();
+                return;
+            }
+
+            // Telefone: formato brasileiro
+            const phone = document.querySelector('input[name="phone"]').value;
+            if (phone && !/^\(\d{2}\) \d{4,5}-\d{4}$/.test(phone)) {
+                alert('Digite um telefone válido no formato (99) 99999-9999.');
+                e.preventDefault();
+                return;
+            }
+
+            // Senha: mínimo 8 caracteres, pelo menos uma letra, um número e um símbolo
+            const senha = document.querySelector('input[name="password"]').value;
+            if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha)) {
+                alert('A senha deve ter pelo menos 8 caracteres, incluindo letra, número e símbolo.');
+                e.preventDefault();
+                return;
+            }
+
+            // Confirmar senha: igual à senha
+            const confirmar = document.querySelector('input[name="confirm_password"]').value;
+            if (senha !== confirmar) {
+                alert('As senhas não coincidem.');
+                e.preventDefault();
+                return;
+            }
+        });
+        </script>
     </body>
 
 </html>

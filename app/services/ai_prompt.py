@@ -1,3 +1,14 @@
+# --- Regra de transição de risco ---
+def validate_risk_transition(previous: "RiskLevel", new: "RiskLevel") -> "RiskLevel":
+    """
+    Garante que não haja descida abrupta de 'critical' para 'low'.
+    Se anterior era 'critical', só permite 'critical' ou 'high'.
+    Caso contrário, retorna o anterior.
+    """
+    if previous == RiskLevel.CRITICAL and new in [RiskLevel.LOW, RiskLevel.MODERATE]:
+        # Mantém 'critical' ou permite apenas 'high'
+        return RiskLevel.HIGH if new == RiskLevel.HIGH else RiskLevel.CRITICAL
+    return new
 
 # Sistema de Prompts para IA de Suporte Emocional
 # Centraliza templates, instruções e configurações de tom
@@ -19,11 +30,24 @@ class PromptType(Enum):
     SOLUTION_FOCUSED = "solution_focused"
 
 
+
 class RiskLevel(Enum):
     LOW = "low"
     MODERATE = "moderate"
     HIGH = "high"
     CRITICAL = "critical"
+
+# --- Regra de transição de risco ---
+def validate_risk_transition(previous: RiskLevel, new: RiskLevel) -> RiskLevel:
+    """
+    Garante que não haja descida abrupta de 'critical' para 'low'.
+    Se anterior era 'critical', só permite 'critical' ou 'high'.
+    Caso contrário, retorna o anterior.
+    """
+    if previous == RiskLevel.CRITICAL and new in [RiskLevel.LOW, RiskLevel.MODERATE]:
+        # Mantém 'critical' ou permite apenas 'high'
+        return RiskLevel.HIGH if new == RiskLevel.HIGH else RiskLevel.CRITICAL
+    return new
 
 
 @dataclass
@@ -220,6 +244,7 @@ REGRAS OBRIGATÓRIAS:
 - Adapte seu tom ao ESTADO EMOCIONAL atual
 - Seja PRÁTICA e SOLUCIONADORA
 - Use ENERGIA para motivar
+- ENCORAJE a buscar ajuda profissional através da rota de triagem
 {user_name_instruction}
 
 MÁXIMO {max_words} palavras. Vá direto ao ponto."""
