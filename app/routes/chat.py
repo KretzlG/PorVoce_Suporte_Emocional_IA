@@ -34,17 +34,14 @@ def new_session():
     """Criar nova sessão de chat sempre"""
     try:
         from app.models import ChatSessionStatus
-        
         # Encerrar qualquer sessão ativa existente
         active_sessions = ChatSession.query.filter_by(
             user_id=current_user.id,
             status=ChatSessionStatus.ACTIVE.value
         ).all()
-        
         for session in active_sessions:
             session.status = ChatSessionStatus.COMPLETED.value
             session.last_activity = datetime.now(timezone.utc)
-        
         # Sempre criar uma nova sessão
         new_chat_session = ChatSession(
             user_id=current_user.id,
@@ -53,10 +50,8 @@ def new_session():
         )
         db.session.add(new_chat_session)
         db.session.commit()
-        
         # Não adicionar mensagem de boas-vindas automática
         # A primeira mensagem será gerada quando o usuário enviar algo
-        
         return jsonify({
             'success': True,
             'session_id': new_chat_session.id,
@@ -74,6 +69,7 @@ def new_session():
 
 # Endpoint padronizado para envio de mensagem e resposta da IA (OpenAI only)
 @chat.route('/api/chat/send', methods=['POST'])
+
 @login_required
 def api_chat_send():
     """Enviar mensagem e receber resposta da IA (OpenAI only)"""
@@ -85,6 +81,7 @@ def api_chat_send():
     if not session_id:
         return jsonify({'success': False, 'error': 'ID da sessão é obrigatório'}), 400
     from app.models import ChatMessageType, ChatSessionStatus
+
     try:
         chat_session = ChatSession.query.filter_by(
             id=session_id,
@@ -121,6 +118,8 @@ def api_chat_send():
                 'timestamp': sentiment_analysis.get('timestamp')
             }, ensure_ascii=False)
 
+        # Inicializar triage_id para evitar erro de variável não definida
+        triage_id = None
         # Atualizar o nível de risco inicial da sessão se necessário
         if chat_session.initial_risk_level is None:
             chat_session.initial_risk_level = detected_risk_level
@@ -220,7 +219,7 @@ def api_chat_send():
             resposta = "Se você precisa de ajuda urgente, pode ligar para o CVV (Centro de Valorização da Vida) no número 188. O serviço é gratuito e funciona 24h."
             resposta = limitar_resposta(resposta)
         elif solicitacao_encaminhamento:
-            # Encaminhamento imediato para triagem SEM bloqueio por histórico
+            # Sempre encaminhar para triagem se o usuário pedir explicitamente, independentemente do histórico
             resposta = "Entendi seu pedido. Vou te encaminhar para um profissional agora mesmo. Aguarde um momento, por favor."
             resposta = limitar_resposta(resposta)
             requires_triage = True
@@ -265,7 +264,17 @@ def api_chat_send():
                 session['triage_id'] = triage_log.id
                 triage_id = triage_log.id
             except Exception as e:
-                triage_id = None
+                import traceback
+                current_app.logger.error(f'Erro ao criar TriageLog por solicitação do usuário: {str(e)}')
+                current_app.logger.error(traceback.format_exc())
+                # Tentar buscar o último TriageLog criado para esta sessão e usuário
+                try:
+                    from app.models.triage import TriageLog
+                    triage_log = TriageLog.query.filter_by(user_id=current_user.id, chat_session_id=chat_session.id).order_by(TriageLog.id.desc()).first()
+                    triage_id = triage_log.id if triage_log else None
+                except Exception as e2:
+                    current_app.logger.error(f'Falha ao buscar TriageLog após erro: {str(e2)}')
+                    triage_id = None
         else:
             # Chamar IA para resposta empática e variada
             resposta = None
@@ -299,7 +308,6 @@ def api_chat_send():
                 frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
                 resposta = random.choice(frases_variadas)
             resposta = limitar_resposta(resposta)
-        # ...existing code...
 
         # Evitar encaminhamento repetitivo: só sugerir triagem se risco for moderado/alto/crítico e não sugerir se já foi sugerido nesta sessão
         requires_triage = False
@@ -317,138 +325,88 @@ def api_chat_send():
             triage_ctx['triage_events'].append({
                 'timestamp': datetime.now(timezone.utc).isoformat(),
                 'risk_level': detected_risk_level,
-                'message': message_content
+                'message': message_content,
+                'context_type': 'chat_message',
+                'triage_status': 'waiting'
             })
             chat_session.triage_context = json.dumps(triage_ctx, ensure_ascii=False)
+            # Criar registro real em TriageLog
+            try:
+                from app.models.triage import TriageLog, RiskLevel
+                risk_enum_map = {
+                    'low': RiskLevel.LOW,
+                    'moderate': RiskLevel.MODERATE,
+                    'high': RiskLevel.HIGH,
+                    'critical': RiskLevel.CRITICAL
+                }
+                triage_log = TriageLog(
+                    user_id=current_user.id,
+                    chat_session_id=chat_session.id,
+                    risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
+                    confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
+                    trigger_content=message_content[:500],
+                    context_type='chat_message',
+                    triage_status='waiting'
+                )
+                db.session.add(triage_log)
+                db.session.flush()
+                session['triage_id'] = triage_log.id
+                triage_id = triage_log.id
+            except Exception as e:
+                triage_id = None
 
-        # Salvar resposta da IA
+        db.session.commit()
+
         ai_message = chat_session.add_message(
             content=resposta,
-            message_type=ChatMessageType.AI
+            message_type=ChatMessageType.AI,
+            sender_id=None
         )
-        db.session.commit()
+
+        if ai_message is None:
+            current_app.logger.error('Falha ao criar mensagem da IA: add_message retornou None')
+            return jsonify({'success': False, 'error': 'Erro ao registrar resposta da IA. Tente novamente.'}), 500
+
+        # Se foi solicitação explícita de atendimento, garantir requires_triage=True e triage_id preenchido
+        risk_assessment = {
+            'risk_level': detected_risk_level,
+            'requires_triage': requires_triage,
+            'triage_count': triage_count,
+            'triage_id': triage_id if requires_triage else None
+        }
+        if solicitacao_encaminhamento:
+            risk_assessment['requires_triage'] = True
+            risk_assessment['triage_id'] = triage_id
 
         response_data = {
             'success': True,
-            'user_message': {
-                'content': message_content,
-                'timestamp': user_message.created_at.isoformat(),
-                'sender_type': 'user'
-            },
-            'ai_response': {
-                'content': resposta,
-                'timestamp': ai_message.created_at.isoformat(),
+            'message': resposta,
+            'session_id': chat_session.id,
+            'ai_message': {
+                'id': ai_message.id,
+                'timestamp': ai_message.created_at.isoformat() if ai_message.created_at else None,
                 'sender_type': 'ai'
             },
-            'risk_assessment': {
-                'risk_level': detected_risk_level,
-                'requires_triage': requires_triage,
-                'triage_count': triage_count,
-                'triage_id': triage_id if requires_triage else None
-            }
+            'ai_response': {
+                'content': resposta
+            },
+            'risk_assessment': risk_assessment
         }
+        # Logar resposta detalhada quando triagem for solicitada ou requerida
+        if requires_triage or solicitacao_encaminhamento:
+            import pprint
+            current_app.logger.info('[DEBUG-TRIAGEM] Resposta enviada ao frontend:')
+            current_app.logger.info(pprint.pformat(response_data))
         return jsonify(response_data)
     except Exception as e:
-        current_app.logger.error(f"Erro ao processar mensagem: {str(e)}")
-        db.session.rollback()
+        import traceback
+        current_app.logger.error(f'Erro interno em api_chat_send: {str(e)}')
+        current_app.logger.error(traceback.format_exc())
         return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
 
+    # Garante que sempre haja um retorno válido
+    return jsonify({'success': False, 'error': 'Erro inesperado: nenhum retorno gerado.'}), 500
 
-
-# Endpoint padronizado para recuperar histórico de mensagens
-@chat.route('/api/chat/receive', methods=['GET'])
-@login_required
-def api_chat_receive():
-    """Recuperar histórico de mensagens - OTIMIZADO"""
-    session_id = request.args.get('session_id', type=int)
-    limit = request.args.get('limit', default=50, type=int)  # Limitar mensagens
-    offset = request.args.get('offset', default=0, type=int)
-    
-    if not session_id:
-        return jsonify({'success': False, 'error': 'ID da sessão é obrigatório'}), 400
-    
-    # Limitar o número máximo de mensagens para evitar sobrecarga
-    limit = min(limit, 100)  # Máximo 100 mensagens por request
-    
-    try:
-        chat_session = ChatSession.query.filter_by(
-            id=session_id, 
-            user_id=current_user.id
-        ).first()
-        
-        if not chat_session:
-            return jsonify({'success': False, 'error': 'Sessão não encontrada'}), 404
-        
-        # OTIMIZAÇÃO: Usar método paginado
-        messages = chat_session.get_messages(limit=limit, offset=offset)
-        
-        # Se não houver mensagens, adiciona mensagem de boas-vindas temporária
-        if not messages and offset == 0:
-            messages = [{
-                'id': 0,
-                'session_id': chat_session.id,
-                'sender_id': None,
-                'content': 'Olá! Sou seu assistente de apoio emocional. Como você está se sentindo hoje?',
-                'message_type': 'ai',
-                'sentiment_score': None,
-                'ai_model_used': None,
-                'ai_confidence': None,
-                'processing_time_ms': None,
-                'created_at': chat_session.started_at.isoformat() if chat_session.started_at else None,
-                'is_anonymized': False
-            }]
-        
-        return jsonify({
-            'success': True, 
-            'messages': messages,
-            'total_messages': chat_session.message_count,
-            'has_more': (offset + len(messages)) < chat_session.message_count
-        })
-        
-    except Exception as e:
-        current_app.logger.error(f"Erro ao buscar mensagens: {str(e)}")
-        return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
-
-
-@chat.route('/end-session/<int:session_id>', methods=['POST'])
-@login_required
-def end_session(session_id):
-    """Finalizar sessão de chat"""
-    from app.models import ChatSessionStatus, ChatMessageType
-    try:
-        chat_session = ChatSession.query.filter_by(
-            id=session_id,
-            user_id=current_user.id,
-            status=ChatSessionStatus.ACTIVE.value
-        ).first()
-        if not chat_session:
-            return jsonify({
-                'success': False,
-                'error': 'Sessão não encontrada ou já finalizada'
-            }), 404
-        # Finalizar sessão
-        chat_session.status = ChatSessionStatus.COMPLETED.value
-        chat_session.ended_at = datetime.now(timezone.utc)
-        chat_session.calculate_duration()
-        # Adicionar mensagem de despedida
-        farewell_text = "Obrigado por conversar comigo hoje. Cuide-se bem e lembre-se: você nunca está sozinho(a)."
-        chat_session.add_message(
-            content=farewell_text,
-            message_type=ChatMessageType.AI
-        )
-        db.session.commit()
-        return jsonify({
-            'success': True,
-            'message': 'Sessão finalizada com sucesso',
-            'duration_minutes': chat_session.duration_minutes
-        })
-    except Exception as e:
-        current_app.logger.error(f"Erro ao finalizar sessão: {str(e)}")
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'error': f'Erro interno: {str(e)}'
-        }), 500
 @chat.route('/sessions')
 @login_required
 def user_sessions():

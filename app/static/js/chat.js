@@ -620,15 +620,15 @@ async function handleTriageActivation(riskAssessment) {
     // Renderizar mensagem de triagem baseada no nível de risco
     const triageMessage = generateTriageMessage(riskLevel);
     renderMessage(triageMessage, 'ai'); // Usar renderMessage normal
-    
+
     // Aguardar um pouco para a mensagem aparecer antes de mostrar as opções
     setTimeout(() => {
         // Se for risco crítico, mostrar botões de emergência imediatamente
         if (riskLevel === 'critical') {
             showEmergencyActions(triageId);
-        } 
-        // Para risco alto/moderado, mostrar opções de encaminhamento
-        else if (riskLevel === 'high' || riskLevel === 'moderate') {
+        }
+        // Para qualquer caso em que requires_triage seja true, mostrar opções de encaminhamento
+        if (riskAssessment.requires_triage && triageId) {
             showTriageOptions(triageId, riskLevel);
         }
     }, 500); // Delay de 500ms para melhor UX
@@ -709,10 +709,10 @@ function showTriageOptions(triageId, riskLevel) {
             </div>
             
             <div class="triage-buttons">
-                <button class="btn-triage btn-primary" onclick="forwardToProfessional('${triageId}', '${riskLevel}')">
+                <button class="btn-triage btn-primary" onclick="window.forwardToProfessional && window.forwardToProfessional('${triageId}', '${riskLevel}'); console.log('Botão SIM clicado', '${triageId}', '${riskLevel}')">
                     ✅ Sim, quero ajuda profissional
                 </button>
-                <button class="btn-triage btn-secondary" onclick="continueChat('${triageId}')">
+                <button class="btn-triage btn-secondary" onclick="window.continueChat && window.continueChat('${triageId}'); console.log('Botão NÃO clicado', '${triageId}')">
                     💬 Não, quero continuar aqui
                 </button>
             </div>
@@ -769,7 +769,7 @@ function renderSpecialContent(htmlContent) {
 /**
  * Encaminha usuário para profissional - NOVA VERSÃO COM COLETA DE INFORMAÇÕES
  */
-async function forwardToProfessional(triageId, urgencyLevel) {
+window.forwardToProfessional = async function forwardToProfessional(triageId, urgencyLevel) {
     try {
         // Desabilitar botões para evitar duplo clique
         const buttons = document.querySelectorAll(`[data-triage-id="${triageId}"] .btn-triage`);
@@ -1024,7 +1024,7 @@ async function processDirectForward(triageId, urgencyLevel, collectedData = null
 /**
  * Continua chat sem encaminhamento
  */
-async function continueChat(triageId) {
+window.continueChat = async function continueChat(triageId) {
     try {
         // Registrar que usuário optou por não ser encaminhado
         await fetch('/triage/forward', {
