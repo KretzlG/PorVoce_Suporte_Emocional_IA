@@ -1,14 +1,10 @@
-"""
-Sistema de Prompts Profissional para IA de Suporte Emocional
-Centraliza todos os prompts, instruções e configurações de tom
-Sistema consolidado que integra funcionalidades básicas e avançadas
 
-"""
+# Sistema de Prompts para IA de Suporte Emocional
+# Centraliza templates, instruções e configurações de tom
+# Refatorado para facilitar manutenção e extensão
 
-import json
 import logging
 from typing import Dict, Optional, List, Tuple
-from datetime import datetime
 from dataclasses import dataclass
 from enum import Enum
 
@@ -16,18 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class PromptType(Enum):
-    """Tipos de prompt disponíveis"""
     EMPATHETIC_RESPONSE = "empathetic_response"
     CRISIS_INTERVENTION = "crisis_intervention"
     COGNITIVE_BEHAVIORAL = "cognitive_behavioral"
-    MOTIVATIONAL = "motivational"
     MINDFULNESS_BASED = "mindfulness_based"
     SOLUTION_FOCUSED = "solution_focused"
-    PSYCHOEDUCATIONAL = "psychoeducational"
 
 
 class RiskLevel(Enum):
-    """Níveis de risco"""
     LOW = "low"
     MODERATE = "moderate"
     HIGH = "high"
@@ -36,7 +28,6 @@ class RiskLevel(Enum):
 
 @dataclass
 class PromptContext:
-    """Contexto para construção de prompts"""
     user_message: str
     risk_level: RiskLevel
     user_name: Optional[str] = None
@@ -50,78 +41,37 @@ class PromptContext:
 
 class AIPromptManager:
     """
-    Gerenciador Central de Prompts para Suporte Emocional
-    Sistema consolidado que combina funcionalidades básicas e avançadas
-    
-    Funcionalidades:
-    - Prompts personalizados por nível de risco
-    - Instruções específicas para primeira conversa vs continuação
-    - Templates de sistema para análise de sentimento
-    - Configurações de tom e comportamento
-    - Prompts para diferentes providers (OpenAI, Gemini, etc.)
-    - Prompt engineering avançado com estratégias terapêuticas
-    - Integração com dados de treinamento
-    - Análise contextual e adaptação dinâmica
+    Gerenciador central dos prompts e regras de resposta da IA.
+    Comentários orientam manutenção e extensão.
     """
-    
     def __init__(self):
-        """Inicializa o gerenciador com todos os prompts organizados"""
-        
-        # Inicializar sistemas avançados
+        # Templates e estratégias
         self.prompt_templates = self._initialize_templates()
         self.therapeutic_strategies = self._initialize_therapeutic_strategies()
         self.risk_adaptations = self._initialize_risk_adaptations()
-        
-        # === PROMPTS PARA ANÁLISE DE SENTIMENTO ===
+
+        # Prompts para análise de sentimento
         self.sentiment_analysis_prompts = {
             'openai_system': (
                 "Você é um especialista em análise de sentimento emocional em português brasileiro.\n"
-                "Analise o texto e retorne APENAS um JSON válido:\n"
-                "{\n"
-                '  "score": número entre -1 (muito negativo) e 1 (muito positivo),\n'
-                '  "confidence": número entre 0 e 1,\n'
-                '  "emotion": "feliz|triste|ansioso|irritado|desesperado|vazio|neutro|esperançoso|calmo",\n'
-                '  "intensity": "low|moderate|high"\n'
-                "}\n\n"
-                "IMPORTANTE:\n"
-                "- Seja preciso na análise emocional\n"
-                "- Considere contexto cultural brasileiro\n" 
-                "- Detecte sutilezas e entrelinhas\n"
-                "- Priorize segurança em casos ambíguos"
+                "Retorne APENAS um JSON válido com score, confidence, emotion e intensity.\n"
+                "Considere contexto cultural brasileiro e priorize segurança."
             ),
-            
             'gemini_system': (
-                "Analise o sentimento emocional deste texto em português brasileiro.\n"
-                "Retorne um JSON com:\n"
-                "- score: -1 a 1 (negativo/positivo)\n"
-                "- confidence: 0 a 1\n"
-                "- emotion: feliz, triste, ansioso, irritado, desesperado, vazio, neutro, esperançoso, calmo\n"
-                "- intensity: low, moderate, high\n"
-                "Seja preciso e considere o contexto cultural brasileiro."
+                "Analise o sentimento emocional em português brasileiro.\n"
+                "Retorne JSON com score, confidence, emotion e intensity."
             )
         }
-        
-        # === INSTRUÇÕES DE TOM POR NÍVEL DE RISCO ===
+
+        # Instruções de tom por nível de risco
         self.tone_instructions = {
-            'low': {
-                'primary': "Seja otimista, encorajadora e energética.",
-                'details': "Use energia positiva, foque em soluções e forças da pessoa."
-            },
-            'moderate': {
-                'primary': "Seja compreensiva mas firme e esperançosa.",
-                'details': "Valide sentimentos, mas direcione para ação e crescimento."
-            },
-            'high': {
-                'primary': "Seja carinhosa mas direta sobre buscar ajuda.",
-                'details': "Transmita urgência com esperança, foque na solução imediata."
-            },
-            'critical': {
-                'primary': "Seja firme, direta e protetiva. Priorize ação IMEDIATA.",
-                'details': "Segurança em primeiro lugar. Seja clara sobre necessidade de ajuda profissional AGORA."
-            }
+            'low': {'primary': "Seja otimista.", 'details': "Energia positiva."},
+            'moderate': {'primary': "Compreensiva e firme.", 'details': "Valide e direcione."},
+            'high': {'primary': "Carinhosa e direta.", 'details': "Urgência com esperança."},
+            'critical': {'primary': "Firme e protetiva.", 'details': "Segurança em primeiro lugar."}
         }
-        
-        # === PROMPTS BASE PARA DIFERENTES SITUAÇÕES ===
+
+        # Prompts base para situações
         self.base_prompts = {
             'first_interaction': {
                 'openai': self._get_first_interaction_prompt_openai(),
@@ -132,11 +82,11 @@ class AIPromptManager:
                 'gemini': self._get_continuation_prompt_gemini()
             }
         }
-        
-        # === PROMPTS DE EMERGÊNCIA ===
+
+        # Prompts de emergência
         self.emergency_prompts = self._get_emergency_prompts()
-        
-        # === CONFIGURAÇÕES DE PARÂMETROS ===
+
+        # Parâmetros de resposta
         self.response_parameters = {
             'first_interaction_max_words': 40,
             'continuation_max_words': 50,
@@ -145,100 +95,37 @@ class AIPromptManager:
             'temperature_analytical': 0.3
         }
     
+    # --- Métodos principais ---
     def get_sentiment_prompt(self, provider: str = 'openai') -> str:
-        """
-        Retorna prompt para análise de sentimento
-        
-        Args:
-            provider: 'openai' ou 'gemini'
-            
-        Returns:
-            String com prompt formatado para análise de sentimento
-        """
-        return self.sentiment_analysis_prompts.get(f'{provider}_system', 
-                                                  self.sentiment_analysis_prompts['openai_system'])
+        """Retorna prompt para análise de sentimento."""
+        return self.sentiment_analysis_prompts.get(f'{provider}_system', self.sentiment_analysis_prompts['openai_system'])
     
-    def build_contextual_prompt(self, context: PromptContext, 
-                              provider: str = 'openai') -> Dict:
-        """
-        Constrói prompt contextualizado baseado no contexto fornecido
-        Sistema avançado que integra dados de treinamento e estratégias terapêuticas
-        
-        Args:
-            context: Contexto completo para construção
-            provider: Provedor de IA ('openai', 'gemini', etc.)
-            
-        Returns:
-            Dict com prompt estruturado e configurações
-        """
+    def build_contextual_prompt(self, context: PromptContext, provider: str = 'openai') -> Dict:
+        """Constrói prompt contextualizado baseado no contexto fornecido."""
         try:
-            # 1. Determinar estratégia terapêutica
             therapeutic_approach = self._determine_therapeutic_approach(context)
-            
-            # 2. Construir seções do prompt
             prompt_sections = self._build_prompt_sections(context, therapeutic_approach)
-            
-            # 3. Integrar dados de treinamento se disponível
             if context.training_context:
-                prompt_sections['training_integration'] = self._integrate_training_data(
-                    context.training_context, context.risk_level
-                )
-            
-            # 4. Adicionar exemplos de conversas se disponível
+                prompt_sections['training_integration'] = self._integrate_training_data(context.training_context, context.risk_level)
             if context.conversation_examples:
-                prompt_sections['conversation_examples'] = self._format_conversation_examples(
-                    context.conversation_examples, context.risk_level
-                )
-            
-            # 5. Construir prompt final baseado no provedor
+                prompt_sections['conversation_examples'] = self._format_conversation_examples(context.conversation_examples, context.risk_level)
             if provider == 'openai':
                 return self._build_openai_prompt(prompt_sections, context)
             elif provider == 'gemini':
                 return self._build_gemini_prompt(prompt_sections, context)
             else:
                 return self._build_generic_prompt(prompt_sections, context)
-                
         except Exception as e:
             logger.error(f"Erro na construção do prompt: {e}")
             return self._build_fallback_prompt(context, provider)
     
-    def build_conversation_prompt(self, 
-                                user_message: str,
-                                risk_level: str,
-                                provider: str = 'openai',
-                                user_context: Optional[Dict] = None,
-                                conversation_history: Optional[List] = None,
-                                rag_context: Optional[str] = None,
-                                is_first_message: bool = False) -> Dict:
-        """
-        Constrói prompt completo para geração de resposta
-        
-        Args:
-            user_message: Mensagem do usuário
-            risk_level: Nível de risco detectado
-            provider: Provider de IA ('openai', 'gemini')
-            user_context: Contexto do usuário
-            conversation_history: Histórico da conversa
-            rag_context: Contexto do sistema RAG
-            is_first_message: Se é primeira interação
-            
-        Returns:
-            Dict com prompt estruturado e metadados
-        """
-        # Extrair nome do usuário
-        user_name = ""
-        if user_context and user_context.get('name'):
-            user_name = user_context['name'].split()[0]
-        
-        # Análise dinâmica da conversa
+    def build_conversation_prompt(self, user_message: str, risk_level: str, provider: str = 'openai', user_context: Optional[Dict] = None, conversation_history: Optional[List] = None, rag_context: Optional[str] = None, is_first_message: bool = False) -> Dict:
+        """Constrói prompt completo para geração de resposta."""
+        user_name = user_context['name'].split()[0] if user_context and user_context.get('name') else ""
         conversation_mood = self._analyze_conversation_mood(conversation_history)
         adaptation_rules = self._get_adaptation_rules(conversation_mood, risk_level)
-        
-        # Selecionar template base
         template_type = 'first_interaction' if is_first_message else 'continuation'
         base_template = self.base_prompts[template_type][provider]
-        
-        # Construir prompt do sistema
         system_prompt = base_template.format(
             risk_level=risk_level.upper(),
             tone_instruction=self.tone_instructions[risk_level]['primary'],
@@ -246,114 +133,59 @@ class AIPromptManager:
             user_name_instruction=f"Use {user_name}" if user_name else "",
             max_words=self.response_parameters[f'{template_type}_max_words']
         )
-        
-        # Adicionar adaptações dinâmicas
         if adaptation_rules:
-            system_prompt += f"\n\nADAPTAÇÃO NECESSÁRIA: {adaptation_rules}"
-        
-        # Adicionar contexto RAG se disponível
+            system_prompt += f"\n\nADAPTAÇÃO: {adaptation_rules}"
         if rag_context:
             system_prompt += f"\n\n{rag_context}"
-        
-        # Adicionar instruções de emergência para risco crítico
         if risk_level == 'critical':
             system_prompt += self.emergency_prompts['critical_instructions']
-        
-        # Construir estrutura de mensagens
         if provider == 'openai':
             messages = [{"role": "system", "content": system_prompt}]
-            
-            # Adicionar histórico limitado (últimas 4 mensagens para manter foco)
             if conversation_history:
-                recent_history = conversation_history[-4:]
-                for msg in recent_history:
+                for msg in conversation_history[-4:]:
                     role = "user" if msg.get('message_type') == 'USER' else "assistant"
                     messages.append({"role": role, "content": msg.get('content', '')})
-            
-            # Mensagem atual
             messages.append({"role": "user", "content": user_message})
-            
             return {
                 'messages': messages,
                 'temperature': self.response_parameters['temperature_empathetic'],
                 'max_tokens': self._calculate_max_tokens(template_type, risk_level)
             }
-        
         elif provider == 'gemini':
-            # Gemini usa prompt único
             full_prompt = f"{system_prompt}\n\nMensagem do usuário: {user_message}"
-            
             return {
                 'prompt': full_prompt,
                 'temperature': self.response_parameters['temperature_empathetic']
             }
-        
         else:
             raise ValueError(f"Provider '{provider}' não suportado")
     
     def get_fallback_responses(self, risk_level: str, user_context: Optional[Dict] = None) -> List[str]:
-        """
-        Retorna respostas estáticas organizadas por nível de risco
-        
-        Args:
-            risk_level: Nível de risco detectado
-            user_context: Contexto do usuário para personalização
-            
-        Returns:
-            Lista de possíveis respostas estáticas
-        """
-        user_name = ""
-        if user_context and user_context.get('name'):
-            user_name = user_context['name'].split()[0]
-            name_prefix = f"{user_name}, " if user_name else ""
-        else:
-            name_prefix = ""
-        
+        """Retorna respostas estáticas por nível de risco."""
+        user_name = user_context['name'].split()[0] if user_context and user_context.get('name') else ""
+        name_prefix = f"{user_name}, " if user_name else ""
         fallback_responses = {
             'critical': [
-                f"{name_prefix}SITUAÇÃO CRÍTICA DETECTADA! "
-                "Nossa equipe especializada foi acionada para te apoiar. 🚨",
-                
-                f"{name_prefix}TRIAGEM EMERGENCIAL ATIVADA! "
-                "Um profissional entrará em contato imediatamente. ⚠️",
-                
-                f"{name_prefix}VOCÊ NÃO ESTÁ SOZINHO! "
-                "Nossa equipe de crise está organizando seu atendimento AGORA. 🆘"
+                f"{name_prefix}SITUAÇÃO CRÍTICA DETECTADA! Nossa equipe foi acionada. 🚨",
+                f"{name_prefix}TRIAGEM EMERGENCIAL ATIVADA! Profissional em contato. ⚠️",
+                f"{name_prefix}VOCÊ NÃO ESTÁ SOZINHO! Atendimento de crise AGORA. 🆘"
             ],
-            
             'high': [
-                f"{name_prefix}nossa triagem especializada irá te atender. "
-                "Você merece todo o suporte que podemos oferecer! 💪",
-                
-                f"{name_prefix}conectando você com nossa equipe de profissionais. "
-                "Juntos vamos encontrar soluções. Você tem força! 🌟",
-                
-                f"{name_prefix}acionando protocolo de apoio intensivo. "
-                "Nossa plataforma está aqui para você. Dias melhores vão chegar! ☀️"
+                f"{name_prefix}nossa triagem irá te atender. Você merece suporte! 💪",
+                f"{name_prefix}conectando com profissionais. Você tem força! 🌟",
+                f"{name_prefix}protocolo de apoio intensivo ativado. Dias melhores virão! ☀️"
             ],
-            
             'moderate': [
-                f"{name_prefix}nossa equipe pode te oferecer suporte mais direcionado! "
-                "O que você pode fazer hoje para se cuidar melhor? 💭",
-                
-                f"{name_prefix}você é mais forte do que imagina. "
-                "Vamos conectar você com recursos internos que podem ajudar? 🌟",
-                
-                f"{name_prefix}isso vai passar! Nossa triagem pode organizar "
-                "um acompanhamento personalizado para você. ✨"
+                f"{name_prefix}suporte mais direcionado disponível! O que pode fazer hoje? 💭",
+                f"{name_prefix}você é forte. Vamos conectar recursos internos? 🌟",
+                f"{name_prefix}isso vai passar! Triagem pode organizar acompanhamento. ✨"
             ],
-            
             'low': [
-                f"{name_prefix}que bom ter você aqui! "
-                "Conte-me como posso te apoiar hoje. 😊",
-                
-                f"{name_prefix}oi! Como você está se sentindo agora? 💚",
-                
-                f"{name_prefix}estou aqui para te ouvir! "
-                "O que está acontecendo? 🗣️"
+                f"{name_prefix}que bom ter você aqui! Como posso apoiar? 😊",
+                f"{name_prefix}oi! Como está se sentindo? 💚",
+                f"{name_prefix}estou aqui para ouvir! O que está acontecendo? 🗣️"
             ]
         }
-        
         return fallback_responses.get(risk_level, fallback_responses['low'])
     
     def _get_first_interaction_prompt_openai(self) -> str:
@@ -428,9 +260,7 @@ Máximo {max_words} palavras."""
 - Priorize segurança acima de tudo""",
             
             'crisis_contacts': {
-                'triagem_interna': "Triagem Especializada - Equipe interna disponível 24h",
-                'samu': "SAMU: 192 (emergências médicas)",
-                'emergency': "Em emergência: vá ao hospital mais próximo"
+                'triagem_interna': "Triagem Especializada - Equipe interna disponível 24h"
             }
         }
     
@@ -450,32 +280,11 @@ Máximo {max_words} palavras."""
             return base_tokens.get(template_type, 100)
     
     def get_provider_config(self, provider: str) -> Dict:
-        """
-        Retorna configurações específicas por provider
-        
-        Args:
-            provider: Nome do provider ('openai', 'gemini')
-            
-        Returns:
-            Dict com configurações do provider
-        """
+        """Retorna configurações específicas por provider."""
         configs = {
-            'openai': {
-                'supports_system_message': True,
-                'supports_conversation_history': True,
-                'max_context_messages': 6,
-                'preferred_temperature': 0.7,
-                'supports_json_mode': True
-            },
-            'gemini': {
-                'supports_system_message': False,
-                'supports_conversation_history': False,
-                'max_context_messages': 0,
-                'preferred_temperature': 0.7,
-                'supports_json_mode': False
-            }
+            'openai': {'supports_system_message': True, 'supports_conversation_history': True, 'max_context_messages': 6, 'preferred_temperature': 0.7, 'supports_json_mode': True},
+            'gemini': {'supports_system_message': False, 'supports_conversation_history': False, 'max_context_messages': 0, 'preferred_temperature': 0.7, 'supports_json_mode': False}
         }
-        
         return configs.get(provider, configs['openai'])
     
     def _analyze_conversation_mood(self, conversation_history: Optional[List]) -> str:
@@ -577,24 +386,9 @@ Máximo {max_words} palavras."""
         return adaptation
     
     def validate_prompt_length(self, prompt: str, provider: str) -> bool:
-        """
-        Valida se o prompt está dentro dos limites do provider
-        
-        Args:
-            prompt: Texto do prompt
-            provider: Nome do provider
-            
-        Returns:
-            True se válido, False caso contrário
-        """
-        limits = {
-            'openai': 8000,  # Aproximadamente para gpt-4o-mini
-            'gemini': 6000   # Aproximadamente para gemini-pro
-        }
-        
-        # Estimativa simples: 4 caracteres por token
+        """Valida se o prompt está dentro dos limites do provider."""
+        limits = {'openai': 8000, 'gemini': 6000}
         estimated_tokens = len(prompt) // 4
-        
         return estimated_tokens <= limits.get(provider, 8000)
     
     # === MÉTODOS AVANÇADOS (INTEGRADOS DO ADVANCED PROMPT ENGINEER) ===
@@ -1030,10 +824,9 @@ Seja compreensivo, prático e ofereça apoio genuíno."""
         return len(errors) == 0, errors
 
 
-# === FUNÇÕES DE CONVENIÊNCIA ===
-
+# --- Funções de conveniência ---
 def create_prompt_manager() -> AIPromptManager:
-    """Cria instância configurada do AIPromptManager"""
+    """Cria instância configurada do AIPromptManager."""
     return AIPromptManager()
 
 # Instância global para uso direto
