@@ -299,40 +299,7 @@ def api_chat_send():
                 frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
                 resposta = random.choice(frases_variadas)
             resposta = limitar_resposta(resposta)
-        else:
-            # Chamar IA para resposta empática e variada
-            if AI_AVAILABLE and ai_service and ai_service.openai_client:
-                try:
-                    ai_response = ai_service.generate_response(
-                        user_message=message_content,
-                        risk_level=detected_risk_level,
-                        user_context=user_context,
-                        conversation_history=history_list
-                    )
-                    resposta = ai_response['message']
-                except Exception:
-                    resposta = None
-            else:
-                resposta = None
-            # Fallback manual se IA indisponível ou erro
-            if not resposta:
-                frases_variadas = []
-                if mudou_de_ideia:
-                    frases_variadas.append("Fico feliz que tenha decidido buscar ajuda agora! Vou te encaminhar para um profissional, ok?")
-                if historico_perda:
-                    frases_variadas.append(f"Você mencionou que perdeu sua família. Se quiser falar sobre suas lembranças ou sentimentos, estou aqui para ouvir sem julgamentos.")
-                if detected_risk_level == 'critical':
-                    frases_variadas.append("Sinto muito que esteja se sentindo assim. É importante buscar ajuda profissional. Ligue para o CVV no 188. Estou aqui para te apoiar.")
-                elif detected_risk_level == 'high':
-                    frases_variadas.append("Percebo que está passando por um momento difícil. Se quiser conversar, estou aqui para te ouvir. Você não está sozinho(a).")
-                elif detected_risk_level == 'moderate':
-                    frases_variadas.append("Entendo que está enfrentando desafios. Quer compartilhar mais sobre como está se sentindo?")
-                # Explorar sentimentos
-                frases_variadas.append("Como você está lidando com tudo isso?")
-                frases_variadas.append("Se quiser compartilhar como está, pode contar comigo.")
-                frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
-                resposta = random.choice(frases_variadas)
-            resposta = limitar_resposta(resposta)
+        # ...existing code...
 
         # Evitar encaminhamento repetitivo: só sugerir triagem se risco for moderado/alto/crítico e não sugerir se já foi sugerido nesta sessão
         requires_triage = False
