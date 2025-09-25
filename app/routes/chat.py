@@ -4,6 +4,7 @@ Rotas do chat com IA - Versão corrigida usando mensagens em JSON
 
 import json
 from flask import Blueprint, render_template, request, jsonify, session, current_app
+import random
 from flask_login import login_required, current_user
 from app.models import ChatSession
 from app.models.chat import ChatSessionStatus
@@ -85,159 +86,190 @@ def api_chat_send():
         return jsonify({'success': False, 'error': 'ID da sessão é obrigatório'}), 400
     from app.models import ChatMessageType, ChatSessionStatus
     try:
-        # OTIMIZAÇÃO: Query mais eficiente
         chat_session = ChatSession.query.filter_by(
-            id=session_id, 
-            user_id=current_user.id, 
+            id=session_id,
+            user_id=current_user.id,
             status=ChatSessionStatus.ACTIVE.value
         ).first()
-        
         if not chat_session:
             return jsonify({'success': False, 'error': 'Sessão de chat não encontrada ou inativa'}), 404
-        
-        # OTIMIZAÇÃO: Uma única transação para tudo
-        try:
-            # Analisar sentimento e avaliar risco ANTES de salvar a mensagem
-            sentiment_analysis = None
-            detected_risk_level = 'low'
-            
-            if AI_AVAILABLE and ai_service and ai_service.openai_client:
+
+        # Análise de sentimento e risco
+        sentiment_analysis = None
+        detected_risk_level = 'low'
+        if AI_AVAILABLE and ai_service and ai_service.openai_client:
+            try:
+                sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
+                detected_risk_level = sentiment_analysis.get('risk_level', 'low')
+            except Exception:
+                detected_risk_level = ai_service.assess_risk_level(message_content)
+
+        # Adicionar mensagem do usuário
+        user_message = chat_session.add_message(
+            content=message_content,
+            message_type=ChatMessageType.USER,
+            sender_id=current_user.id
+        )
+        if sentiment_analysis:
+            user_message.sentiment_score = sentiment_analysis.get('score')
+            user_message.risk_indicators = json.dumps({
+                'risk_level': detected_risk_level,
+                'emotion': sentiment_analysis.get('emotion'),
+                'intensity': sentiment_analysis.get('intensity'),
+                'confidence': sentiment_analysis.get('confidence'),
+                'requires_attention': sentiment_analysis.get('requires_attention', False),
+                'timestamp': sentiment_analysis.get('timestamp')
+            }, ensure_ascii=False)
+
+        # Atualizar o nível de risco inicial da sessão se necessário
+        if chat_session.initial_risk_level is None:
+            chat_session.initial_risk_level = detected_risk_level
+        else:
+            risk_levels = {'low': 1, 'moderate': 2, 'high': 3, 'critical': 4}
+            current_level = risk_levels.get(chat_session.initial_risk_level, 1)
+            new_level = risk_levels.get(detected_risk_level, 1)
+            if new_level > current_level:
+                chat_session.initial_risk_level = detected_risk_level
+
+        # Memória contextual: contar encaminhamentos para triagem nesta sessão
+        triage_count = 0
+        if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
+            try:
+                triage_ctx = json.loads(chat_session.triage_context)
+                if isinstance(triage_ctx, dict) and 'triage_events' in triage_ctx:
+                    triage_count = len(triage_ctx['triage_events'])
+            except Exception:
+                pass
+
+        # Detectar perguntas objetivas do usuário
+        pergunta_num_encaminhamentos = any(
+            p in message_content.lower() for p in [
+                'quantas vezes', 'quantas vezes vc me encaminhou', 'quantas vezes fui encaminhado', 'quantas vezes você me encaminhou', 'vc tem um numero', 'você tem um número']
+        )
+        pergunta_problema = any(
+            p in message_content.lower() for p in [
+                'qual era o meu problema', 'qual era meu problema', 'qual meu problema', 'qual era o motivo']
+        )
+        pergunta_contato = any(
+            p in message_content.lower() for p in [
+                'contato de emergência', 'telefone de emergência', 'cvv', 'preciso de ajuda urgente']
+        )
+
+        # Preparar contexto do usuário
+        user_context = {
+            'name': getattr(current_user, 'first_name', ''),
+            'triage_triggered': getattr(chat_session, 'triage_triggered', False),
+            'triage_status': getattr(chat_session, 'triage_status', None),
+            'triage_declined_reason': getattr(chat_session, 'triage_declined_reason', None),
+            'triage_count': triage_count
+        }
+
+        # Buscar histórico de mensagens para contexto
+        from app.models import ChatMessage
+        conversation_history = db.session.query(ChatMessage).filter_by(
+            session_id=chat_session.id
+        ).order_by(ChatMessage.created_at.asc()).limit(10).all()
+        history_list = []
+        for msg in conversation_history:
+            history_list.append({
+                'content': msg.content,
+                'message_type': msg.message_type.value if hasattr(msg.message_type, 'value') else msg.message_type,
+                'created_at': msg.created_at.isoformat()
+            })
+
+        # Resposta personalizada para perguntas objetivas
+        def limitar_resposta(texto, limite=220):
+            if texto and len(texto) > limite:
+                # Cortar no final da frase mais próxima
+                corte = texto[:limite]
+                for sep in ['.', '?', '!']:
+                    idx = corte.rfind(sep)
+                    if idx != -1 and idx > 50:
+                        return corte[:idx+1].rstrip()
+                return corte.rstrip() + '...'
+            return texto
+
+        # Detectar solicitação explícita de encaminhamento
+        solicitacao_encaminhamento = any(
+            p in message_content.lower() for p in [
+                'quero atendimento', 'quero ajuda', 'preciso de atendimento', 'preciso de ajuda', 'me encaminhe', 'encaminhamento', 'falar com profissional', 'falar com alguém']
+        )
+
+        # Personalização contextual: reconhecer mudança de decisão
+        mudou_de_ideia = False
+        if hasattr(chat_session, 'triage_status') and chat_session.triage_status == 'declined' and solicitacao_encaminhamento:
+            mudou_de_ideia = True
+
+        # Referenciar histórico de perda
+        historico_perda = None
+        for msg in history_list:
+            if 'perdi minha familia' in msg['content'].lower() or 'eles se foram' in msg['content'].lower():
+                historico_perda = msg['content']
+
+        if pergunta_num_encaminhamentos:
+            resposta = f"Durante esta sessão, você foi encaminhado para triagem {triage_count} vez(es). Se quiser conversar sobre isso, estou aqui para te ouvir."
+            resposta = limitar_resposta(resposta)
+        elif pergunta_problema:
+            problema = None
+            for msg in history_list:
+                if msg['message_type'] == 'user':
+                    problema = msg['content']
+            resposta = f"Você relatou: '{problema}'" if problema else "Não encontrei um relato específico, mas estou aqui para te apoiar."
+            resposta = limitar_resposta(resposta)
+        elif pergunta_contato:
+            resposta = "Se você precisa de ajuda urgente, pode ligar para o CVV (Centro de Valorização da Vida) no número 188. O serviço é gratuito e funciona 24h."
+            resposta = limitar_resposta(resposta)
+        elif solicitacao_encaminhamento:
+            # Encaminhamento imediato para triagem SEM bloqueio por histórico
+            resposta = "Entendi seu pedido. Vou te encaminhar para um profissional agora mesmo. Aguarde um momento, por favor."
+            resposta = limitar_resposta(resposta)
+            requires_triage = True
+            # Registrar evento de triagem na memória contextual (sempre adiciona)
+            triage_ctx = {}
+            if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
                 try:
-                    sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
-                    detected_risk_level = sentiment_analysis.get('risk_level', 'low')
-                    print(f"[DEBUG] sentiment_analysis: {sentiment_analysis}")
-                    print(f"[DEBUG] detected_risk_level: {detected_risk_level}")
-                except Exception as e:
-                    print(f"[DEBUG] Erro na análise de sentimento: {e}")
-                    # Usar análise básica por palavras-chave como fallback
-                    detected_risk_level = ai_service.assess_risk_level(message_content)
-            
-            # CRIAR LOG DE TRIAGEM SE RISCO MODERADO/ALTO/CRÍTICO
-            triage_log = None
-            if detected_risk_level in ['moderate', 'high', 'critical']:
+                    triage_ctx = json.loads(chat_session.triage_context)
+                except Exception:
+                    triage_ctx = {}
+            if 'triage_events' not in triage_ctx:
+                triage_ctx['triage_events'] = []
+            triage_ctx['triage_events'].append({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'risk_level': detected_risk_level,
+                'message': message_content,
+                'solicitacao_usuario': True,
+                'forcar_triagem': True
+            })
+            chat_session.triage_context = json.dumps(triage_ctx, ensure_ascii=False)
+
+            # Criar registro real em TriageLog
+            try:
                 from app.models.triage import TriageLog, RiskLevel
-                
-                # Converter string para enum
                 risk_enum_map = {
                     'low': RiskLevel.LOW,
-                    'moderate': RiskLevel.MODERATE, 
+                    'moderate': RiskLevel.MODERATE,
                     'high': RiskLevel.HIGH,
                     'critical': RiskLevel.CRITICAL
                 }
-                
-                try:
-                    # Tentar criar o log de triagem com os novos campos
-                    triage_log = TriageLog(
-                        user_id=current_user.id,
-                        chat_session_id=chat_session.id,
-                        risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
-                        confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
-                        trigger_content=message_content[:500],  # Limitar tamanho
-                        context_type='chat_message',
-                        # Definir indicadores específicos baseados na análise
-                        suicidal_ideation='suicidal_ideation' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
-                        self_harm_risk='self_harm' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
-                        severe_depression='severe_depression' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
-                        anxiety_disorder='anxiety_panic' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
-                        triage_status='waiting'  # Status para fila de voluntários
-                    )
-                    
-                    # Tentar definir novos campos se existirem
-                    try:
-                        triage_log.emotional_state = sentiment_analysis.get('emotion', 'Análise em andamento') if sentiment_analysis else 'A avaliar'
-                        triage_log.notes = sentiment_analysis.get('summary', f'Risco {detected_risk_level} detectado na conversa') if sentiment_analysis else f'Sistema detectou nível de risco: {detected_risk_level}'
-                    except AttributeError as attr_err:
-                        print(f"[DEBUG] Campos emotional_state/notes não existem ainda no BD: {attr_err}")
-                        # Continuar sem esses campos por enquanto
-                    
-                    db.session.add(triage_log)
-                    # Salvar primeiro para obter ID
-                    db.session.flush()
-                    
-                    # Salvar ID da triagem na sessão para uso posterior
-                    session['triage_id'] = triage_log.id
-                    
-                except Exception as e:
-                    print(f"[DEBUG] Erro ao criar log de triagem: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    # Não falhar por causa da triagem - continuar com o chat
-            
-            # Adicionar mensagem do usuário COM dados da análise de sentimento
-            user_message = chat_session.add_message(
-                content=message_content, 
-                message_type=ChatMessageType.USER, 
-                sender_id=current_user.id
-            )
-            
-            # Adicionar dados da análise de sentimento à mensagem do usuário
-            if sentiment_analysis:
-                user_message.sentiment_score = sentiment_analysis.get('score')
-                user_message.risk_indicators = json.dumps({
-                    'risk_level': detected_risk_level,
-                    'emotion': sentiment_analysis.get('emotion'),
-                    'intensity': sentiment_analysis.get('intensity'),
-                    'confidence': sentiment_analysis.get('confidence'),
-                    'requires_attention': sentiment_analysis.get('requires_attention', False),
-                    'timestamp': sentiment_analysis.get('timestamp')
-                }, ensure_ascii=False)
-            
-            # Atualizar o nível de risco inicial da sessão se for maior que o atual
-            if chat_session.initial_risk_level is None:
-                chat_session.initial_risk_level = detected_risk_level
-            else:
-                # Atualizar para o maior nível de risco detectado
-                risk_levels = {'low': 1, 'moderate': 2, 'high': 3, 'critical': 4}
-                current_level = risk_levels.get(chat_session.initial_risk_level, 1)
-                new_level = risk_levels.get(detected_risk_level, 1)
-                if new_level > current_level:
-                    chat_session.initial_risk_level = detected_risk_level
-            
-            # Gerar resposta da IA (OpenAI only)
-            print(f"[DEBUG] AI_AVAILABLE: {AI_AVAILABLE}")
-            print(f"[DEBUG] ai_service: {ai_service}")
-            if ai_service:
-                print(f"[DEBUG] ai_service.openai_client: {getattr(ai_service, 'openai_client', None)}")
-            if AI_AVAILABLE and ai_service and ai_service.openai_client:
-                print("[DEBUG] IA disponível, chamando generate_response...")
-                
-                # VERIFICAR SE A SESSÃO AINDA EXISTE (pode ter sido excluída)
-                current_session = ChatSession.query.filter_by(
-                    id=chat_session.id,
+                triage_log = TriageLog(
                     user_id=current_user.id,
-                    status=ChatSessionStatus.ACTIVE.value
-                ).first()
-                
-                if not current_session:
-                    print("[DEBUG] Sessão foi excluída durante o processamento, cancelando resposta da IA")
-                    return jsonify({
-                        'success': False, 
-                        'error': 'Sessão foi encerrada ou excluída'
-                    }), 404
-                
-                # Buscar histórico de mensagens para contexto
-                from app.models import ChatMessage
-                conversation_history = db.session.query(ChatMessage).filter_by(
-                    session_id=chat_session.id
-                ).order_by(ChatMessage.created_at.asc()).limit(10).all()
-                
-                # Converter para formato adequado
-                history_list = []
-                for msg in conversation_history:
-                    history_list.append({
-                        'content': msg.content,
-                        'message_type': msg.message_type.value if hasattr(msg.message_type, 'value') else msg.message_type,
-                        'created_at': msg.created_at.isoformat()
-                    })
-                
-                # Preparar contexto de usuário incluindo informações de triagem
-                user_context = {
-                    'name': getattr(current_user, 'first_name', ''),
-                    'triage_triggered': getattr(chat_session, 'triage_triggered', False),
-                    'triage_status': getattr(chat_session, 'triage_status', None),
-                    'triage_declined_reason': getattr(chat_session, 'triage_declined_reason', None)
-                }
-                
+                    chat_session_id=chat_session.id,
+                    risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
+                    confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
+                    trigger_content=message_content[:500],
+                    context_type='chat_message',
+                    triage_status='waiting'
+                )
+                db.session.add(triage_log)
+                db.session.flush()
+                session['triage_id'] = triage_log.id
+                triage_id = triage_log.id
+            except Exception as e:
+                triage_id = None
+        else:
+            # Chamar IA para resposta empática e variada
+            resposta = None
+            if AI_AVAILABLE and ai_service and ai_service.openai_client:
                 try:
                     ai_response = ai_service.generate_response(
                         user_message=message_content,
@@ -245,106 +277,110 @@ def api_chat_send():
                         user_context=user_context,
                         conversation_history=history_list
                     )
-                    print(f"[DEBUG] ai_response: {ai_response}")
-                    
-                    # VERIFICAR NOVAMENTE SE A SESSÃO AINDA EXISTE ANTES DE SALVAR
-                    current_session_check = ChatSession.query.filter_by(
-                        id=chat_session.id,
-                        user_id=current_user.id,
-                        status=ChatSessionStatus.ACTIVE.value
-                    ).first()
-                    
-                    if not current_session_check:
-                        print("[DEBUG] Sessão foi excluída após gerar resposta, não salvando mensagem da IA")
-                        return jsonify({
-                            'success': False, 
-                            'error': 'Sessão foi encerrada ou excluída durante o processamento'
-                        }), 404
-                    
-                    # Salvar mensagem da IA com metadados
-                    ai_message = chat_session.add_message(
-                        content=ai_response['message'],
-                        message_type=ChatMessageType.AI
+                    resposta = ai_response['message']
+                except Exception:
+                    resposta = None
+            # Fallback manual se IA indisponível ou erro
+            if not resposta:
+                frases_variadas = []
+                if mudou_de_ideia:
+                    frases_variadas.append("Fico feliz que tenha decidido buscar ajuda agora! Vou te encaminhar para um profissional, ok?")
+                if historico_perda:
+                    frases_variadas.append(f"Você mencionou que perdeu sua família. Se quiser falar sobre suas lembranças ou sentimentos, estou aqui para ouvir sem julgamentos.")
+                if detected_risk_level == 'critical':
+                    frases_variadas.append("Sinto muito que esteja se sentindo assim. É importante buscar ajuda profissional. Ligue para o CVV no 188. Estou aqui para te apoiar.")
+                elif detected_risk_level == 'high':
+                    frases_variadas.append("Percebo que está passando por um momento difícil. Se quiser conversar, estou aqui para te ouvir. Você não está sozinho(a).")
+                elif detected_risk_level == 'moderate':
+                    frases_variadas.append("Entendo que está enfrentando desafios. Quer compartilhar mais sobre como está se sentindo?")
+                # Explorar sentimentos
+                frases_variadas.append("Como você está lidando com tudo isso?")
+                frases_variadas.append("Se quiser compartilhar como está, pode contar comigo.")
+                frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
+                resposta = random.choice(frases_variadas)
+            resposta = limitar_resposta(resposta)
+        else:
+            # Chamar IA para resposta empática e variada
+            if AI_AVAILABLE and ai_service and ai_service.openai_client:
+                try:
+                    ai_response = ai_service.generate_response(
+                        user_message=message_content,
+                        risk_level=detected_risk_level,
+                        user_context=user_context,
+                        conversation_history=history_list
                     )
-                    
-                    # Adicionar metadados da resposta da IA
-                    ai_message.ai_model_used = ai_response.get('source', 'openai')
-                    ai_message.ai_confidence = ai_response.get('confidence', 0.9)
-                    db.session.commit()
-                    
-                    # PREPARAR RESPOSTA COM DADOS DE TRIAGEM
-                    response_data = {
-                        'success': True,
-                        'user_message': {
-                            'content': message_content,
-                            'timestamp': user_message.created_at.isoformat(),
-                            'sender_type': 'user'
-                        },
-                        'ai_response': {
-                            'content': ai_response['message'],
-                            'timestamp': ai_message.created_at.isoformat(),
-                            'sender_type': 'ai'
-                        },
-                        'risk_assessment': {
-                            'risk_level': detected_risk_level,
-                            'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
-                            'triage_id': triage_log.id if triage_log else None
-                        }
-                    }
-                    
-                    return jsonify(response_data)
-                except Exception as exc:
-                    print(f"[DEBUG][ERRO] Falha ao chamar IA: {exc}")
+                    resposta = ai_response['message']
+                except Exception:
+                    resposta = None
             else:
-                print("[DEBUG] IA NÃO disponível, usando resposta padrão.")
-            
-            # Fallback caso IA não esteja disponível - resposta baseada no nível de risco
-            if detected_risk_level == 'critical':
-                resposta_padrao = ("Sinto muito que esteja se sentindo assim. É muito importante buscar ajuda profissional "
-                                 "imediatamente. Você pode ligar para o Centro de Valorização da Vida (CVV) no número 188, "
-                                 "é gratuito e disponível 24h. Você não está sozinho(a).")
-            elif detected_risk_level == 'high':
-                resposta_padrao = ("Percebo que você está passando por um momento muito difícil. "
-                                 "É importante conversar com alguém - considere buscar apoio profissional. "
-                                 "Estou aqui para te ouvir e te apoiar.")
-            elif detected_risk_level == 'moderate':
-                resposta_padrao = ("Entendo que você está enfrentando dificuldades. "
-                                 "Quero te apoiar neste momento. Como você está se sentindo? "
-                                 "Fique à vontade para compartilhar.")
-            else:
-                resposta_padrao = "Olá! Estou aqui para te apoiar. Como você está se sentindo hoje?"
-            
-            ai_message = chat_session.add_message(
-                content=resposta_padrao,
-                message_type=ChatMessageType.AI
-            )
-            db.session.commit()
-            
-            # RESPOSTA COM DADOS DE TRIAGEM (FALLBACK)
-            response_data = {
-                'success': True,
-                'user_message': {
-                    'content': message_content,
-                    'timestamp': user_message.created_at.isoformat(),
-                    'sender_type': 'user'
-                },
-                'ai_response': {
-                    'content': resposta_padrao,
-                    'timestamp': ai_message.created_at.isoformat(),
-                    'sender_type': 'ai'
-                },
-                'risk_assessment': {
-                    'risk_level': detected_risk_level,
-                    'requires_triage': detected_risk_level in ['moderate', 'high', 'critical'],
-                    'triage_id': triage_log.id if triage_log else None
-                }
+                resposta = None
+            # Fallback manual se IA indisponível ou erro
+            if not resposta:
+                frases_variadas = []
+                if mudou_de_ideia:
+                    frases_variadas.append("Fico feliz que tenha decidido buscar ajuda agora! Vou te encaminhar para um profissional, ok?")
+                if historico_perda:
+                    frases_variadas.append(f"Você mencionou que perdeu sua família. Se quiser falar sobre suas lembranças ou sentimentos, estou aqui para ouvir sem julgamentos.")
+                if detected_risk_level == 'critical':
+                    frases_variadas.append("Sinto muito que esteja se sentindo assim. É importante buscar ajuda profissional. Ligue para o CVV no 188. Estou aqui para te apoiar.")
+                elif detected_risk_level == 'high':
+                    frases_variadas.append("Percebo que está passando por um momento difícil. Se quiser conversar, estou aqui para te ouvir. Você não está sozinho(a).")
+                elif detected_risk_level == 'moderate':
+                    frases_variadas.append("Entendo que está enfrentando desafios. Quer compartilhar mais sobre como está se sentindo?")
+                # Explorar sentimentos
+                frases_variadas.append("Como você está lidando com tudo isso?")
+                frases_variadas.append("Se quiser compartilhar como está, pode contar comigo.")
+                frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
+                resposta = random.choice(frases_variadas)
+            resposta = limitar_resposta(resposta)
+
+        # Evitar encaminhamento repetitivo: só sugerir triagem se risco for moderado/alto/crítico e não sugerir se já foi sugerido nesta sessão
+        requires_triage = False
+        if detected_risk_level in ['moderate', 'high', 'critical'] and triage_count == 0:
+            requires_triage = True
+            # Registrar evento de triagem na memória contextual
+            triage_ctx = {}
+            if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
+                try:
+                    triage_ctx = json.loads(chat_session.triage_context)
+                except Exception:
+                    triage_ctx = {}
+            if 'triage_events' not in triage_ctx:
+                triage_ctx['triage_events'] = []
+            triage_ctx['triage_events'].append({
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'risk_level': detected_risk_level,
+                'message': message_content
+            })
+            chat_session.triage_context = json.dumps(triage_ctx, ensure_ascii=False)
+
+        # Salvar resposta da IA
+        ai_message = chat_session.add_message(
+            content=resposta,
+            message_type=ChatMessageType.AI
+        )
+        db.session.commit()
+
+        response_data = {
+            'success': True,
+            'user_message': {
+                'content': message_content,
+                'timestamp': user_message.created_at.isoformat(),
+                'sender_type': 'user'
+            },
+            'ai_response': {
+                'content': resposta,
+                'timestamp': ai_message.created_at.isoformat(),
+                'sender_type': 'ai'
+            },
+            'risk_assessment': {
+                'risk_level': detected_risk_level,
+                'requires_triage': requires_triage,
+                'triage_count': triage_count,
+                'triage_id': triage_id if requires_triage else None
             }
-            
-            return jsonify(response_data)
-                
-        except Exception as e:
-            db.session.rollback()
-            raise e
+        }
+        return jsonify(response_data)
     except Exception as e:
         current_app.logger.error(f"Erro ao processar mensagem: {str(e)}")
         db.session.rollback()

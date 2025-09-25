@@ -935,34 +935,40 @@ class AIService:
             return self._generate_response_fallback(user_message, risk_level, user_context, errors + [str(e)])
     
     def _generate_response_openai_advanced(self, context: PromptContext) -> Dict:
-        """Gera resposta usando OpenAI com sistema avançado"""
-        
+        """Gera resposta usando OpenAI com sistema avançado e resposta curta"""
         # Construir prompt usando sistema consolidado
         prompt_data = self.prompt_manager.build_contextual_prompt(
             context, provider='openai'
         )
-        
         print(f"OPENAI_ADVANCED: Prompt com {len(prompt_data['messages'])} mensagens")
-        
-        # Chamada para OpenAI
+        # Limite de tokens para resposta curta
+        max_tokens_curto = min(prompt_data.get('max_tokens', 120), 120)
         response = self.openai_client.chat.completions.create(
             model=self.openai_model,
             messages=prompt_data['messages'],
-            max_tokens=prompt_data['max_tokens'],
+            max_tokens=max_tokens_curto,
             temperature=prompt_data['temperature'],
             presence_penalty=prompt_data.get('presence_penalty', 0),
             frequency_penalty=prompt_data.get('frequency_penalty', 0)
         )
-        
         ai_response = response.choices[0].message.content.strip()
-        
-        # Log do uso de dados de treinamento (desabilitado)
+        # Truncar resposta no final da frase mais próxima
+        def truncar_frase(texto, limite=220):
+            if len(texto) <= limite:
+                return texto
+            corte = texto[:limite]
+            # Procurar o último ponto final, interrogação ou exclamação
+            for sep in ['.', '?', '!']:
+                idx = corte.rfind(sep)
+                if idx != -1 and idx > 50:
+                    return corte[:idx+1].rstrip()
+            return corte.rstrip() + '...'
+        ai_response = truncar_frase(ai_response)
         training_usage = None
-        
         result = {
             'message': ai_response,
             'risk_level': context.risk_level.value,
-            'confidence': 0.95,  # Alta confiança com sistema avançado
+            'confidence': 0.95,
             'source': 'openai_advanced',
             'model': self.openai_model,
             'rag_used': bool(context.training_context),
@@ -970,15 +976,10 @@ class AIService:
             'timestamp': datetime.now(UTC).isoformat(),
             'tokens_used': response.usage.total_tokens if hasattr(response, 'usage') else None
         }
-        
-        # Adicionar informações de treinamento se disponível
         if training_usage:
             result['training_usage'] = training_usage
-        
-        # Adicionar contexto RAG se usado
         if context.training_context:
             result['rag_context_length'] = len(context.training_context)
-        
         print(f"OPENAI_SUCCESS: Resposta gerada com {len(ai_response)} caracteres")
         return result
     

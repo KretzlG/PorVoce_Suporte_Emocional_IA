@@ -113,16 +113,16 @@ def triage_forward():
         answer = data.get('answer')
         triage_id = data.get('triage_id')
         urgency_level = data.get('urgency_level', 'moderate')
-        
-        if not triage_id:
-            # Buscar triagem ativa na sessão se não fornecido
+
+        # Corrigir id 'undefined' ou string inválida
+        if not triage_id or triage_id == 'undefined' or not str(triage_id).isdigit():
             triage_id = session.get('triage_id')
-        
-        if not triage_id:
-            print("[DEBUG TRIAGE] Triagem ID não encontrado")
+
+        if not triage_id or not str(triage_id).isdigit():
+            print("[DEBUG TRIAGE] Triagem ID não encontrado ou inválido")
             return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
-            
-        triage_log = TriageLog.query.get(triage_id)
+
+        triage_log = TriageLog.query.get(int(triage_id))
         if not triage_log or triage_log.user_id != current_user.id:
             print(f"[DEBUG TRIAGE] Log não encontrado ou usuário incorreto. Log: {triage_log}, User: {current_user.id}")
             return jsonify({'success': False, 'error': 'Triagem não encontrada'}), 404
