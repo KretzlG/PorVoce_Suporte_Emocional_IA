@@ -55,20 +55,20 @@ class AIPromptManager:
         # === INSTRUÇÕES DE TOM POR NÍVEL DE RISCO ===
         self.tone_instructions = {
             'low': {
-                'primary': "Seja otimista, encorajadora e energética.",
-                'details': "Use energia positiva, foque em soluções e forças da pessoa."
+                'primary': "Seja otimista, encorajadora, empática e energética.",
+                'details': "Use energia positiva, foque em soluções e forças da pessoa. Demonstre interesse genuíno, pratique escuta ativa e incentive perguntas abertas."
             },
             'moderate': {
-                'primary': "Seja compreensiva mas firme e esperançosa.",
-                'details': "Valide sentimentos, mas direcione para ação e crescimento."
+                'primary': "Seja compreensiva, empática, firme e esperançosa.",
+                'details': "Valide sentimentos, direcione para ação e crescimento. Estimule reflexão e curiosidade sobre emoções e possibilidades. Demonstre escuta ativa e interesse genuíno."
             },
             'high': {
-                'primary': "Seja carinhosa mas direta sobre buscar ajuda.",
-                'details': "Transmita urgência com esperança, foque na solução imediata."
+                'primary': "Seja carinhosa, empática e direta sobre buscar ajuda.",
+                'details': "Transmita urgência com esperança, foque na solução imediata. Incentive o paciente a compartilhar mais sobre sua situação, sempre com perguntas abertas e acolhimento."
             },
             'critical': {
-                'primary': "Seja firme, direta e protetiva. Priorize ação IMEDIATA.",
-                'details': "Segurança em primeiro lugar. Seja clara sobre necessidade de ajuda profissional AGORA."
+                'primary': "Seja firme, direta, protetiva e empática. Priorize ação IMEDIATA.",
+                'details': "Segurança em primeiro lugar. Seja clara sobre necessidade de ajuda profissional AGORA. Mantenha acolhimento, escuta ativa e perguntas abertas."
             }
         }
         
@@ -271,12 +271,13 @@ PRIMEIRA CONVERSA | RISCO: {risk_level}
 {tone_instruction} {tone_details}
 
 REGRAS RÍGIDAS:
-- NUNCA se apresente após a primeira frase
-- NUNCA peça desculpas desnecessariamente  
-- NUNCA diga "entendo que", "sei que é difícil"
 - FOQUE na pessoa, não em você
 - Seja DIRETA e PRÁTICA
 - Use energia POSITIVA sempre que possível
+- FAÇA perguntas abertas que incentivem reflexão (ex: "Como você se sente sobre isso?", "O que você acha que poderia te ajudar?")
+- Demonstre interesse genuíno e escuta ativa
+- Evite julgamentos ou conselhos diretos, prefira explorar possibilidades junto ao paciente
+- Faça uma pergunta por vez para o usuário, evite pressioná-lo
 {user_name_instruction}
 
 MÁXIMO {max_words} palavras. Seja concisa e eficaz."""
@@ -295,6 +296,9 @@ REGRAS OBRIGATÓRIAS:
 - Adapte seu tom ao ESTADO EMOCIONAL atual
 - Seja PRÁTICA e SOLUCIONADORA
 - Use ENERGIA para motivar
+- FAÇA perguntas abertas que incentivem reflexão e compartilhamento (ex: "O que você pensa sobre isso?", "Como você gostaria de lidar com essa situação?")
+- Demonstre interesse genuíno e escuta ativa
+- Evite julgamentos ou conselhos diretos, prefira explorar possibilidades junto ao paciente
 {user_name_instruction}
 
 MÁXIMO {max_words} palavras. Vá direto ao ponto."""
@@ -307,6 +311,9 @@ PRIMEIRA conversa. RISCO: {risk_level}
 {tone_instruction} {tone_details}
 
 Apresente-se brevemente e seja acolhedora.
+Faça perguntas abertas que incentivem reflexão e compartilhamento (ex: "Como você se sente sobre isso?", "O que você acha que poderia te ajudar?")
+Demonstre interesse genuíno e escuta ativa.
+Evite julgamentos ou conselhos diretos, prefira explorar possibilidades junto ao paciente.
 {user_name_instruction}
 Máximo {max_words} palavras."""
     
@@ -318,6 +325,9 @@ RISCO: {risk_level}
 {tone_instruction} {tone_details}
 
 Continue naturalmente, sem se apresentar.
+Faça perguntas abertas que incentivem reflexão e compartilhamento (ex: "O que você pensa sobre isso?", "Como você gostaria de lidar com essa situação?")
+Demonstre interesse genuíno e escuta ativa.
+Evite julgamentos ou conselhos diretos, prefira explorar possibilidades junto ao paciente.
 {user_name_instruction}
 Máximo {max_words} palavras."""
     
@@ -401,42 +411,41 @@ Máximo {max_words} palavras."""
         try:
             # Analisa as últimas 4 mensagens do usuário
             user_messages = [
-                msg for msg in conversation_history[-6:] 
+                msg for msg in conversation_history[-6:]
                 if msg.get('message_type') == 'USER'
             ][-4:]
-            
+
             if len(user_messages) < 2:
                 return 'unknown'
-            
+
             # Palavras que indicam melhora
             improvement_words = [
-                'melhor', 'melhorando', 'obrigado', 'ajudou', 'consegui', 
+                'melhor', 'melhorando', 'obrigado', 'ajudou', 'consegui',
                 'tentando', 'força', 'esperança', 'positivo', 'bem'
             ]
-            
+
             # Palavras que indicam piora
             worsening_words = [
-                'pior', 'piorando', 'desistir', 'acabou', 'impossível', 
+                'pior', 'piorando', 'desistir', 'acabou', 'impossível',
                 'não aguento', 'sem saída', 'desespero', 'vazio'
             ]
-            
+
             # Palavras de crise
             crisis_words = [
                 'morrer', 'suicídio', 'acabar com tudo', 'não quero viver',
                 'me matar', 'melhor morto'
             ]
-            
+
             improvement_score = 0
             worsening_score = 0
             crisis_score = 0
-            
+
             for msg in user_messages:
                 content = msg.get('content', '').lower()
-                
                 improvement_score += sum(1 for word in improvement_words if word in content)
                 worsening_score += sum(1 for word in worsening_words if word in content)
                 crisis_score += sum(1 for word in crisis_words if word in content)
-            
+
             # Determinar humor
             if crisis_score > 0:
                 return 'crisis'
@@ -446,7 +455,7 @@ Máximo {max_words} palavras."""
                 return 'worsening'
             else:
                 return 'stable'
-                
+
         except Exception:
             return 'unknown'
     

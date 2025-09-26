@@ -619,19 +619,19 @@ async function handleTriageActivation(riskAssessment) {
     
     // Renderizar mensagem de triagem baseada no nível de risco
     const triageMessage = generateTriageMessage(riskLevel);
-    renderMessage(triageMessage, 'ai'); // Usar renderMessage normal
+    // renderMessage(triageMessage, 'ai'); // Comentado para não exibir mensagem de triagem, mantendo o fluxo
     
     // Aguardar um pouco para a mensagem aparecer antes de mostrar as opções
-    setTimeout(() => {
-        // Se for risco crítico, mostrar botões de emergência imediatamente
-        if (riskLevel === 'critical') {
-            showEmergencyActions(triageId);
-        } 
-        // Para risco alto/moderado, mostrar opções de encaminhamento
-        else if (riskLevel === 'high' || riskLevel === 'moderate') {
-            showTriageOptions(triageId, riskLevel);
-        }
-    }, 500); // Delay de 500ms para melhor UX
+    if (riskLevel === 'high' || riskLevel === 'critical') {
+        showEmergencyActions(triageId);
+    } 
+    // Para risco alto/moderado, mostrar opções de encaminhamento
+    else if (riskLevel === 'moderate') {
+        showTriageOptions(triageId, riskLevel);
+    }
+    // setTimeout(() => {
+    //     // Se for risco crítico, mostrar botões de emergência imediatamente
+    // }, 500); // Delay de 500ms para melhor UX
 }
 
 /**
