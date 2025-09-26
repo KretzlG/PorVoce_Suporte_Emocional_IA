@@ -871,72 +871,146 @@ class AIService:
         # RESPOSTAS INTELIGENTES SOBRE O HISTÓRICO E CONTEXTO COMPLETO
         user_message_lower = user_message.lower()
         if conversation_history:
+            # Analisar últimas 5 recebidas (AI) e 5 enviadas (usuário)
+            user_msgs = [msg for msg in conversation_history if msg['message_type'] == 'user'][-5:]
+            ai_msgs = [msg for msg in conversation_history if msg['message_type'] == 'ai'][-5:]
+
+
             # Qual foi a minha primeira mensagem?
             if 'primeira msg' in user_message_lower or 'primeira mensagem' in user_message_lower:
-                for msg in conversation_history:
-                    if msg['message_type'] == 'user':
-                        return {
-                            'message': f"Sua primeira mensagem foi: '{msg['content']}'. Gostaria de compartilhar o que estava sentindo naquele momento? Como isso te impactou?",
-                            'risk_level': risk_level,
-                            'confidence': 1.0,
-                            'source': 'history_lookup',
-                            'timestamp': datetime.now(UTC).isoformat()
-                        }
+                rag_context = None
+                rag_result = None
+                if self.rag_enabled:
+                    try:
+                        rag_result = self.advanced_rag.get_enhanced_context(
+                            user_message,
+                            risk_level,
+                            context_type='history',
+                            limit=3
+                        )
+                        rag_context = rag_result.get('context_prompt', '')
+                        print(f"[RAG] Primeira mensagem - context_prompt: {rag_context}")
+                        print(f"[RAG] Primeira mensagem - training_data: {rag_result.get('training_data', [])}")
+                        print(f"[RAG] Primeira mensagem - conversation_examples: {rag_result.get('conversation_examples', [])}")
+                    except Exception as e:
+                        logger.warning(f"Erro no RAG para primeira mensagem: {e}")
+                if user_msgs:
+                    mensagem = f"Sua primeira mensagem analisada foi: '{user_msgs[0]['content']}'. "
+                    if rag_context:
+                        mensagem += f"\n\nContexto adicional: {rag_context}"
+                    mensagem += "\nGostaria de compartilhar o que estava sentindo naquele momento? Como isso te impactou?"
+                    return {
+                        'message': mensagem,
+                        'risk_level': risk_level,
+                        'confidence': 1.0,
+                        'source': 'history_lookup_rag',
+                        'timestamp': datetime.now(UTC).isoformat()
+                    }
+                mensagem = "Não encontrei sua primeira mensagem nas últimas 5 analisadas. Se quiser contar mais sobre como começou sua conversa, estou aqui para te ouvir. O que te motivou a iniciar esse contato?"
+                if rag_context:
+                    mensagem += f"\n\nContexto adicional: {rag_context}"
                 return {
-                    'message': "Não encontrei sua primeira mensagem. Se quiser contar mais sobre como começou sua conversa, estou aqui para te ouvir. O que te motivou a iniciar esse contato?",
+                    'message': mensagem,
                     'risk_level': risk_level,
                     'confidence': 0.5,
-                    'source': 'history_lookup',
+                    'source': 'history_lookup_rag',
                     'timestamp': datetime.now(UTC).isoformat()
                 }
             # Qual era o meu problema?
             if 'qual era o meu problema' in user_message_lower:
-                # Buscar o principal relato de sofrimento do usuário
-                problemas = [msg['content'] for msg in conversation_history if msg['message_type'] == 'user' and any(palavra in msg['content'].lower() for palavra in ['perdi', 'sofrimento', 'dor', 'sozinho', 'triste', 'família', 'solidão', 'abandono', 'perda'])]
+                rag_context = None
+                rag_result = None
+                if self.rag_enabled:
+                    try:
+                        rag_result = self.advanced_rag.get_enhanced_context(
+                            user_message,
+                            risk_level,
+                            context_type='problem',
+                            limit=3
+                        )
+                        rag_context = rag_result.get('context_prompt', '')
+                        print(f"[RAG] Problema - context_prompt: {rag_context}")
+                        print(f"[RAG] Problema - training_data: {rag_result.get('training_data', [])}")
+                        print(f"[RAG] Problema - conversation_examples: {rag_result.get('conversation_examples', [])}")
+                    except Exception as e:
+                        logger.warning(f"Erro no RAG para problema: {e}")
+                problemas = [msg['content'] for msg in user_msgs if any(palavra in msg['content'].lower() for palavra in ['perdi', 'sofrimento', 'dor', 'sozinho', 'triste', 'família', 'solidão', 'abandono', 'perda'])]
                 if problemas:
+                    mensagem = f"Percebo que um dos principais problemas que você compartilhou nas últimas mensagens foi: '{problemas[0]}'. "
+                    if rag_context:
+                        mensagem += f"\n\nContexto adicional: {rag_context}"
+                    mensagem += "\nSe quiser conversar mais sobre isso, estou aqui para te ouvir. O que tem passado pela sua cabeça desde então? Como tem lidado com esses sentimentos? Existe algo que tem te ajudado ou dificultado?"
                     return {
-                        'message': f"Percebo que um dos principais problemas que você compartilhou foi: '{problemas[0]}'. Se quiser conversar mais sobre isso, estou aqui para te ouvir. O que tem passado pela sua cabeça desde então? Como tem lidado com esses sentimentos? Existe algo que tem te ajudado ou dificultado?",
+                        'message': mensagem,
                         'risk_level': risk_level,
                         'confidence': 1.0,
-                        'source': 'history_lookup_contextual',
+                        'source': 'history_lookup_contextual_rag',
                         'timestamp': datetime.now(UTC).isoformat()
                     }
                 # Fallback para último relato
-                for msg in reversed(conversation_history):
-                    if msg['message_type'] == 'user' and not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
+                for msg in reversed(user_msgs):
+                    if not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
+                        mensagem = f"Seu último relato de problema analisado foi: '{msg['content']}'. "
+                        if rag_context:
+                            mensagem += f"\n\nContexto adicional: {rag_context}"
+                        mensagem += "\nSe quiser compartilhar mais sobre como isso te afeta, estou aqui para te ouvir. O que mudou para você desde então? Como tem se sentido?"
                         return {
-                            'message': f"Seu último relato de problema foi: '{msg['content']}'. Se quiser compartilhar mais sobre como isso te afeta, estou aqui para te ouvir. O que mudou para você desde então? Como tem se sentido?",
+                            'message': mensagem,
                             'risk_level': risk_level,
                             'confidence': 1.0,
-                            'source': 'history_lookup',
+                            'source': 'history_lookup_rag',
                             'timestamp': datetime.now(UTC).isoformat()
                         }
+                mensagem = "Não encontrei um relato de problema nas últimas mensagens. Se quiser compartilhar mais sobre o que está sentindo, estou aqui para te ouvir. O que está passando pela sua cabeça agora? Existe algo que gostaria de entender melhor sobre seus sentimentos?"
+                if rag_context:
+                    mensagem += f"\n\nContexto adicional: {rag_context}"
                 return {
-                    'message': "Não encontrei um relato de problema anterior. Se quiser compartilhar mais sobre o que está sentindo, estou aqui para te ouvir. O que está passando pela sua cabeça agora? Existe algo que gostaria de entender melhor sobre seus sentimentos?",
+                    'message': mensagem,
                     'risk_level': risk_level,
                     'confidence': 0.5,
-                    'source': 'history_lookup',
+                    'source': 'history_lookup_rag',
                     'timestamp': datetime.now(UTC).isoformat()
                 }
             # Qual foi a minha segunda mensagem?
             if 'segunda msg' in user_message_lower or 'segunda mensagem' in user_message_lower:
-                user_msgs = [msg['content'] for msg in conversation_history if msg['message_type'] == 'user']
+                rag_context = None
+                rag_result = None
+                if self.rag_enabled:
+                    try:
+                        rag_result = self.advanced_rag.get_enhanced_context(
+                            user_message,
+                            risk_level,
+                            context_type='history',
+                            limit=3
+                        )
+                        rag_context = rag_result.get('context_prompt', '')
+                        print(f"[RAG] Segunda mensagem - context_prompt: {rag_context}")
+                        print(f"[RAG] Segunda mensagem - training_data: {rag_result.get('training_data', [])}")
+                        print(f"[RAG] Segunda mensagem - conversation_examples: {rag_result.get('conversation_examples', [])}")
+                    except Exception as e:
+                        logger.warning(f"Erro no RAG para segunda mensagem: {e}")
                 if len(user_msgs) >= 2:
+                    mensagem = f"Sua segunda mensagem analisada foi: '{user_msgs[1]['content']}'. "
+                    if rag_context:
+                        mensagem += f"\n\nContexto adicional: {rag_context}"
+                    mensagem += "\nO que você estava sentindo naquele momento? Quer conversar mais sobre isso? Existe algo que gostaria de compartilhar sobre como se sentiu depois disso?"
                     return {
-                        'message': f"Sua segunda mensagem foi: '{user_msgs[1]}'. O que você estava sentindo naquele momento? Quer conversar mais sobre isso? Existe algo que gostaria de compartilhar sobre como se sentiu depois disso?",
+                        'message': mensagem,
                         'risk_level': risk_level,
                         'confidence': 1.0,
-                        'source': 'history_lookup',
+                        'source': 'history_lookup_rag',
                         'timestamp': datetime.now(UTC).isoformat()
                     }
-                else:
-                    return {
-                        'message': "Não encontrei uma segunda mensagem sua. Se quiser compartilhar mais sobre sua história, estou aqui para te ouvir. O que mais gostaria de contar sobre sua trajetória até aqui?",
-                        'risk_level': risk_level,
-                        'confidence': 0.5,
-                        'source': 'history_lookup',
-                        'timestamp': datetime.now(UTC).isoformat()
-                    }
+                mensagem = "Não encontrei uma segunda mensagem nas últimas analisadas. Se quiser compartilhar mais sobre sua história, estou aqui para te ouvir. O que mais gostaria de contar sobre sua trajetória até aqui?"
+                if rag_context:
+                    mensagem += f"\n\nContexto adicional: {rag_context}"
+                return {
+                    'message': mensagem,
+                    'risk_level': risk_level,
+                    'confidence': 0.5,
+                    'source': 'history_lookup_rag',
+                    'timestamp': datetime.now(UTC).isoformat()
+                }
 
         errors = []
         
