@@ -469,7 +469,7 @@ class AIService:
         if openai_api_key:
             self.openai_client = openai
             self.openai_client.api_key = openai_api_key
-            logger.info(f"OpenAI configurado com sucesso | Modelo: {self.openai_model} | Temperatura: {self.temperature}")
+            print(f"[INFO] OpenAI configurado | Modelo: {self.openai_model} | Temperatura: {self.temperature}")
         else:
             logger.warning("OpenAI API key não encontrada")
         
