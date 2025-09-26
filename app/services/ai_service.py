@@ -463,13 +463,13 @@ class AIService:
         self.openai_client = None
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.max_tokens = int(os.getenv("OPENAI_MAX_TOKENS", 300))
-        self.temperature = float(os.getenv("OPENAI_TEMPERATURE", 0.7))
+        self.temperature = float(os.getenv("OPENAI_TEMPERATURE", 0.5))
         
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if openai_api_key:
             self.openai_client = openai
             self.openai_client.api_key = openai_api_key
-            logger.info("OpenAI configurado com sucesso")
+            logger.info(f"OpenAI configurado com sucesso | Modelo: {self.openai_model} | Temperatura: {self.temperature}")
         else:
             logger.warning("OpenAI API key não encontrada")
         
@@ -609,42 +609,53 @@ class AIService:
         
         critical_keywords = [
             'me matar', 'suicídio', 'quero morrer', 'acabar com tudo',
-            'não quero viver', 'melhor morto'
+            'não quero viver', 'melhor morto',
+            # Frases indiretas de ideação suicida
+            'não ta fazendo muito sentido ficar aqui',
+            'não faz sentido continuar',
+            'não vejo mais sentido',
+            'não quero mais estar aqui',
+            'preferia não existir',
+            'não aguento mais viver',
+            'cansei de tudo',
+            'não vejo saída',
+            'não vejo esperança',
+            'não vejo motivo pra continuar'
         ]
-        
+
         high_keywords = [
             'não aguento mais', 'desesperado', 'sem esperança', 'vazio total',
             'depressão severa', 'ansiedade extrema'
         ]
-        
+
         moderate_keywords = [
             'triste', 'ansioso', 'preocupado', 'difícil', 'problema', 'ajuda'
         ]
-        
-        # Verificar palavras críticas
+
+        # Verificar palavras críticas e frases indiretas
         for keyword in critical_keywords:
             if keyword in text_lower:
                 return 'critical'
-        
+
         # Usar análise de sentimento se disponível
         if sentiment_analysis:
             score = sentiment_analysis.get('score', 0)
             emotion = sentiment_analysis.get('emotion', '')
-            
+
             if emotion == 'desesperado' or score < -0.8:
                 return 'critical'
             elif score < -0.5:
                 return 'high'
-        
+
         # Verificar outras palavras-chave
         for keyword in high_keywords:
             if keyword in text_lower:
                 return 'high'
-        
+
         for keyword in moderate_keywords:
             if keyword in text_lower:
                 return 'moderate'
-        
+
         return 'low'
         
         # Verificar palavras críticas
@@ -856,6 +867,78 @@ class AIService:
             Dict com resposta gerada e metadados
         """
         errors = []
+
+        # RESPOSTAS INTELIGENTES SOBRE O HISTÓRICO E CONTEXTO COMPLETO
+        user_message_lower = user_message.lower()
+        if conversation_history:
+            # Qual foi a minha primeira mensagem?
+            if 'primeira msg' in user_message_lower or 'primeira mensagem' in user_message_lower:
+                for msg in conversation_history:
+                    if msg['message_type'] == 'user':
+                        return {
+                            'message': f"Sua primeira mensagem foi: '{msg['content']}'. Gostaria de compartilhar o que estava sentindo naquele momento? Como isso te impactou?",
+                            'risk_level': risk_level,
+                            'confidence': 1.0,
+                            'source': 'history_lookup',
+                            'timestamp': datetime.now(UTC).isoformat()
+                        }
+                return {
+                    'message': "Não encontrei sua primeira mensagem. Se quiser contar mais sobre como começou sua conversa, estou aqui para te ouvir. O que te motivou a iniciar esse contato?",
+                    'risk_level': risk_level,
+                    'confidence': 0.5,
+                    'source': 'history_lookup',
+                    'timestamp': datetime.now(UTC).isoformat()
+                }
+            # Qual era o meu problema?
+            if 'qual era o meu problema' in user_message_lower:
+                # Buscar o principal relato de sofrimento do usuário
+                problemas = [msg['content'] for msg in conversation_history if msg['message_type'] == 'user' and any(palavra in msg['content'].lower() for palavra in ['perdi', 'sofrimento', 'dor', 'sozinho', 'triste', 'família', 'solidão', 'abandono', 'perda'])]
+                if problemas:
+                    return {
+                        'message': f"Percebo que um dos principais problemas que você compartilhou foi: '{problemas[0]}'. Se quiser conversar mais sobre isso, estou aqui para te ouvir. O que tem passado pela sua cabeça desde então? Como tem lidado com esses sentimentos? Existe algo que tem te ajudado ou dificultado?",
+                        'risk_level': risk_level,
+                        'confidence': 1.0,
+                        'source': 'history_lookup_contextual',
+                        'timestamp': datetime.now(UTC).isoformat()
+                    }
+                # Fallback para último relato
+                for msg in reversed(conversation_history):
+                    if msg['message_type'] == 'user' and not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
+                        return {
+                            'message': f"Seu último relato de problema foi: '{msg['content']}'. Se quiser compartilhar mais sobre como isso te afeta, estou aqui para te ouvir. O que mudou para você desde então? Como tem se sentido?",
+                            'risk_level': risk_level,
+                            'confidence': 1.0,
+                            'source': 'history_lookup',
+                            'timestamp': datetime.now(UTC).isoformat()
+                        }
+                return {
+                    'message': "Não encontrei um relato de problema anterior. Se quiser compartilhar mais sobre o que está sentindo, estou aqui para te ouvir. O que está passando pela sua cabeça agora? Existe algo que gostaria de entender melhor sobre seus sentimentos?",
+                    'risk_level': risk_level,
+                    'confidence': 0.5,
+                    'source': 'history_lookup',
+                    'timestamp': datetime.now(UTC).isoformat()
+                }
+            # Qual foi a minha segunda mensagem?
+            if 'segunda msg' in user_message_lower or 'segunda mensagem' in user_message_lower:
+                user_msgs = [msg['content'] for msg in conversation_history if msg['message_type'] == 'user']
+                if len(user_msgs) >= 2:
+                    return {
+                        'message': f"Sua segunda mensagem foi: '{user_msgs[1]}'. O que você estava sentindo naquele momento? Quer conversar mais sobre isso? Existe algo que gostaria de compartilhar sobre como se sentiu depois disso?",
+                        'risk_level': risk_level,
+                        'confidence': 1.0,
+                        'source': 'history_lookup',
+                        'timestamp': datetime.now(UTC).isoformat()
+                    }
+                else:
+                    return {
+                        'message': "Não encontrei uma segunda mensagem sua. Se quiser compartilhar mais sobre sua história, estou aqui para te ouvir. O que mais gostaria de contar sobre sua trajetória até aqui?",
+                        'risk_level': risk_level,
+                        'confidence': 0.5,
+                        'source': 'history_lookup',
+                        'timestamp': datetime.now(UTC).isoformat()
+                    }
+
+        errors = []
         
         try:
             print(f"AI_RESPONSE_START: Processando mensagem de risco {risk_level}")
@@ -1027,58 +1110,47 @@ class AIService:
                                  conversation_history: Optional[List],
                                  errors: List[str]) -> Dict:
         """Método legado para compatibilidade"""
-        
-        print("LEGACY_RESPONSE: Usando sistema antigo")
-        
-        # Buscar contexto RAG básico se habilitado
-        rag_context = None
-        if self.rag_enabled:
-            try:
-                rag_context = self.rag.get_relevant_context(user_message, risk_level)
-            except Exception as e:
-                logger.warning(f"Erro no RAG básico: {e}")
-        
-        # Usar sistema antigo com RAG básico
-        is_first_message = not conversation_history or len(conversation_history) == 0
-        
-        # Construir prompt usando o sistema de prompts antigo
-        prompt_data = self.prompt_manager.build_conversation_prompt(
-            user_message=user_message,
-            risk_level=risk_level,
-            provider='openai',
-            user_context=user_context,
-            conversation_history=conversation_history,
-            rag_context=rag_context,
-            is_first_message=is_first_message
-        )
-        
-        # Tentar OpenAI
-        if self.openai_client:
-            try:
-                response = self.openai_client.chat.completions.create(
-                    model=self.openai_model,
-                    messages=prompt_data['messages'],
-                    max_tokens=prompt_data['max_tokens'],
-                    temperature=prompt_data['temperature']
-                )
-                
-                ai_response = response.choices[0].message.content.strip()
-                
+        # ...existing code...
+        errors = []
+        user_message_lower = user_message.lower()
+        if conversation_history:
+            # Qual foi a minha primeira mensagem?
+            if 'primeira msg' in user_message_lower or 'primeira mensagem' in user_message_lower:
+                for msg in conversation_history:
+                    if msg['message_type'] == 'user':
+                        return {
+                            'message': f"Sua primeira mensagem foi: '{msg['content']}'",
+                            'risk_level': risk_level,
+                            'confidence': 1.0,
+                            'source': 'history_lookup',
+                            'timestamp': datetime.now(UTC).isoformat()
+                        }
                 return {
-                    'message': ai_response,
+                    'message': "Não encontrei sua primeira mensagem.",
                     'risk_level': risk_level,
-                    'confidence': 0.85,
-                    'source': 'openai_legacy',
-                    'model': self.openai_model,
-                    'rag_used': bool(rag_context),
-                    'prompt_engineering': 'legacy',
-                    'timestamp': datetime.now(UTC).isoformat(),
-                    'fallback_errors': errors
+                    'confidence': 0.5,
+                    'source': 'history_lookup',
+                    'timestamp': datetime.now(UTC).isoformat()
                 }
-                
-            except Exception as e:
-                errors.append(f"OpenAI legacy: {str(e)}")
-        
+            # Qual era o meu problema?
+            if 'qual era o meu problema' in user_message_lower:
+                for msg in reversed(conversation_history):
+                    if msg['message_type'] == 'user' and not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
+                        return {
+                            'message': f"Seu último relato de problema foi: '{msg['content']}'",
+                            'risk_level': risk_level,
+                            'confidence': 1.0,
+                            'source': 'history_lookup',
+                            'timestamp': datetime.now(UTC).isoformat()
+                        }
+                return {
+                    'message': "Não encontrei um relato de problema anterior.",
+                    'risk_level': risk_level,
+                    'confidence': 0.5,
+                    'source': 'history_lookup',
+                    'timestamp': datetime.now(UTC).isoformat()
+                }
+        # ...continuação do método legado...
         # Fallback final
         return self._generate_response_fallback(user_message, risk_level, user_context, errors)
     
@@ -1445,7 +1517,7 @@ class AIService:
             },
             'supported_formats': {
                 'finetuning': ['openai_chat', 'openai_completion', 'jsonl', 'csv'],
-                'rag_context': ['training_data', 'conversations', 'hybrid']
+                'rag_context': ['training_data', 'conversações', 'hybrid']
             },
             'models': self.get_model_info(),
             'version': '3.0 - Integrated Advanced System'
@@ -1472,3 +1544,4 @@ def create_ai_service(app=None) -> AIService:
 
 # Alias para compatibilidade
 EmotionalSupportAgent = AIService
+

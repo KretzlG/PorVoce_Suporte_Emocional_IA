@@ -50,9 +50,9 @@ class Config:
     
     # OpenAI Configuration - Motor principal de IA
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-    OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
+    OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')
     OPENAI_MAX_TOKENS = int(os.environ.get('OPENAI_MAX_TOKENS', '500'))
-    OPENAI_TEMPERATURE = float(os.environ.get('OPENAI_TEMPERATURE', '0.7'))
+    OPENAI_TEMPERATURE = float(os.environ.get('OPENAI_TEMPERATURE', '0.5'))
     USE_LOCAL_MODELS = os.environ.get('USE_LOCAL_MODELS', 'true').lower() in ['true', 'on', '1']
     
     # Níveis de risco

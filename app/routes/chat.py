@@ -4,7 +4,6 @@ Rotas do chat com IA - Versão corrigida usando mensagens em JSON
 
 import json
 from flask import Blueprint, render_template, request, jsonify, session, current_app
-import random
 from flask_login import login_required, current_user
 from app.models import ChatSession
 from app.models.chat import ChatSessionStatus
@@ -34,14 +33,17 @@ def new_session():
     """Criar nova sessão de chat sempre"""
     try:
         from app.models import ChatSessionStatus
+        
         # Encerrar qualquer sessão ativa existente
         active_sessions = ChatSession.query.filter_by(
             user_id=current_user.id,
             status=ChatSessionStatus.ACTIVE.value
         ).all()
+        
         for session in active_sessions:
             session.status = ChatSessionStatus.COMPLETED.value
             session.last_activity = datetime.now(timezone.utc)
+        
         # Sempre criar uma nova sessão
         new_chat_session = ChatSession(
             user_id=current_user.id,
@@ -50,8 +52,10 @@ def new_session():
         )
         db.session.add(new_chat_session)
         db.session.commit()
+        
         # Não adicionar mensagem de boas-vindas automática
         # A primeira mensagem será gerada quando o usuário enviar algo
+        
         return jsonify({
             'success': True,
             'session_id': new_chat_session.id,
@@ -67,9 +71,9 @@ def new_session():
 
 
 
+
 # Endpoint padronizado para envio de mensagem e resposta da IA (OpenAI only)
 @chat.route('/api/chat/send', methods=['POST'])
-
 @login_required
 def api_chat_send():
     """Enviar mensagem e receber resposta da IA (OpenAI only)"""
@@ -81,8 +85,8 @@ def api_chat_send():
     if not session_id:
         return jsonify({'success': False, 'error': 'ID da sessão é obrigatório'}), 400
     from app.models import ChatMessageType, ChatSessionStatus
-
     try:
+        # Query eficiente
         chat_session = ChatSession.query.filter_by(
             id=session_id,
             user_id=current_user.id,
@@ -98,7 +102,7 @@ def api_chat_send():
             try:
                 sentiment_analysis = ai_service.analyze_with_risk_assessment(message_content)
                 detected_risk_level = sentiment_analysis.get('risk_level', 'low')
-            except Exception:
+            except Exception as e:
                 detected_risk_level = ai_service.assess_risk_level(message_content)
 
         # Adicionar mensagem do usuário
@@ -118,56 +122,70 @@ def api_chat_send():
                 'timestamp': sentiment_analysis.get('timestamp')
             }, ensure_ascii=False)
 
-        # Inicializar triage_id para evitar erro de variável não definida
-        triage_id = None
-        # Atualizar o nível de risco inicial da sessão se necessário
+        # Atualizar o maior nível de risco detectado
+        risk_levels = {'low': 1, 'moderate': 2, 'high': 3, 'critical': 4}
         if chat_session.initial_risk_level is None:
             chat_session.initial_risk_level = detected_risk_level
         else:
-            risk_levels = {'low': 1, 'moderate': 2, 'high': 3, 'critical': 4}
             current_level = risk_levels.get(chat_session.initial_risk_level, 1)
             new_level = risk_levels.get(detected_risk_level, 1)
             if new_level > current_level:
                 chat_session.initial_risk_level = detected_risk_level
 
-        # Memória contextual: contar encaminhamentos para triagem nesta sessão
-        triage_count = 0
-        if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
+        # --- Correção 1: Encaminhamento por risco OU pedido explícito de ajuda ---
+        triage_log = None
+        explicit_help_keywords = [
+            'quero ajuda', 'preciso de ajuda', 'quero atendimento', 'quero falar com um profissional',
+            'preciso de atendimento', 'preciso falar com alguém', 'quero suporte', 'me encaminhe', 'me encaminhar', 'encaminhamento', 'quero conversar com profissional'
+        ]
+        user_asked_for_help = any(kw in message_content.lower() for kw in explicit_help_keywords)
+        triage_reason = None
+        triage_level = None
+        # Priorizar risco mais alto
+        if detected_risk_level in ['high', 'critical']:
+            triage_level = detected_risk_level
+            triage_reason = f'Triagem iniciada por risco {detected_risk_level}.'
+        elif user_asked_for_help:
+            triage_level = 'low'
+            triage_reason = 'Triagem iniciada por pedido explícito do usuário.'
+        if triage_level:
+            from app.models.triage import TriageLog, RiskLevel
+            risk_enum_map = {
+                'low': RiskLevel.LOW,
+                'moderate': RiskLevel.MODERATE,
+                'high': RiskLevel.HIGH,
+                'critical': RiskLevel.CRITICAL
+            }
             try:
-                triage_ctx = json.loads(chat_session.triage_context)
-                if isinstance(triage_ctx, dict) and 'triage_events' in triage_ctx:
-                    triage_count = len(triage_ctx['triage_events'])
-            except Exception:
+                triage_log = TriageLog(
+                    user_id=current_user.id,
+                    chat_session_id=chat_session.id,
+                    risk_level=risk_enum_map.get(triage_level, RiskLevel.MODERATE),
+                    confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
+                    trigger_content=message_content[:500],
+                    context_type='chat_message',
+                    suicidal_ideation='suicidal_ideation' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                    self_harm_risk='self_harm' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                    severe_depression='severe_depression' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                    anxiety_disorder='anxiety_panic' in str(sentiment_analysis.get('triggers', [])) if sentiment_analysis else False,
+                    triage_status='initiated'
+                )
+                triage_log.emotional_state = sentiment_analysis.get('emotion', 'Análise em andamento') if sentiment_analysis else 'A avaliar'
+                triage_log.notes = triage_reason
+                db.session.add(triage_log)
+                db.session.flush()
+                session['triage_id'] = triage_log.id
+                chat_session.triage_triggered = True
+                chat_session.triage_status = 'initiated'
+                db.session.flush()
+            except Exception as e:
                 pass
 
-        # Detectar perguntas objetivas do usuário
-        pergunta_num_encaminhamentos = any(
-            p in message_content.lower() for p in [
-                'quantas vezes', 'quantas vezes vc me encaminhou', 'quantas vezes fui encaminhado', 'quantas vezes você me encaminhou', 'vc tem um numero', 'você tem um número']
-        )
-        pergunta_problema = any(
-            p in message_content.lower() for p in [
-                'qual era o meu problema', 'qual era meu problema', 'qual meu problema', 'qual era o motivo']
-        )
-        pergunta_contato = any(
-            p in message_content.lower() for p in [
-                'contato de emergência', 'telefone de emergência', 'cvv', 'preciso de ajuda urgente']
-        )
-
-        # Preparar contexto do usuário
-        user_context = {
-            'name': getattr(current_user, 'first_name', ''),
-            'triage_triggered': getattr(chat_session, 'triage_triggered', False),
-            'triage_status': getattr(chat_session, 'triage_status', None),
-            'triage_declined_reason': getattr(chat_session, 'triage_declined_reason', None),
-            'triage_count': triage_count
-        }
-
-        # Buscar histórico de mensagens para contexto
+        # --- Correção 2: Memória contextual ---
         from app.models import ChatMessage
         conversation_history = db.session.query(ChatMessage).filter_by(
             session_id=chat_session.id
-        ).order_by(ChatMessage.created_at.asc()).limit(10).all()
+        ).order_by(ChatMessage.created_at.asc()).limit(20).all()
         history_list = []
         for msg in conversation_history:
             history_list.append({
@@ -175,238 +193,229 @@ def api_chat_send():
                 'message_type': msg.message_type.value if hasattr(msg.message_type, 'value') else msg.message_type,
                 'created_at': msg.created_at.isoformat()
             })
+        # history_list agora é passado para o serviço de IA como contexto
 
-        # Resposta personalizada para perguntas objetivas
-        def limitar_resposta(texto, limite=220):
-            if texto and len(texto) > limite:
-                # Cortar no final da frase mais próxima
-                corte = texto[:limite]
-                for sep in ['.', '?', '!']:
-                    idx = corte.rfind(sep)
-                    if idx != -1 and idx > 50:
-                        return corte[:idx+1].rstrip()
-                return corte.rstrip() + '...'
-            return texto
+        # --- Correção 3: Respostas menos genéricas ---
+        def get_varied_response(risk, user_name, last_user_message):
+            # Respostas curtas e acolhedoras
+            if risk == 'critical':
+                return f"{user_name}, sua segurança é prioridade. Recomendo buscar ajuda profissional agora. CVV: 188. Estou aqui para te ouvir."  # 2 frases
+            elif risk == 'high':
+                return f"{user_name}, entendo que está difícil. Falar com um profissional pode ajudar. Quer conversar mais sobre isso?"  # 2 frases
+            elif risk == 'moderate':
+                return f"{user_name}, vejo que está passando por desafios. O que tem te ajudado? Conte comigo."  # 2 frases
+            else:
+                return f"Olá {user_name}! Como você está?"  # 1 frase
 
-        # Detectar solicitação explícita de encaminhamento
-        solicitacao_encaminhamento = any(
-            p in message_content.lower() for p in [
-                'quero atendimento', 'quero ajuda', 'preciso de atendimento', 'preciso de ajuda', 'me encaminhe', 'encaminhamento', 'falar com profissional', 'falar com alguém']
-        )
+        # --- Correção 4: Reconhecimento de perguntas objetivas ---
+        def check_objective_question(message, history):
+            # Exemplo: quantas vezes fui encaminhado para triagem
+            # Contar encaminhamentos reais para triagem (mensagens da IA que sugerem/provocam encaminhamento)
+            triage_keywords = ['encaminhei para triagem', 'triagem emergencial', 'profissional de saúde', 'CVV', 'SAMU', 'encaminhar para ajuda profissional']
+            triage_count = 0
+            for msg in history:
+                if msg['message_type'] == 'ai' and any(kw in msg['content'].lower() for kw in triage_keywords):
+                    triage_count += 1
+            if 'quantas vezes' in message and 'triagem' in message:
+                return f"Você foi encaminhado para triagem {triage_count} vez(es) nesta conversa."  # resposta direta
+            if 'número' in message and 'triagem' in message:
+                return f"Foram {triage_count} encaminhamentos para triagem."  # resposta direta
+            # Recuperar último relato de problema do usuário
+            if 'qual era o meu problema' in message:
+                problem_keywords = ['terminei', 'perdi', 'morreu', 'sofrendo', 'ansioso', 'depressão', 'solidão', 'relacionamento', 'triste', 'doente', 'demitido', 'separação', 'divórcio', 'abandono', 'medo', 'pânico', 'quero me machucar', 'quero morrer']
+                for msg in reversed(history):
+                    if msg['message_type'] == 'user' and any(kw in msg['content'].lower() for kw in problem_keywords):
+                        return f"Seu relato mais recente foi: '{msg['content']}'. Se quiser falar mais sobre isso, estou aqui para te ouvir."
+                # fallback: última mensagem longa do usuário
+                for msg in reversed(history):
+                    if msg['message_type'] == 'user' and len(msg['content']) > 10:
+                        return f"Você relatou: '{msg['content']}.'"
+            return None
 
-        # Personalização contextual: reconhecer mudança de decisão
-        mudou_de_ideia = False
-        if hasattr(chat_session, 'triage_status') and chat_session.triage_status == 'declined' and solicitacao_encaminhamento:
-            mudou_de_ideia = True
+        # --- Correção 5: Empatia situacional ---
+        def get_situational_empathy(message):
+            if 'relacionamento' in message or 'sozinho' in message:
+                return "Sinto muito pelo término. Sentir-se sozinho é normal, mas você não está só. Conte comigo."  # 2 frases
+            return None
 
-        # Referenciar histórico de perda
-        historico_perda = None
-        for msg in history_list:
-            if 'perdi minha familia' in msg['content'].lower() or 'eles se foram' in msg['content'].lower():
-                historico_perda = msg['content']
+        # --- Correção 6: Explorar sentimento do usuário ---
+        def explore_feelings(message):
+            return "Como você está se sentindo?"  # 1 frase
 
-        if pergunta_num_encaminhamentos:
-            resposta = f"Durante esta sessão, você foi encaminhado para triagem {triage_count} vez(es). Se quiser conversar sobre isso, estou aqui para te ouvir."
-            resposta = limitar_resposta(resposta)
-        elif pergunta_problema:
-            problema = None
-            for msg in history_list:
-                if msg['message_type'] == 'user':
-                    problema = msg['content']
-            resposta = f"Você relatou: '{problema}'" if problema else "Não encontrei um relato específico, mas estou aqui para te apoiar."
-            resposta = limitar_resposta(resposta)
-        elif pergunta_contato:
-            resposta = "Se você precisa de ajuda urgente, pode ligar para o CVV (Centro de Valorização da Vida) no número 188. O serviço é gratuito e funciona 24h."
-            resposta = limitar_resposta(resposta)
-        elif solicitacao_encaminhamento:
-            # Sempre encaminhar para triagem se o usuário pedir explicitamente, independentemente do histórico
-            resposta = "Entendi seu pedido. Vou te encaminhar para um profissional agora mesmo. Aguarde um momento, por favor."
-            resposta = limitar_resposta(resposta)
-            requires_triage = True
-            # Registrar evento de triagem na memória contextual (sempre adiciona)
-            triage_ctx = {}
-            if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
-                try:
-                    triage_ctx = json.loads(chat_session.triage_context)
-                except Exception:
-                    triage_ctx = {}
-            if 'triage_events' not in triage_ctx:
-                triage_ctx['triage_events'] = []
-            triage_ctx['triage_events'].append({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'risk_level': detected_risk_level,
-                'message': message_content,
-                'solicitacao_usuario': True,
-                'forcar_triagem': True
-            })
-            chat_session.triage_context = json.dumps(triage_ctx, ensure_ascii=False)
+        # Preparar resposta da IA
+        user_name = getattr(current_user, 'first_name', '') or 'amigo'
+        objective_answer = check_objective_question(message_content.lower(), history_list)
+        situational_empathy = get_situational_empathy(message_content.lower())
+        varied_response = get_varied_response(detected_risk_level, user_name, message_content)
+        feelings_question = explore_feelings(message_content)
 
-            # Criar registro real em TriageLog
+        # IA disponível
+        if AI_AVAILABLE and ai_service and ai_service.openai_client:
+            user_context = {
+                'name': user_name,
+                'triage_triggered': getattr(chat_session, 'triage_triggered', False),
+                'triage_status': getattr(chat_session, 'triage_status', None),
+                'triage_declined_reason': getattr(chat_session, 'triage_declined_reason', None)
+            }
             try:
-                from app.models.triage import TriageLog, RiskLevel
-                risk_enum_map = {
-                    'low': RiskLevel.LOW,
-                    'moderate': RiskLevel.MODERATE,
-                    'high': RiskLevel.HIGH,
-                    'critical': RiskLevel.CRITICAL
-                }
-                triage_log = TriageLog(
-                    user_id=current_user.id,
-                    chat_session_id=chat_session.id,
-                    risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
-                    confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
-                    trigger_content=message_content[:500],
-                    context_type='chat_message',
-                    triage_status='waiting'
+                ai_response = ai_service.generate_response(
+                    user_message=message_content,
+                    risk_level=detected_risk_level,
+                    user_context=user_context,
+                    conversation_history=history_list
                 )
-                db.session.add(triage_log)
-                db.session.flush()
-                session['triage_id'] = triage_log.id
-                triage_id = triage_log.id
-            except Exception as e:
-                import traceback
-                current_app.logger.error(f'Erro ao criar TriageLog por solicitação do usuário: {str(e)}')
-                current_app.logger.error(traceback.format_exc())
-                # Tentar buscar o último TriageLog criado para esta sessão e usuário
-                try:
-                    from app.models.triage import TriageLog
-                    triage_log = TriageLog.query.filter_by(user_id=current_user.id, chat_session_id=chat_session.id).order_by(TriageLog.id.desc()).first()
-                    triage_id = triage_log.id if triage_log else None
-                except Exception as e2:
-                    current_app.logger.error(f'Falha ao buscar TriageLog após erro: {str(e2)}')
-                    triage_id = None
+                response_text = ai_response['message']
+            except Exception:
+                response_text = None
         else:
-            # Chamar IA para resposta empática e variada
-            resposta = None
-            if AI_AVAILABLE and ai_service and ai_service.openai_client:
-                try:
-                    ai_response = ai_service.generate_response(
-                        user_message=message_content,
-                        risk_level=detected_risk_level,
-                        user_context=user_context,
-                        conversation_history=history_list
-                    )
-                    resposta = ai_response['message']
-                except Exception:
-                    resposta = None
-            # Fallback manual se IA indisponível ou erro
-            if not resposta:
-                frases_variadas = []
-                if mudou_de_ideia:
-                    frases_variadas.append("Fico feliz que tenha decidido buscar ajuda agora! Vou te encaminhar para um profissional, ok?")
-                if historico_perda:
-                    frases_variadas.append(f"Você mencionou que perdeu sua família. Se quiser falar sobre suas lembranças ou sentimentos, estou aqui para ouvir sem julgamentos.")
-                if detected_risk_level == 'critical':
-                    frases_variadas.append("Sinto muito que esteja se sentindo assim. É importante buscar ajuda profissional. Ligue para o CVV no 188. Estou aqui para te apoiar.")
-                elif detected_risk_level == 'high':
-                    frases_variadas.append("Percebo que está passando por um momento difícil. Se quiser conversar, estou aqui para te ouvir. Você não está sozinho(a).")
-                elif detected_risk_level == 'moderate':
-                    frases_variadas.append("Entendo que está enfrentando desafios. Quer compartilhar mais sobre como está se sentindo?")
-                # Explorar sentimentos
-                frases_variadas.append("Como você está lidando com tudo isso?")
-                frases_variadas.append("Se quiser compartilhar como está, pode contar comigo.")
-                frases_variadas.append("Lembre-se: seus sentimentos são importantes.")
-                resposta = random.choice(frases_variadas)
-            resposta = limitar_resposta(resposta)
+            response_text = None
 
-        # Evitar encaminhamento repetitivo: só sugerir triagem se risco for moderado/alto/crítico e não sugerir se já foi sugerido nesta sessão
-        requires_triage = False
-        if detected_risk_level in ['moderate', 'high', 'critical'] and triage_count == 0:
-            requires_triage = True
-            # Registrar evento de triagem na memória contextual
-            triage_ctx = {}
-            if hasattr(chat_session, 'triage_context') and chat_session.triage_context:
-                try:
-                    triage_ctx = json.loads(chat_session.triage_context)
-                except Exception:
-                    triage_ctx = {}
-            if 'triage_events' not in triage_ctx:
-                triage_ctx['triage_events'] = []
-            triage_ctx['triage_events'].append({
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'risk_level': detected_risk_level,
-                'message': message_content,
-                'context_type': 'chat_message',
-                'triage_status': 'waiting'
-            })
-            chat_session.triage_context = json.dumps(triage_ctx, ensure_ascii=False)
-            # Criar registro real em TriageLog
-            try:
-                from app.models.triage import TriageLog, RiskLevel
-                risk_enum_map = {
-                    'low': RiskLevel.LOW,
-                    'moderate': RiskLevel.MODERATE,
-                    'high': RiskLevel.HIGH,
-                    'critical': RiskLevel.CRITICAL
-                }
-                triage_log = TriageLog(
-                    user_id=current_user.id,
-                    chat_session_id=chat_session.id,
-                    risk_level=risk_enum_map.get(detected_risk_level, RiskLevel.MODERATE),
-                    confidence_score=sentiment_analysis.get('confidence', 0.5) if sentiment_analysis else 0.5,
-                    trigger_content=message_content[:500],
-                    context_type='chat_message',
-                    triage_status='waiting'
-                )
-                db.session.add(triage_log)
-                db.session.flush()
-                session['triage_id'] = triage_log.id
-                triage_id = triage_log.id
-            except Exception as e:
-                triage_id = None
-
-        db.session.commit()
+        # Montar resposta final considerando correções
+        # Se o usuário pediu ajuda explicitamente, resposta de encaminhamento
+        if user_asked_for_help:
+            final_response = (
+                f"Zé, percebo que você pediu ajuda. Sua segurança é prioridade. Vou te encaminhar para triagem profissional agora.\n"
+                "🆘 Precisa de Ajuda Imediata? Estes contatos estão disponíveis 24 horas:\n"
+                "CVV - Centro de Valorização da Vida\n📞 188\nApoio emocional gratuito 24h\nSAMU\n📞 192\nEmergências médicas\n🏥 Quero Falar com um Profissional\n💬 Continuar Conversando Aqui"
+            )
+        else:
+            final_response = objective_answer or situational_empathy or varied_response
+            # Adicionar pergunta sobre sentimentos se não for pergunta objetiva
+            if not objective_answer:
+                final_response += ' ' + feelings_question
+            # Se IA respondeu, priorizar resposta da IA (mas limitar tamanho)
+            if response_text:
+                frases = response_text.split('.')
+                final_response = '.'.join(frases[:3]).strip()
+                if not final_response.endswith('.'):
+                    final_response += '.'
 
         ai_message = chat_session.add_message(
-            content=resposta,
-            message_type=ChatMessageType.AI,
-            sender_id=None
+            content=final_response,
+            message_type=ChatMessageType.AI
         )
-
-        if ai_message is None:
-            current_app.logger.error('Falha ao criar mensagem da IA: add_message retornou None')
-            return jsonify({'success': False, 'error': 'Erro ao registrar resposta da IA. Tente novamente.'}), 500
-
-        # Se foi solicitação explícita de atendimento, garantir requires_triage=True e triage_id preenchido
-        risk_assessment = {
-            'risk_level': detected_risk_level,
-            'requires_triage': requires_triage,
-            'triage_count': triage_count,
-            'triage_id': triage_id if requires_triage else None
-        }
-        if solicitacao_encaminhamento:
-            risk_assessment['requires_triage'] = True
-            risk_assessment['triage_id'] = triage_id
+        db.session.commit()
 
         response_data = {
             'success': True,
-            'message': resposta,
-            'session_id': chat_session.id,
-            'ai_message': {
-                'id': ai_message.id,
-                'timestamp': ai_message.created_at.isoformat() if ai_message.created_at else None,
-                'sender_type': 'ai'
+            'user_message': {
+                'content': message_content,
+                'timestamp': user_message.created_at.isoformat(),
+                'sender_type': 'user'
             },
             'ai_response': {
-                'content': resposta
+                'content': final_response,
+                'timestamp': ai_message.created_at.isoformat(),
+                'sender_type': 'ai'
             },
-            'risk_assessment': risk_assessment
+            'risk_assessment': {
+                'risk_level': detected_risk_level,
+                'requires_triage': detected_risk_level in ['high', 'critical'] or user_asked_for_help,
+                'triage_id': triage_log.id if triage_log else None
+            }
         }
-        # Logar resposta detalhada quando triagem for solicitada ou requerida
-        if requires_triage or solicitacao_encaminhamento:
-            import pprint
-            current_app.logger.info('[DEBUG-TRIAGEM] Resposta enviada ao frontend:')
-            current_app.logger.info(pprint.pformat(response_data))
         return jsonify(response_data)
     except Exception as e:
-        import traceback
-        current_app.logger.error(f'Erro interno em api_chat_send: {str(e)}')
-        current_app.logger.error(traceback.format_exc())
+        current_app.logger.error(f"Erro ao processar mensagem: {str(e)}")
+        db.session.rollback()
         return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
 
-    # Garante que sempre haja um retorno válido
-    return jsonify({'success': False, 'error': 'Erro inesperado: nenhum retorno gerado.'}), 500
 
+
+# Endpoint padronizado para recuperar histórico de mensagens
+@chat.route('/api/chat/receive', methods=['GET'])
+@login_required
+def api_chat_receive():
+    """Recuperar histórico de mensagens - OTIMIZADO"""
+    session_id = request.args.get('session_id', type=int)
+    limit = request.args.get('limit', default=50, type=int)  # Limitar mensagens
+    offset = request.args.get('offset', default=0, type=int)
+    
+    if not session_id:
+        return jsonify({'success': False, 'error': 'ID da sessão é obrigatório'}), 400
+    
+    # Limitar o número máximo de mensagens para evitar sobrecarga
+    limit = min(limit, 100)  # Máximo 100 mensagens por request
+    
+    try:
+        chat_session = ChatSession.query.filter_by(
+            id=session_id, 
+            user_id=current_user.id
+        ).first()
+        
+        if not chat_session:
+            return jsonify({'success': False, 'error': 'Sessão não encontrada'}), 404
+        
+        # OTIMIZAÇÃO: Usar método paginado
+        messages = chat_session.get_messages(limit=limit, offset=offset)
+        
+        # Se não houver mensagens, adiciona mensagem de boas-vindas temporária
+        if not messages and offset == 0:
+            messages = [{
+                'id': 0,
+                'session_id': chat_session.id,
+                'sender_id': None,
+                'content': 'Olá! Sou seu assistente de apoio emocional. Como você está se sentindo hoje?',
+                'message_type': 'ai',
+                'sentiment_score': None,
+                'ai_model_used': None,
+                'ai_confidence': None,
+                'processing_time_ms': None,
+                'created_at': chat_session.started_at.isoformat() if chat_session.started_at else None,
+                'is_anonymized': False
+            }]
+        
+        return jsonify({
+            'success': True, 
+            'messages': messages,
+            'total_messages': chat_session.message_count,
+            'has_more': (offset + len(messages)) < chat_session.message_count
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao buscar mensagens: {str(e)}")
+        return jsonify({'success': False, 'error': f'Erro interno: {str(e)}'}), 500
+
+
+@chat.route('/end-session/<int:session_id>', methods=['POST'])
+@login_required
+def end_session(session_id):
+    """Finalizar sessão de chat"""
+    from app.models import ChatSessionStatus, ChatMessageType
+    try:
+        chat_session = ChatSession.query.filter_by(
+            id=session_id,
+            user_id=current_user.id,
+            status=ChatSessionStatus.ACTIVE.value
+        ).first()
+        if not chat_session:
+            return jsonify({
+                'success': False,
+                'error': 'Sessão não encontrada ou já finalizada'
+            }), 404
+        # Finalizar sessão
+        chat_session.status = ChatSessionStatus.COMPLETED.value
+        chat_session.ended_at = datetime.now(timezone.utc)
+        chat_session.calculate_duration()
+        # Adicionar mensagem de despedida
+        farewell_text = "Obrigado por conversar comigo hoje. Cuide-se bem e lembre-se: você nunca está sozinho(a)."
+        chat_session.add_message(
+            content=farewell_text,
+            message_type=ChatMessageType.AI
+        )
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Sessão finalizada com sucesso',
+            'duration_minutes': chat_session.duration_minutes
+        })
+    except Exception as e:
+        current_app.logger.error(f"Erro ao finalizar sessão: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
 @chat.route('/sessions')
 @login_required
 def user_sessions():
