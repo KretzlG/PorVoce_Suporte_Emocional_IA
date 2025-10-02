@@ -870,147 +870,7 @@ class AIService:
 
         # RESPOSTAS INTELIGENTES SOBRE O HISTÓRICO E CONTEXTO COMPLETO
         user_message_lower = user_message.lower()
-        if conversation_history:
-            # Analisar últimas 5 recebidas (AI) e 5 enviadas (usuário)
-            user_msgs = [msg for msg in conversation_history if msg['message_type'] == 'user'][-5:]
-            ai_msgs = [msg for msg in conversation_history if msg['message_type'] == 'ai'][-5:]
 
-
-            # Qual foi a minha primeira mensagem?
-            if 'primeira msg' in user_message_lower or 'primeira mensagem' in user_message_lower:
-                rag_context = None
-                rag_result = None
-                if self.rag_enabled:
-                    try:
-                        rag_result = self.advanced_rag.get_enhanced_context(
-                            user_message,
-                            risk_level,
-                            context_type='history',
-                            limit=3
-                        )
-                        rag_context = rag_result.get('context_prompt', '')
-                        print(f"[RAG] Primeira mensagem - context_prompt: {rag_context}")
-                        print(f"[RAG] Primeira mensagem - training_data: {rag_result.get('training_data', [])}")
-                        print(f"[RAG] Primeira mensagem - conversation_examples: {rag_result.get('conversation_examples', [])}")
-                    except Exception as e:
-                        logger.warning(f"Erro no RAG para primeira mensagem: {e}")
-                if user_msgs:
-                    mensagem = f"Sua primeira mensagem analisada foi: '{user_msgs[0]['content']}'. "
-                    if rag_context:
-                        mensagem += f"\n\nContexto adicional: {rag_context}"
-                    mensagem += "\nGostaria de compartilhar o que estava sentindo naquele momento? Como isso te impactou?"
-                    return {
-                        'message': mensagem,
-                        'risk_level': risk_level,
-                        'confidence': 1.0,
-                        'source': 'history_lookup_rag',
-                        'timestamp': datetime.now(UTC).isoformat()
-                    }
-                mensagem = "Não encontrei sua primeira mensagem nas últimas 5 analisadas. Se quiser contar mais sobre como começou sua conversa, estou aqui para te ouvir. O que te motivou a iniciar esse contato?"
-                if rag_context:
-                    mensagem += f"\n\nContexto adicional: {rag_context}"
-                return {
-                    'message': mensagem,
-                    'risk_level': risk_level,
-                    'confidence': 0.5,
-                    'source': 'history_lookup_rag',
-                    'timestamp': datetime.now(UTC).isoformat()
-                }
-            # Qual era o meu problema?
-            if 'qual era o meu problema' in user_message_lower:
-                rag_context = None
-                rag_result = None
-                if self.rag_enabled:
-                    try:
-                        rag_result = self.advanced_rag.get_enhanced_context(
-                            user_message,
-                            risk_level,
-                            context_type='problem',
-                            limit=3
-                        )
-                        rag_context = rag_result.get('context_prompt', '')
-                        print(f"[RAG] Problema - context_prompt: {rag_context}")
-                        print(f"[RAG] Problema - training_data: {rag_result.get('training_data', [])}")
-                        print(f"[RAG] Problema - conversation_examples: {rag_result.get('conversation_examples', [])}")
-                    except Exception as e:
-                        logger.warning(f"Erro no RAG para problema: {e}")
-                problemas = [msg['content'] for msg in user_msgs if any(palavra in msg['content'].lower() for palavra in ['perdi', 'sofrimento', 'dor', 'sozinho', 'triste', 'família', 'solidão', 'abandono', 'perda'])]
-                if problemas:
-                    mensagem = f"Percebo que um dos principais problemas que você compartilhou nas últimas mensagens foi: '{problemas[0]}'. "
-                    if rag_context:
-                        mensagem += f"\n\nContexto adicional: {rag_context}"
-                    mensagem += "\nSe quiser conversar mais sobre isso, estou aqui para te ouvir. O que tem passado pela sua cabeça desde então? Como tem lidado com esses sentimentos? Existe algo que tem te ajudado ou dificultado?"
-                    return {
-                        'message': mensagem,
-                        'risk_level': risk_level,
-                        'confidence': 1.0,
-                        'source': 'history_lookup_contextual_rag',
-                        'timestamp': datetime.now(UTC).isoformat()
-                    }
-                # Fallback para último relato
-                for msg in reversed(user_msgs):
-                    if not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
-                        mensagem = f"Seu último relato de problema analisado foi: '{msg['content']}'. "
-                        if rag_context:
-                            mensagem += f"\n\nContexto adicional: {rag_context}"
-                        mensagem += "\nSe quiser compartilhar mais sobre como isso te afeta, estou aqui para te ouvir. O que mudou para você desde então? Como tem se sentido?"
-                        return {
-                            'message': mensagem,
-                            'risk_level': risk_level,
-                            'confidence': 1.0,
-                            'source': 'history_lookup_rag',
-                            'timestamp': datetime.now(UTC).isoformat()
-                        }
-                mensagem = "Não encontrei um relato de problema nas últimas mensagens. Se quiser compartilhar mais sobre o que está sentindo, estou aqui para te ouvir. O que está passando pela sua cabeça agora? Existe algo que gostaria de entender melhor sobre seus sentimentos?"
-                if rag_context:
-                    mensagem += f"\n\nContexto adicional: {rag_context}"
-                return {
-                    'message': mensagem,
-                    'risk_level': risk_level,
-                    'confidence': 0.5,
-                    'source': 'history_lookup_rag',
-                    'timestamp': datetime.now(UTC).isoformat()
-                }
-            # Qual foi a minha segunda mensagem?
-            if 'segunda msg' in user_message_lower or 'segunda mensagem' in user_message_lower:
-                rag_context = None
-                rag_result = None
-                if self.rag_enabled:
-                    try:
-                        rag_result = self.advanced_rag.get_enhanced_context(
-                            user_message,
-                            risk_level,
-                            context_type='history',
-                            limit=3
-                        )
-                        rag_context = rag_result.get('context_prompt', '')
-                        print(f"[RAG] Segunda mensagem - context_prompt: {rag_context}")
-                        print(f"[RAG] Segunda mensagem - training_data: {rag_result.get('training_data', [])}")
-                        print(f"[RAG] Segunda mensagem - conversation_examples: {rag_result.get('conversation_examples', [])}")
-                    except Exception as e:
-                        logger.warning(f"Erro no RAG para segunda mensagem: {e}")
-                if len(user_msgs) >= 2:
-                    mensagem = f"Sua segunda mensagem analisada foi: '{user_msgs[1]['content']}'. "
-                    if rag_context:
-                        mensagem += f"\n\nContexto adicional: {rag_context}"
-                    mensagem += "\nO que você estava sentindo naquele momento? Quer conversar mais sobre isso? Existe algo que gostaria de compartilhar sobre como se sentiu depois disso?"
-                    return {
-                        'message': mensagem,
-                        'risk_level': risk_level,
-                        'confidence': 1.0,
-                        'source': 'history_lookup_rag',
-                        'timestamp': datetime.now(UTC).isoformat()
-                    }
-                mensagem = "Não encontrei uma segunda mensagem nas últimas analisadas. Se quiser compartilhar mais sobre sua história, estou aqui para te ouvir. O que mais gostaria de contar sobre sua trajetória até aqui?"
-                if rag_context:
-                    mensagem += f"\n\nContexto adicional: {rag_context}"
-                return {
-                    'message': mensagem,
-                    'risk_level': risk_level,
-                    'confidence': 0.5,
-                    'source': 'history_lookup_rag',
-                    'timestamp': datetime.now(UTC).isoformat()
-                }
 
         errors = []
         
@@ -1019,9 +879,10 @@ class AIService:
             
             # 1. Buscar contexto avançado usando RAG
             rag_context = None
+            rag_result = None
             if self.rag_enabled:
                 try:
-                    rag_result = self.advanced_rag.get_enhanced_context(
+                    rag_result = self.rag.get_enhanced_context(
                         user_message, 
                         risk_level, 
                         context_type='all', 
@@ -1030,8 +891,8 @@ class AIService:
                     rag_context = rag_result.get('context_prompt', '')
                     print(f"RAG_CONTEXT: {len(rag_result.get('training_data', []))} dados + {len(rag_result.get('conversation_examples', []))} conversas")
                 except Exception as e:
-                    logger.warning(f"Erro no RAG avançado: {e}")
-            
+                    logger.warning(f"Erro no RAG: {e}")
+
             # 2. Preparar contexto para prompt engineering (incluindo triagem)
             prompt_context = PromptContext(
                 user_message=user_message,
@@ -1039,15 +900,15 @@ class AIService:
                 user_name=user_context.get('name') if user_context else None,
                 session_history=conversation_history,
                 training_context=rag_context,
-                conversation_examples=rag_result.get('conversation_examples', []) if rag_context else None
+                conversation_examples=rag_result.get('conversation_examples', []) if rag_result else None
             )
-            
+
             # 2.1. Adicionar contexto de triagem se disponível
             if user_context:
                 triage_triggered = user_context.get('triage_triggered', False)
                 triage_status = user_context.get('triage_status')
                 triage_declined_reason = user_context.get('triage_declined_reason')
-                
+
                 # Construir contexto de triagem para a IA
                 triage_context_info = ""
                 if triage_triggered:
@@ -1060,260 +921,74 @@ class AIService:
                         triage_context_info = f"\n\nCONTEXTO: O usuário iniciou o processo de triagem psicológica. Apoie e encoraje a continuidade deste processo."
                     elif triage_status == 'completed':
                         triage_context_info = f"\n\nCONTEXTO: O usuário completou a triagem psicológica. Use essas informações para personalizar melhor suas respostas."
-                
+
                 # Adicionar ao contexto de treinamento
                 if triage_context_info and prompt_context.training_context:
                     prompt_context.training_context += triage_context_info
                 elif triage_context_info:
                     prompt_context.training_context = triage_context_info
-            
-            # 3. Tentar OpenAI com prompt engineering avançado
+
+            # 3. Tentar OpenAI consolidado
             if self.openai_client:
                 try:
-                    return self._generate_response_openai_advanced(prompt_context)
+                    prompt_data = self.prompt_manager.build_contextual_prompt(prompt_context, provider='openai')
+                    response = self.openai_client.chat.completions.create(
+                        model=self.openai_model,
+                        messages=prompt_data['messages'],
+                        max_tokens=prompt_data.get('max_tokens', 120),
+                        temperature=prompt_data.get('temperature', 0.7),
+                        presence_penalty=prompt_data.get('presence_penalty', 0),
+                        frequency_penalty=prompt_data.get('frequency_penalty', 0)
+                    )
+                    ai_response = response.choices[0].message.content.strip()
+                    result = {
+                        'message': ai_response,
+                        'risk_level': prompt_context.risk_level.value,
+                        'confidence': 0.95,
+                        'source': 'openai',
+                        'model': self.openai_model,
+                        'rag_used': bool(prompt_context.training_context),
+                        'prompt_engineering': 'consolidated',
+                        'timestamp': datetime.now(UTC).isoformat(),
+                        'tokens_used': response.usage.total_tokens if hasattr(response, 'usage') else None
+                    }
+                    if prompt_context.training_context:
+                        result['rag_context_length'] = len(prompt_context.training_context)
+                    return result
                 except Exception as e:
-                    errors.append(f"OpenAI avançado: {str(e)}")
-                    logger.warning(f"Falha no OpenAI avançado: {e}")
-            
-            # 4. Tentar Gemini com prompt engineering avançado (fallback)
+                    errors.append(f"OpenAI: {str(e)}")
+                    logger.warning(f"Falha no OpenAI: {e}")
+
+            # 4. Tentar Gemini consolidado (fallback)
             if self.gemini_client and fallback:
                 try:
-                    return self._generate_response_gemini_advanced(prompt_context)
+                    prompt_data = self.prompt_manager.build_contextual_prompt(prompt_context, provider='gemini')
+                    model = self.gemini_client.GenerativeModel(self.gemini_model)
+                    response = model.generate_content(prompt_data['prompt'])
+                    ai_response = response.text.strip()
+                    result = {
+                        'message': ai_response,
+                        'risk_level': prompt_context.risk_level.value,
+                        'confidence': 0.90,
+                        'source': 'gemini',
+                        'rag_used': bool(prompt_context.training_context),
+                        'prompt_engineering': 'consolidated',
+                        'timestamp': datetime.now(UTC).isoformat()
+                    }
+                    if prompt_context.training_context:
+                        result['rag_context_length'] = len(prompt_context.training_context)
+                    return result
                 except Exception as e:
-                    errors.append(f"Gemini avançado: {str(e)}")
-                    logger.warning(f"Falha no Gemini avançado: {e}")
-            
-            # 5. Fallback para sistema antigo
-            print("FALLBACK_TO_OLD: Usando sistema de resposta legado")
-            return self._generate_response_legacy(user_message, risk_level, user_context, conversation_history, errors)
+                    errors.append(f"Gemini: {str(e)}")
+                    logger.warning(f"Falha no Gemini: {e}")
+
+            # 5. Fallback para resposta estática
+            return self._generate_response_fallback(user_message, risk_level, user_context, errors)
             
         except Exception as e:
             logger.error(f"Erro crítico na geração de resposta: {e}")
             return self._generate_response_fallback(user_message, risk_level, user_context, errors + [str(e)])
     
-    def _generate_response_openai_advanced(self, context: PromptContext) -> Dict:
-        """Gera resposta usando OpenAI com sistema avançado e resposta curta"""
-        # Construir prompt usando sistema consolidado
-        prompt_data = self.prompt_manager.build_contextual_prompt(
-            context, provider='openai'
-        )
-        print(f"OPENAI_ADVANCED: Prompt com {len(prompt_data['messages'])} mensagens")
-        # Limite de tokens para resposta curta
-        max_tokens_curto = min(prompt_data.get('max_tokens', 120), 120)
-        response = self.openai_client.chat.completions.create(
-            model=self.openai_model,
-            messages=prompt_data['messages'],
-            max_tokens=max_tokens_curto,
-            temperature=prompt_data['temperature'],
-            presence_penalty=prompt_data.get('presence_penalty', 0),
-            frequency_penalty=prompt_data.get('frequency_penalty', 0)
-        )
-        ai_response = response.choices[0].message.content.strip()
-        # Truncar resposta no final da frase mais próxima
-        def truncar_frase(texto, limite=220):
-            if len(texto) <= limite:
-                return texto
-            corte = texto[:limite]
-            # Procurar o último ponto final, interrogação ou exclamação
-            for sep in ['.', '?', '!']:
-                idx = corte.rfind(sep)
-                if idx != -1 and idx > 50:
-                    return corte[:idx+1].rstrip()
-            return corte.rstrip() + '...'
-        ai_response = truncar_frase(ai_response)
-        training_usage = None
-        result = {
-            'message': ai_response,
-            'risk_level': context.risk_level.value,
-            'confidence': 0.95,
-            'source': 'openai_advanced',
-            'model': self.openai_model,
-            'rag_used': bool(context.training_context),
-            'prompt_engineering': 'advanced',
-            'timestamp': datetime.now(UTC).isoformat(),
-            'tokens_used': response.usage.total_tokens if hasattr(response, 'usage') else None
-        }
-        if training_usage:
-            result['training_usage'] = training_usage
-        if context.training_context:
-            result['rag_context_length'] = len(context.training_context)
-        print(f"OPENAI_SUCCESS: Resposta gerada com {len(ai_response)} caracteres")
-        return result
-    
-    def _generate_response_gemini_advanced(self, context: PromptContext) -> Dict:
-        """Gera resposta usando Gemini com sistema avançado"""
-        
-        # Construir prompt usando sistema consolidado  
-        prompt_data = self.prompt_manager.build_contextual_prompt(
-            context, provider='gemini'
-        )
-        
-        print(f"GEMINI_ADVANCED: Prompt com {len(prompt_data['prompt'])} caracteres")
-        
-        model = self.gemini_client.GenerativeModel(self.gemini_model)
-        response = model.generate_content(prompt_data['prompt'])
-        
-        ai_response = response.text.strip()
-        
-        # Log do uso de dados de treinamento (desabilitado)
-        training_usage = None
-        
-        result = {
-            'message': ai_response,
-            'risk_level': context.risk_level.value,
-            'confidence': 0.90,  # Boa confiança com sistema avançado
-            'source': 'gemini_advanced',
-            'rag_used': bool(context.training_context),
-            'prompt_engineering': 'advanced',
-            'timestamp': datetime.now(UTC).isoformat()
-        }
-        
-        # Adicionar informações de treinamento se disponível
-        if training_usage:
-            result['training_usage'] = training_usage
-        
-        # Adicionar contexto RAG se usado
-        if context.training_context:
-            result['rag_context_length'] = len(context.training_context)
-        
-        print(f"GEMINI_SUCCESS: Resposta gerada com {len(ai_response)} caracteres")
-        return result
-    
-    def _generate_response_legacy(self, user_message: str, risk_level: str, 
-                                 user_context: Optional[Dict], 
-                                 conversation_history: Optional[List],
-                                 errors: List[str]) -> Dict:
-        """Método legado para compatibilidade"""
-        # ...existing code...
-        errors = []
-        user_message_lower = user_message.lower()
-        if conversation_history:
-            # Qual foi a minha primeira mensagem?
-            if 'primeira msg' in user_message_lower or 'primeira mensagem' in user_message_lower:
-                for msg in conversation_history:
-                    if msg['message_type'] == 'user':
-                        return {
-                            'message': f"Sua primeira mensagem foi: '{msg['content']}'",
-                            'risk_level': risk_level,
-                            'confidence': 1.0,
-                            'source': 'history_lookup',
-                            'timestamp': datetime.now(UTC).isoformat()
-                        }
-                return {
-                    'message': "Não encontrei sua primeira mensagem.",
-                    'risk_level': risk_level,
-                    'confidence': 0.5,
-                    'source': 'history_lookup',
-                    'timestamp': datetime.now(UTC).isoformat()
-                }
-            # Qual era o meu problema?
-            if 'qual era o meu problema' in user_message_lower:
-                for msg in reversed(conversation_history):
-                    if msg['message_type'] == 'user' and not any(kw in msg['content'].lower() for kw in ['ajuda', 'profissional', 'encaminhar']):
-                        return {
-                            'message': f"Seu último relato de problema foi: '{msg['content']}'",
-                            'risk_level': risk_level,
-                            'confidence': 1.0,
-                            'source': 'history_lookup',
-                            'timestamp': datetime.now(UTC).isoformat()
-                        }
-                return {
-                    'message': "Não encontrei um relato de problema anterior.",
-                    'risk_level': risk_level,
-                    'confidence': 0.5,
-                    'source': 'history_lookup',
-                    'timestamp': datetime.now(UTC).isoformat()
-                }
-        # ...continuação do método legado...
-        # Fallback final
-        return self._generate_response_fallback(user_message, risk_level, user_context, errors)
-    
-    def _generate_response_openai(self, user_message: str, risk_level: str, 
-                                 user_context: Optional[Dict], 
-                                 conversation_history: Optional[List],
-                                 rag_context: Optional[str]) -> Dict:
-        """Gera resposta usando OpenAI com contexto RAG"""
-        
-        # Verificar se é primeira mensagem
-        is_first_message = not conversation_history or len(conversation_history) == 0
-        
-        # Construir prompt usando o sistema de prompts
-        prompt_data = self.prompt_manager.build_conversation_prompt(
-            user_message=user_message,
-            risk_level=risk_level,
-            provider='openai',
-            user_context=user_context,
-            conversation_history=conversation_history,
-            rag_context=rag_context,
-            is_first_message=is_first_message
-        )
-        
-        # Chamada para OpenAI
-        response = self.openai_client.chat.completions.create(
-            model=self.openai_model,
-            messages=prompt_data['messages'],
-            max_tokens=prompt_data['max_tokens'],
-            temperature=prompt_data['temperature']
-        )
-        
-        ai_response = response.choices[0].message.content.strip()
-        
-        # Log do uso de dados de treinamento (desabilitado)
-        training_usage = None
-        
-        result = {
-            'message': ai_response,
-            'risk_level': risk_level,
-            'confidence': 0.9,
-            'source': 'openai',
-            'model': self.openai_model,
-            'rag_used': bool(rag_context),
-            'timestamp': datetime.now(UTC).isoformat()
-        }
-        
-        # Adicionar informações de treinamento se disponível
-        if training_usage:
-            result['training_usage'] = training_usage
-        
-        return result
-    
-    def _generate_response_gemini(self, user_message: str, risk_level: str, 
-                                 user_context: Optional[Dict],
-                                 rag_context: Optional[str]) -> Dict:
-        """Gera resposta usando Gemini (fallback)"""
-        
-        # Construir prompt usando o sistema de prompts
-        prompt_data = self.prompt_manager.build_conversation_prompt(
-            user_message=user_message,
-            risk_level=risk_level,
-            provider='gemini',
-            user_context=user_context,
-            rag_context=rag_context,
-            is_first_message=True  # Gemini não mantém estado
-        )
-        
-        model = self.gemini_client.GenerativeModel(self.gemini_model)
-        response = model.generate_content(prompt_data['prompt'])
-        
-        ai_response = response.text.strip()
-        
-        # Log do uso de dados de treinamento (desabilitado)
-        training_usage = None
-        
-        result = {
-            'message': ai_response,
-            'risk_level': risk_level,
-            'confidence': 0.85,
-            'source': 'gemini',
-            'rag_used': bool(rag_context),
-            'timestamp': datetime.now(UTC).isoformat()
-        }
-        
-        # Adicionar informações de treinamento se disponível
-        if training_usage:
-            result['training_usage'] = training_usage
-        
-        return result
     
     def _generate_response_fallback(self, user_message: str, risk_level: str, 
                                    user_context: Optional[Dict], 

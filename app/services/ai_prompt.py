@@ -124,24 +124,177 @@ class AIPromptManager:
         """Retorna prompt para análise de sentimento."""
         return self.sentiment_analysis_prompts.get(f'{provider}_system', self.sentiment_analysis_prompts['openai_system'])
     
-    def build_contextual_prompt(self, context: PromptContext, provider: str = 'openai') -> Dict:
-        """Constrói prompt contextualizado baseado no contexto fornecido."""
+    def build_contextual_prompt(self, context: 'PromptContext', therapeutic_approach: 'PromptType') -> dict:
+        """Monta o prompt unificado para o modelo de linguagem, incluindo todas as instruções e contexto."""
         try:
-            therapeutic_approach = self._determine_therapeutic_approach(context)
-            prompt_sections = self._build_prompt_sections(context, therapeutic_approach)
+            prompt = (
+                "Você é um agente de suporte emocional, especialista em acolhimento, escuta ativa e intervenção em situações de sofrimento psíquico, risco emocional e crise. Sua missão é oferecer apoio humano, empático e seguro, seguindo as melhores práticas de saúde mental e sempre respeitando o contexto do usuário.\n\n"
+                "Diretrizes de apoio emocional:\n"
+                "- Escute sem julgar.\n"
+                "- Valide os sentimentos do amigo. Diga: 'Você não está sozinho, vamos buscar ajuda juntos.'\n"
+                "\nSinais de alerta:\n"
+                "- Se afastar dos amigos e da família.\n"
+                "- Perder o interesse por coisas que antes gostava.\n"
+                "- Ficar desmotivado, descuidar da aparência.\n"
+                "- Falar frases como: 'quero sumir', 'não aguento mais'.\n"
+                "- Súbito de 'calma' após profunda tristeza.\n"
+                "- Despreocupação com autocuidado.\n"
+                "\nSituações de risco:\n"
+                "- Ter tentado se machucar antes.\n"
+                "- Passar por perdas, doenças ou situações muito difíceis.\n"
+                "- Sofrer com ansiedade, depressão ou outros transtornos.\n"
+                "- Sentir-se sozinho, sem apoio ou sofrer discriminação.\n"
+            )
+
+            # SISTEMA BASE
+            prompt += f"\n\n{self.prompt_templates['system_base']}"
+
+            # Adaptação por risco
+            risk_adaptation = self.risk_adaptations[context.risk_level]
+            prompt += f"\n\nNÍVEL DE RISCO: {context.risk_level.value.upper()}\nTom da resposta: {risk_adaptation['tone']}\nFoco principal: {risk_adaptation['focus']}\nSugestões prioritárias: {', '.join(risk_adaptation['suggestions'])}"
+
+            # Estratégia terapêutica
+            strategy = self.therapeutic_strategies[therapeutic_approach]
+            prompt += f"\n\nABORDAGEM TERAPÊUTICA: {therapeutic_approach.value}\nFoco: {strategy['focus']}\nTécnicas: {', '.join(strategy['techniques'])}\nFrases úteis para incorporar:\n"
+            prompt += '\n'.join(['- ' + phrase for phrase in strategy['phrases']])
+
+            # Protocolo de crise
+            if context.risk_level == RiskLevel.CRITICAL:
+                prompt += f"\n\n{self.prompt_templates['risk_critical']}"
+
+            # Dados de treinamento
             if context.training_context:
-                prompt_sections['training_integration'] = self._integrate_training_data(context.training_context, context.risk_level)
+                prompt += f"\n\n=== CONHECIMENTO ESPECIALIZADO RELEVANTE ===\n{context.training_context}\nINSTRUÇÕES: Use este conhecimento como base científica para sua resposta. Adapte as informações para o contexto do usuário."
+
+            # Exemplos de conversas
             if context.conversation_examples:
-                prompt_sections['conversation_examples'] = self._format_conversation_examples(context.conversation_examples, context.risk_level)
-            if provider == 'openai':
-                return self._build_openai_prompt(prompt_sections, context)
-            elif provider == 'gemini':
-                return self._build_gemini_prompt(prompt_sections, context)
-            else:
-                return self._build_generic_prompt(prompt_sections, context)
+                prompt += "\n\n=== EXEMPLOS DE RESPOSTAS EFICAZES ==="
+                for i, example in enumerate(context.conversation_examples[:2], 1):
+                    rating = "⭐" * int(example.get('rating', 3))
+                    prompt += f"\n💬 Exemplo {i} ({rating}):\nSituação: {example.get('user_message', '')}\nResposta eficaz: {example.get('ai_response', '')}\nPor que funcionou: Abordagem {example.get('risk_level', 'adequada')} para o contexto"
+                prompt += "\nInspire-se, mas personalize para o caso atual."
+
+            # Contexto do usuário
+            context_info = []
+            if context.user_name:
+                context_info.append(f"Nome do usuário: {context.user_name}")
+            if context.emotional_state:
+                context_info.append(f"Estado emocional identificado: {context.emotional_state}")
+            if context.dominant_themes:
+                context_info.append(f"Temas principais: {', '.join(context.dominant_themes)}")
+            if context_info:
+                prompt += "\n\nCONTEXTO DO USUÁRIO:\n" + "\n".join(context_info)
+
+            # Instruções finais
+            prompt += ("\n\nINSTRUÇÕES FINAIS:\n"
+                "1. Responda de forma calorosa e humana\n"
+                "2. Use no máximo 200-300 palavras\n"
+                "3. Ofereça pelo menos uma sugestão prática\n"
+                "4. Termine com uma pergunta aberta ou convite para continuar a conversa\n"
+                "5. Se risco alto/crítico, SEMPRE mencione recursos profissionais\n")
+
+            # Histórico da conversa (opcional)
+            history = ""
+            if context.session_history:
+                history_msgs = []
+                for msg in context.session_history[-6:]:
+                    if msg.get('role') in ['user', 'assistant']:
+                        history_msgs.append(f"[{msg['role']}]: {msg['content']}")
+                if history_msgs:
+                    history = "\n\nHISTÓRICO RECENTE:\n" + "\n".join(history_msgs)
+            prompt += history
+
+            # Mensagem do usuário
+            prompt += f"\n\nMENSAGEM DO USUÁRIO:\n{context.user_message}"
+
+            # Parâmetros
+            max_tokens = 400 if context.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL] else 300
+            temperature = 0.7
+
+            # Retorno unificado
+            return {
+                'prompt': prompt,
+                'max_tokens': max_tokens,
+                'temperature': temperature
+            }
         except Exception as e:
-            logger.error(f"Erro na construção do prompt: {e}")
-            return self._build_fallback_prompt(context, provider)
+            logger.error(f"Erro na construção do prompt unificado: {e}")
+            return {'prompt': 'Erro ao construir prompt.', 'max_tokens': 200, 'temperature': 0.7}
+
+            # SISTEMA BASE
+            prompt += f"\n\n{self.prompt_templates['system_base']}"
+
+            # Adaptação por risco
+            risk_adaptation = self.risk_adaptations[context.risk_level]
+            prompt += f"\n\nNÍVEL DE RISCO: {context.risk_level.value.upper()}\nTom da resposta: {risk_adaptation['tone']}\nFoco principal: {risk_adaptation['focus']}\nSugestões prioritárias: {', '.join(risk_adaptation['suggestions'])}"
+
+            # Estratégia terapêutica
+            strategy = self.therapeutic_strategies[therapeutic_approach]
+            prompt += f"\n\nABORDAGEM TERAPÊUTICA: {therapeutic_approach.value}\nFoco: {strategy['focus']}\nTécnicas: {', '.join(strategy['techniques'])}\nFrases úteis para incorporar:\n"
+            prompt += '\n'.join(['- ' + phrase for phrase in strategy['phrases']])
+
+            # Protocolo de crise
+            if context.risk_level == RiskLevel.CRITICAL:
+                prompt += f"\n\n{self.prompt_templates['risk_critical']}"
+
+            # Dados de treinamento
+            if context.training_context:
+                prompt += f"\n\n=== CONHECIMENTO ESPECIALIZADO RELEVANTE ===\n{context.training_context}\nINSTRUÇÕES: Use este conhecimento como base científica para sua resposta. Adapte as informações para o contexto do usuário."
+
+            # Exemplos de conversas
+            if context.conversation_examples:
+                prompt += "\n\n=== EXEMPLOS DE RESPOSTAS EFICAZES ==="
+                for i, example in enumerate(context.conversation_examples[:2], 1):
+                    rating = "⭐" * int(example.get('rating', 3))
+                    prompt += f"\n💬 Exemplo {i} ({rating}):\nSituação: {example.get('user_message', '')}\nResposta eficaz: {example.get('ai_response', '')}\nPor que funcionou: Abordagem {example.get('risk_level', 'adequada')} para o contexto"
+                prompt += "\nInspire-se, mas personalize para o caso atual."
+
+            # Contexto do usuário
+            context_info = []
+            if context.user_name:
+                context_info.append(f"Nome do usuário: {context.user_name}")
+            if context.emotional_state:
+                context_info.append(f"Estado emocional identificado: {context.emotional_state}")
+            if context.dominant_themes:
+                context_info.append(f"Temas principais: {', '.join(context.dominant_themes)}")
+            if context_info:
+                prompt += "\n\nCONTEXTO DO USUÁRIO:\n" + "\n".join(context_info)
+
+            # Instruções finais
+            prompt += ("\n\nINSTRUÇÕES FINAIS:\n"
+                "1. Responda de forma calorosa e humana\n"
+                "2. Use no máximo 200-300 palavras\n"
+                "3. Ofereça pelo menos uma sugestão prática\n"
+                "4. Termine com uma pergunta aberta ou convite para continuar a conversa\n"
+                "5. Se risco alto/crítico, SEMPRE mencione recursos profissionais\n")
+
+            # Histórico da conversa (opcional)
+            history = ""
+            if context.session_history:
+                history_msgs = []
+                for msg in context.session_history[-6:]:
+                    if msg.get('role') in ['user', 'assistant']:
+                        history_msgs.append(f"[{msg['role']}]: {msg['content']}")
+                if history_msgs:
+                    history = "\n\nHISTÓRICO RECENTE:\n" + "\n".join(history_msgs)
+            prompt += history
+
+            # Mensagem do usuário
+            prompt += f"\n\nMENSAGEM DO USUÁRIO:\n{context.user_message}"
+
+            # Parâmetros
+            max_tokens = 400 if context.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL] else 300
+            temperature = 0.7
+
+            # Retorno unificado
+            return {
+                'prompt': prompt,
+                'max_tokens': max_tokens,
+                'temperature': temperature
+            }
+        except Exception as e:
+            logger.error(f"Erro na construção do prompt unificado: {e}")
+            return {'prompt': 'Erro ao construir prompt.', 'max_tokens': 200, 'temperature': 0.7}
     
     def build_conversation_prompt(self, user_message: str, risk_level: str, provider: str = 'openai', user_context: Optional[Dict] = None, conversation_history: Optional[List] = None, rag_context: Optional[str] = None, is_first_message: bool = False) -> Dict:
         """Constrói prompt completo para geração de resposta."""
@@ -586,238 +739,7 @@ RECURSOS DE EMERGÊNCIA:
             return PromptType.CRISIS_INTERVENTION
         else:
             return PromptType.EMPATHETIC_RESPONSE
-    
-    def _build_prompt_sections(self, context: PromptContext, 
-                              therapeutic_approach: PromptType) -> Dict:
-        """Constrói seções específicas do prompt"""
-        
-        sections = {}
-        
-        # 1. Sistema base
-        sections['system_base'] = self.prompt_templates['system_base']
-        
-        # 2. Adaptação por risco
-        risk_adaptation = self.risk_adaptations[context.risk_level]
-        sections['risk_adaptation'] = f"""
-NÍVEL DE RISCO: {context.risk_level.value.upper()}
-Tom da resposta: {risk_adaptation['tone']}
-Foco principal: {risk_adaptation['focus']}
-Sugestões prioritárias: {', '.join(risk_adaptation['suggestions'])}
-"""
-        
-        # 3. Estratégia terapêutica
-        strategy = self.therapeutic_strategies[therapeutic_approach]
-        sections['therapeutic_strategy'] = f"""
-ABORDAGEM TERAPÊUTICA: {therapeutic_approach.value}
-Foco: {strategy['focus']}
-Técnicas: {', '.join(strategy['techniques'])}
-
-Frases úteis para incorporar:
-{chr(10).join(['- ' + phrase for phrase in strategy['phrases']])}
-"""
-        
-        # 4. Protocolo específico para risco crítico
-        if context.risk_level == RiskLevel.CRITICAL:
-            sections['crisis_protocol'] = self.prompt_templates['risk_critical']
-        
-        # 5. Contexto do usuário
-        if context.user_name:
-            sections['user_context'] = f"Nome do usuário: {context.user_name}"
-        
-        # 6. Estado emocional se conhecido
-        if context.emotional_state:
-            sections['emotional_context'] = f"Estado emocional identificado: {context.emotional_state}"
-        
-        # 7. Temas dominantes se identificados
-        if context.dominant_themes:
-            sections['themes_context'] = f"Temas principais: {', '.join(context.dominant_themes)}"
-        
-        return sections
-    
-    def _integrate_training_data(self, training_context: str, risk_level: RiskLevel) -> str:
-        """Integra dados de treinamento ao prompt"""
-        
-        integration = f"""
-=== CONHECIMENTO ESPECIALIZADO RELEVANTE ===
-{training_context}
-
-INSTRUÇÕES PARA USO:
-- Use este conhecimento como base científica para sua resposta
-- Adapte as informações para o contexto específico do usuário
-- Mantenha linguagem acessível e não técnica
-- Priorize aspectos mais relevantes para o nível de risco {risk_level.value}
-"""
-        
-        if risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
-            integration += "\n- FOQUE em informações sobre segurança e recursos de emergência"
-        
-        return integration
-    
-    def _format_conversation_examples(self, conversation_examples: List[Dict], 
-                                    risk_level: RiskLevel) -> str:
-        """Formata exemplos de conversas bem-sucedidas"""
-        
-        if not conversation_examples:
-            return ""
-        
-        formatted = "=== EXEMPLOS DE RESPOSTAS EFICAZES ===\\n"
-        
-        for i, example in enumerate(conversation_examples[:2], 1):  # Máximo 2 exemplos
-            rating = "⭐" * int(example.get('rating', 3))
-            formatted += f"""
-💬 Exemplo {i} ({rating}):
-Situação: {example.get('user_message', '')}
-Resposta eficaz: {example.get('ai_response', '')}
-Por que funcionou: Abordagem {example.get('risk_level', 'adequada')} para o contexto
-"""
-        
-        formatted += """
-COMO USAR ESTES EXEMPLOS:
-- Inspire-se no tom e abordagem, mas personalize para o caso atual
-- Note como as respostas eficazes equilibram empatia com orientação prática
-- Adapte o nível de intervenção para o risco identificado
-"""
-        
-        return formatted
-    
-    def _build_openai_prompt(self, sections: Dict, context: PromptContext) -> Dict:
-        """Constrói prompt específico para OpenAI"""
-        
-        # Mensagem do sistema
-        system_parts = [sections['system_base']]
-        
-        if 'crisis_protocol' in sections:
-            system_parts.append(sections['crisis_protocol'])
-        
-        system_parts.append(sections['risk_adaptation'])
-        system_parts.append(sections['therapeutic_strategy'])
-        
-        if 'training_integration' in sections:
-            system_parts.append(sections['training_integration'])
-        
-        if 'conversation_examples' in sections:
-            system_parts.append(sections['conversation_examples'])
-        
-        # Instruções finais
-        system_parts.append("""
-INSTRUÇÕES FINAIS:
-1. Responda de forma calorosa e humana
-2. Use no máximo 200-300 palavras
-3. Ofereça pelo menos uma sugestão prática
-4. Termine com uma pergunta aberta ou convite para continuar a conversa
-5. Se risco alto/crítico, SEMPRE mencione recursos profissionais
-""")
-        
-        # Contexto adicional do usuário
-        if any(k in sections for k in ['user_context', 'emotional_context', 'themes_context']):
-            context_info = []
-            for key in ['user_context', 'emotional_context', 'themes_context']:
-                if key in sections:
-                    context_info.append(sections[key])
-            system_parts.append("CONTEXTO DO USUÁRIO:\\n" + "\\n".join(context_info))
-        
-        # Mensagens
-        messages = [
-            {"role": "system", "content": "\\n\\n".join(system_parts)},
-            {"role": "user", "content": context.user_message}
-        ]
-        
-        # Histórico da conversa se disponível
-        if context.session_history:
-            # Inserir histórico antes da mensagem atual
-            history_messages = []
-            for msg in context.session_history[-6:]:  # Últimas 6 mensagens
-                if msg.get('role') in ['user', 'assistant']:
-                    history_messages.append({
-                        "role": msg['role'],
-                        "content": msg['content']
-                    })
-            
-            messages = [messages[0]] + history_messages + [messages[1]]
-        
-        return {
-            'messages': messages,
-            'max_tokens': 400 if context.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL] else 300,
-            'temperature': 0.7,
-            'presence_penalty': 0.1,
-            'frequency_penalty': 0.1
-        }
-    
-    def _build_gemini_prompt(self, sections: Dict, context: PromptContext) -> Dict:
-        """Constrói prompt específico para Gemini"""
-        
-        prompt_parts = []
-        
-        # Sistema e instruções principais
-        prompt_parts.append(sections['system_base'])
-        prompt_parts.append(sections['risk_adaptation'])
-        prompt_parts.append(sections['therapeutic_strategy'])
-        
-        # Protocolo de crise se necessário
-        if 'crisis_protocol' in sections:
-            prompt_parts.append(sections['crisis_protocol'])
-        
-        # Dados de treinamento
-        if 'training_integration' in sections:
-            prompt_parts.append(sections['training_integration'])
-        
-        # Exemplos de conversas
-        if 'conversation_examples' in sections:
-            prompt_parts.append(sections['conversation_examples'])
-        
-        # Contexto do usuário
-        if any(k in sections for k in ['user_context', 'emotional_context', 'themes_context']):
-            context_info = []
-            for key in ['user_context', 'emotional_context', 'themes_context']:
-                if key in sections:
-                    context_info.append(sections[key])
-            prompt_parts.append("CONTEXTO DO USUÁRIO:\\n" + "\\n".join(context_info))
-        
-        # Mensagem do usuário
-        prompt_parts.append(f"\\nMENSAGEM DO USUÁRIO:\\n{context.user_message}")
-        
-        # Instruções de resposta
-        prompt_parts.append("""
-RESPONDA AGORA:
-- Com empatia e compreensão
-- De forma prática e útil
-- Respeitando o nível de risco identificado
-- Em português brasileiro
-- Com no máximo 250 palavras
-""")
-        
-        return {
-            'prompt': "\\n\\n".join(prompt_parts),
-            'max_tokens': 350,
-            'temperature': 0.7
-        }
-    
-    def _build_generic_prompt(self, sections: Dict, context: PromptContext) -> Dict:
-        """Constrói prompt genérico para outros provedores"""
-        return self._build_gemini_prompt(sections, context)
-    
-    def _build_fallback_prompt(self, context: PromptContext, provider: str) -> Dict:
-        """Constrói prompt de fallback em caso de erro"""
-        
-        fallback_system = f"""Você é um assistente de suporte emocional. 
-Responda com empatia para esta situação de nível de risco {context.risk_level.value}.
-Seja compreensivo, prático e ofereça apoio genuíno."""
-        
-        if provider == 'openai':
-            return {
-                'messages': [
-                    {"role": "system", "content": fallback_system},
-                    {"role": "user", "content": context.user_message}
-                ],
-                'max_tokens': 250,
-                'temperature': 0.7
-            }
-        else:
-            return {
-                'prompt': f"{fallback_system}\\n\\nUsuário: {context.user_message}\\n\\nResposta:",
-                'max_tokens': 250,
-                'temperature': 0.7
-            }
+    # (Bloco de fallback removido após unificação do prompt)
     
     def get_prompt_statistics(self) -> Dict:
         """Retorna estatísticas sobre uso de prompts"""
