@@ -10,7 +10,16 @@ from app.models import User
 from app import db
 import re
 
+
 auth = Blueprint('auth', __name__)
+
+@auth.errorhandler(404)
+def not_found_auth(error):
+    return render_template('errors/404.html'), 404
+
+@auth.errorhandler(500)
+def internal_error_auth(error):
+    return render_template('errors/500.html'), 500
 
 
 def validate_email(email):

@@ -31,6 +31,7 @@ def create_app():
     # Tornar ai_service e AI_AVAILABLE globais
     from app.services.ai_service import AIService
     ai_service = AIService()
+    print(f"[INFO] AIService inicializado | Modelo: {ai_service.openai_model} | Temperatura: {ai_service.temperature}")
     AI_AVAILABLE = ai_service.openai_client is not None
     # Disponibilizar no pacote app
     import sys

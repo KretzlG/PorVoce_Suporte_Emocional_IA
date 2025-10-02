@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Ajuda e Recursos{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2 class="mb-4 text-center">Precisa de ajuda?</h2>
+            <p class="lead text-center">Aqui você encontra contatos de emergência e orientações para situações de crise emocional ou risco.</p>
+
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <strong>Contatos de Emergência</strong>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for contact in emergency_contacts %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ contact.name }}</strong><br>
+                            <small>{{ contact.description }}</small>
+                        </div>
+                        <span class="badge bg-primary fs-5">{{ contact.phone }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="alert alert-warning" role="alert">
+                <strong>Se você ou alguém que você conhece está em risco imediato, ligue para um dos números acima ou procure ajuda presencial imediatamente.</strong>
+            </div>
+
+            <h4 class="mt-4">Dicas de autocuidado</h4>
+            <ul>
+                <li>Converse com alguém de confiança sobre o que está sentindo.</li>
+                <li>Evite tomar decisões importantes em momentos de crise.</li>
+                <li>Busque um local seguro e confortável.</li>
+                <li>Pratique respiração profunda e tente se acalmar.</li>
+                <li>Lembre-se: pedir ajuda é um sinal de força, não de fraqueza.</li>
+            </ul>
+
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-outline-primary">Voltar para a página inicial</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -7,7 +7,16 @@ from app import db
 from app.models.triage import TriageLog, RiskLevel, TriageAction
 from datetime import datetime
 
+
 triage = Blueprint('triage', __name__)
+
+@triage.errorhandler(404)
+def not_found_triage(error):
+    return render_template('errors/404.html'), 404
+
+@triage.errorhandler(500)
+def internal_error_triage(error):
+    return render_template('errors/500.html'), 500
 
 @triage.route('/triage/popup', methods=['POST'])
 @login_required
