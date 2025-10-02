@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Configurações do Sistema{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2 class="mb-4 text-center">Configurações do Sistema</h2>
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <strong>Parâmetros Gerais</strong>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="siteName" class="form-label">Nome do sistema</label>
+                            <input type="text" class="form-control" id="siteName" value="PorVocê - Suporte Emocional" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="supportEmail" class="form-label">E-mail de suporte</label>
+                            <input type="email" class="form-control" id="supportEmail" value="suporte@porvoce.org" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="maintenanceMode" class="form-label">Modo de manutenção</label>
+                            <select class="form-select" id="maintenanceMode" disabled>
+                                <option selected>Desativado</option>
+                                <option>Ativado</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="defaultLanguage" class="form-label">Idioma padrão</label>
+                            <input type="text" class="form-control" id="defaultLanguage" value="Português (Brasil)" disabled>
+                        </div>
+                        <div class="alert alert-info mt-4">
+                            <strong>Configurações avançadas e edição dinâmica podem ser implementadas futuramente.</strong>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="/admin/dashboard" class="btn btn-outline-primary">Voltar para o Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

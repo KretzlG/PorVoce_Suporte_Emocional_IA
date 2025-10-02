@@ -12,7 +12,16 @@ from datetime import datetime
 from datetime import datetime, timezone
 import sqlalchemy as sa
 
+
 volunteer = Blueprint('volunteer', __name__)
+
+@volunteer.errorhandler(404)
+def not_found_volunteer(error):
+    return render_template('errors/404.html'), 404
+
+@volunteer.errorhandler(500)
+def internal_error_volunteer(error):
+    return render_template('errors/500.html'), 500
 
 @volunteer.route('/dashboard')
 @login_required

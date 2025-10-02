@@ -1,0 +1,195 @@
+
+{% extends 'base.html' %}
+{% block title %}Analytics e Relatórios{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <h2 class="mb-4 text-center">Analytics e Relatórios</h2>
+            <div class="row mb-4 g-3">
+                <div class="col-md-3">
+                    <div class="card shadow border-0 text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-person-plus display-5 text-primary"></i>
+                            <div class="h6 mt-2">Usuários Novos</div>
+                            <div class="display-6 fw-bold">{{ daily_stats|sum(attribute='new_users') }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow border-0 text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-chat-dots display-5 text-success"></i>
+                            <div class="h6 mt-2">Sessões Criadas</div>
+                            <div class="display-6 fw-bold">{{ daily_stats|sum(attribute='new_sessions') }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow border-0 text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-exclamation-triangle display-5 text-danger"></i>
+                            <div class="h6 mt-2">Alertas de Risco</div>
+                            <div class="display-6 fw-bold">{{ daily_stats|sum(attribute='risk_alerts') }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow border-0 text-center h-100">
+                        <div class="card-body">
+                            <i class="bi bi-calendar-event display-5 text-secondary"></i>
+                            <div class="h6 mt-2">Período</div>
+                            <div>{{ start_date.strftime('%d/%m/%Y') }} - {{ end_date.strftime('%d/%m/%Y') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="card shadow border-0 h-100">
+                        <div class="card-header bg-info text-white">
+                            Evolução Diária (Gráfico)
+                        </div>
+                        <div class="card-body">
+                            <canvas id="evolucaoChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow border-0 h-100">
+                        <div class="card-header bg-secondary text-white">
+                            Distribuição de Níveis de Risco
+                        </div>
+                        <div class="card-body">
+                            <canvas id="riscoChart" height="220"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow border-0">
+                <div class="card-header bg-light">
+                    <strong>Tabela Detalhada</strong>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Usuários Novos</th>
+                                    <th>Sessões Criadas</th>
+                                    <th>Alertas de Risco</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in daily_stats %}
+                                <tr>
+                                    <td>{% if stat.date %}{{ stat.date[8:10] }}/{{ stat.date[5:7] }}/{{ stat.date[0:4] }}{% else %}{{ stat.date }}{% endif %}</td>
+                                    <td>{{ stat.new_users }}</td>
+                                    <td>{{ stat.new_sessions }}</td>
+                                    <td>{{ stat.risk_alerts }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <a href="/admin/dashboard" class="btn btn-outline-primary">Voltar para o Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dados para gráficos
+const labels = JSON.parse('{{ daily_stats | map(attribute="date") | map("string") | list | tojson | safe }}').map(function(date) {
+    return date ? date.substring(8,10) + '/' + date.substring(5,7) : '';
+});
+const newUsers = JSON.parse('{{ daily_stats | map(attribute="new_users") | list | tojson | safe }}');
+const newSessions = JSON.parse('{{ daily_stats | map(attribute="new_sessions") | list | tojson | safe }}');
+const riskAlerts = JSON.parse('{{ daily_stats | map(attribute="risk_alerts") | list | tojson | safe }}');
+
+const evolucaoChart = new Chart(document.getElementById('evolucaoChart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Usuários Novos',
+                data: newUsers,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 2
+            },
+            {
+                label: 'Sessões Criadas',
+                data: newSessions,
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25,135,84,0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 2
+            },
+            {
+                label: 'Alertas de Risco',
+                data: riskAlerts,
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220,53,69,0.1)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            title: { display: false }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+const riscoLabels = JSON.parse('{{ risk_distribution.keys() | list | tojson | safe }}').map(function(level) {
+    return level.charAt(0).toUpperCase() + level.slice(1);
+});
+const riscoData = JSON.parse('{{ risk_distribution.values() | list | tojson | safe }}');
+const riscoColors = [
+    '#adb5bd', // low
+    '#0dcaf0', // moderate
+    '#ffc107', // high
+    '#dc3545'  // critical
+];
+
+const riscoChart = new Chart(document.getElementById('riscoChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: riscoLabels,
+        datasets: [{
+            data: riscoData,
+            backgroundColor: riscoColors,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'bottom' },
+            title: { display: false }
+        }
+    }
+});
+</script>
+{% endblock %}
