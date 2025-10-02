@@ -14,6 +14,7 @@ def register_all_blueprints(app):
     from .volunteer import volunteer as volunteer_bp
     from .diary import diary as diary_bp
     from .contato import bp_contato
+    from .perfil import perfil_bp
 
     # Registrar blueprints com prefixos apropriados
     app.register_blueprint(main_bp)
@@ -26,6 +27,7 @@ def register_all_blueprints(app):
     app.register_blueprint(volunteer_bp, url_prefix='/volunteer')
     app.register_blueprint(diary_bp)
     app.register_blueprint(bp_contato)
+    app.register_blueprint(perfil_bp)
 
     # Registrar API de treinamento avançada
     register_training_api(app)
