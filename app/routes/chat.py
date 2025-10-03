@@ -141,14 +141,15 @@ def api_chat_send():
         user_asked_for_help = any(kw in message_content.lower() for kw in explicit_help_keywords)
         triage_reason = None
         triage_level = None
-        # Priorizar risco mais alto
+        # Só aciona triagem automática para risco alto/crítico, ou por pedido explícito
         if detected_risk_level in ['high', 'critical']:
             triage_level = detected_risk_level
             triage_reason = f'Triagem iniciada por risco {detected_risk_level}.'
         elif user_asked_for_help:
             triage_level = 'low'
             triage_reason = 'Triagem iniciada por pedido explícito do usuário.'
-        if triage_level:
+        # Só cria log e marca contexto se ainda não foi chamado nesta sessão
+        if triage_level and not getattr(chat_session, 'triage_triggered', False):
             from app.models.triage import TriageLog, RiskLevel
             risk_enum_map = {
                 'low': RiskLevel.LOW,
@@ -180,6 +181,8 @@ def api_chat_send():
                 db.session.flush()
             except Exception as e:
                 pass
+        # Se triagem já foi chamada (ou recusada/completada), nunca perder o contexto
+        # (Não sobrescrever triage_triggered/triage_status se já existe)
 
         # --- Correção 2: Memória contextual ---
         from app.models import ChatMessage
