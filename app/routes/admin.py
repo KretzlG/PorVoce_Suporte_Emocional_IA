@@ -295,28 +295,93 @@ def export_analytics():
 
 
 # API endpoints para dashboard em tempo real
+
+# Novo endpoint expandido para dashboard dinâmico
 @admin.route('/api/dashboard-stats')
 @login_required
 @admin_required
 def api_dashboard_stats():
-    """Estatísticas em tempo real para dashboard"""
-    # Alertas críticos nas últimas 24h
-    yesterday = datetime.utcnow() - timedelta(days=1)
-    critical_alerts_24h = 0
-    
-    # Sessões ativas
-    active_sessions = ChatSession.query.filter_by(status='active').count()
-    
-    # Novos usuários hoje
-    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    new_users_today = User.query.filter(User.created_at >= today).count()
-    
-    return jsonify({
-        'critical_alerts_24h': critical_alerts_24h,
-        'active_sessions': active_sessions,
-        'new_users_today': new_users_today,
-        'timestamp': datetime.utcnow().isoformat()
-    })
+    """Estatísticas completas e dinâmicas para dashboard admin"""
+    from app import db
+    try:
+        # Totais
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+        total_sessions = ChatSession.query.count()
+        # Voluntários (se houver model Volunteer)
+        try:
+            from app.models import Volunteer
+            total_volunteers = Volunteer.query.count()
+            active_volunteers = Volunteer.query.filter_by(status='active').count()
+        except Exception:
+            total_volunteers = 0
+            active_volunteers = 0
+        # Alertas críticos (exemplo: status ou campo de risco)
+        critical_alerts = 0
+        # Crescimento de usuários (últimos 6 meses)
+        growth_labels = []
+        growth_data = []
+        now = datetime.utcnow()
+        for i in range(5, -1, -1):
+            month = (now.replace(day=1) - timedelta(days=30*i))
+            next_month = (month + timedelta(days=32)).replace(day=1)
+            try:
+                count = User.query.filter(User.created_at >= month, User.created_at < next_month).count()
+            except Exception:
+                db.session.rollback()
+                count = 0
+            growth_labels.append(month.strftime('%b'))
+            growth_data.append(count)
+        # Distribuição de risco (exemplo fictício)
+        risk_distribution = {
+            'Baixo': 20,
+            'Médio': 10,
+            'Alto': 3,
+            'Crítico': 1
+        }
+        # Atividades recentes (exemplo: últimas sessões)
+        recent_activities = []
+        try:
+            sessions = ChatSession.query.order_by(ChatSession.started_at.desc()).limit(10).all()
+            for s in sessions:
+                user = User.query.get(s.user_id) if s.user_id else None
+                recent_activities.append({
+                    'user_name': user.first_name if user else 'Desconhecido',
+                    'action': 'Nova conversa',
+                    'timestamp': s.started_at.strftime('%d/%m/%Y %H:%M') if s.started_at else '',
+                    'status_class': 'badge-success' if s.status == 'active' else 'badge-secondary',
+                    'status_label': 'Ativa' if s.status == 'active' else 'Finalizada'
+                })
+        except Exception:
+            db.session.rollback()
+            recent_activities = []
+        # Satisfação e tempo médio de resposta (exemplo fictício)
+        satisfaction_rate = 92
+        avg_response_time = 3
+        resolved_issues = 15
+        return jsonify({
+            'stats': {
+                'total_users': total_users,
+                'active_users': active_users,
+                'total_sessions': total_sessions,
+                'total_volunteers': total_volunteers,
+                'active_volunteers': active_volunteers,
+                'critical_alerts': critical_alerts,
+                'satisfaction_rate': satisfaction_rate,
+                'avg_response_time': avg_response_time,
+                'resolved_issues': resolved_issues
+            },
+            'growth': {
+                'labels': growth_labels,
+                'data': growth_data
+            },
+            'risk_distribution': risk_distribution,
+            'recent_activities': recent_activities,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Erro ao buscar dados do dashboard', 'details': str(e)}), 500
 
 
 # Rotas de gerenciamento de voluntários

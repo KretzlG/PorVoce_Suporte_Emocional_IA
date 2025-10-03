@@ -21,7 +21,7 @@
 					<div class="me-3 display-6 text-primary"><i class="fas fa-users"></i></div>
 					<div>
 						<div class="fs-6 fw-semibold text-uppercase mb-1">Usuários</div>
-						<div class="fs-3 fw-bold" data-counter="{{ stats.total_users|default(0) }}">0</div>
+						<div class="fs-3 fw-bold" data-counter-key="total_users" data-counter="{{ stats.total_users|default(0) }}">0</div>
 						<div class="text-muted small">Cadastrados</div>
 					</div>
 				</div>
@@ -33,7 +33,7 @@
 					<div class="me-3 display-6 text-success"><i class="fas fa-user-friends"></i></div>
 					<div>
 						<div class="fs-6 fw-semibold text-uppercase mb-1">Voluntários</div>
-						<div class="fs-3 fw-bold" data-counter="{{ stats.active_volunteers|default(0) }}">0</div>
+						<div class="fs-3 fw-bold" data-counter-key="active_volunteers" data-counter="{{ stats.active_volunteers|default(0) }}">0</div>
 						<div class="text-muted small">Ativos</div>
 					</div>
 				</div>
@@ -45,7 +45,7 @@
 					<div class="me-3 display-6 text-info"><i class="fas fa-comments"></i></div>
 					<div>
 						<div class="fs-6 fw-semibold text-uppercase mb-1">Conversas</div>
-						<div class="fs-3 fw-bold" data-counter="{{ stats.total_sessions|default(0) }}">0</div>
+						<div class="fs-3 fw-bold" data-counter-key="total_sessions" data-counter="{{ stats.total_sessions|default(0) }}">0</div>
 						<div class="text-muted small">Realizadas</div>
 					</div>
 				</div>
@@ -57,7 +57,7 @@
 					<div class="me-3 display-6 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
 					<div>
 						<div class="fs-6 fw-semibold text-uppercase mb-1">Alertas</div>
-						<div class="fs-3 fw-bold" data-counter="{{ stats.critical_alerts|default(0) }}">0</div>
+						<div class="fs-3 fw-bold" data-counter-key="critical_alerts" data-counter="{{ stats.critical_alerts|default(0) }}">0</div>
 						<div class="text-muted small">Críticos</div>
 					</div>
 				</div>
@@ -91,7 +91,7 @@
 			<div class="card shadow-sm border-0">
 				<div class="card-body">
 					<h6 class="fw-semibold mb-1">Taxa de Satisfação</h6>
-					<div class="fs-2 fw-bold mb-0" data-counter="{{ stats.satisfaction_rate|default(0) }}">0%</div>
+					<div class="fs-2 fw-bold mb-0" data-counter-key="satisfaction_rate" data-counter="{{ stats.satisfaction_rate|default(0) }}">0%</div>
 					<div class="text-muted small">Baseado em feedbacks</div>
 				</div>
 			</div>
@@ -100,7 +100,7 @@
 			<div class="card shadow-sm border-0">
 				<div class="card-body">
 					<h6 class="fw-semibold mb-1">Tempo Médio de Resposta</h6>
-					<div class="fs-2 fw-bold mb-0" data-counter="{{ stats.avg_response_time|default(0) }}">0min</div>
+					<div class="fs-2 fw-bold mb-0" data-counter-key="avg_response_time" data-counter="{{ stats.avg_response_time|default(0) }}">0min</div>
 					<div class="text-muted small">Minutos</div>
 				</div>
 			</div>
@@ -109,7 +109,7 @@
 			<div class="card shadow-sm border-0">
 				<div class="card-body">
 					<h6 class="fw-semibold mb-1">Problemas Resolvidos</h6>
-					<div class="fs-2 fw-bold mb-0" data-counter="{{ stats.resolved_issues|default(0) }}">0</div>
+					<div class="fs-2 fw-bold mb-0" data-counter-key="resolved_issues" data-counter="{{ stats.resolved_issues|default(0) }}">0</div>
 					<div class="text-muted small">No período</div>
 				</div>
 			</div>
@@ -131,7 +131,7 @@
 									<th>Status</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody id="recent-activities-tbody">
 								{% for activity in recent_activities %}
 								<tr>
 									<td>{{ activity.user_name }}</td>

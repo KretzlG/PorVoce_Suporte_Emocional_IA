@@ -101,6 +101,39 @@ class AIPromptManager:
         return fallback_responses.get(risk_level, fallback_responses['low'])
     
     # Métodos de prompt removidos. Toda lógica de prompt está nos arquivos prompts_openai.py e prompts_gemini.py
+
+    def get_sentiment_prompt(self, user_message: str) -> str:
+        """
+        Gera um prompt simples para análise de sentimento da mensagem do usuário.
+        Pode ser customizado para diferentes modelos.
+        """
+        return f"Analise o sentimento da seguinte mensagem do usuário e responda apenas com uma palavra (positivo, negativo ou neutro):\n{user_message}"
+
+    def build_contextual_prompt(self, context: PromptContext, **kwargs) -> dict:
+        """
+        Monta um prompt contextualizado básico para fallback ou integração com outros modelos.
+        Retorna dicionário compatível com uso esperado (mensagens, max_tokens, temperature).
+        """
+        prompt = f"Usuário: {context.user_name or 'Desconhecido'}\n"
+        prompt += f"Mensagem: {context.user_message}\n"
+        prompt += f"Nível de risco: {context.risk_level.value}\n"
+        if context.emotional_state:
+            prompt += f"Estado emocional: {context.emotional_state}\n"
+        if context.dominant_themes:
+            prompt += f"Temas principais: {', '.join(context.dominant_themes)}\n"
+        prompt += "Responda de forma empática, breve e útil."
+
+        # Estrutura compatível com OpenAI/Gemini
+        messages = [
+            {"role": "system", "content": "Você é um agente de suporte emocional. Responda de forma empática, breve e útil."},
+            {"role": "user", "content": prompt}
+        ]
+        return {
+            "messages": messages,
+            "prompt": prompt,
+            "max_tokens": 200,
+            "temperature": 0.7
+        }
     
     # Configurações de provider podem ser movidas para um arquivo utilitário se necessário
     

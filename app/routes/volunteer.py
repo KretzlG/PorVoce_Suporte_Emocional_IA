@@ -1,7 +1,3 @@
-"""
-Rotas do dashboard do voluntário
-"""
-
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
 from flask_login import login_required, current_user
 from app.models import User, Volunteer
@@ -12,6 +8,89 @@ from datetime import datetime
 from datetime import datetime, timezone
 import sqlalchemy as sa
 
+volunteer = Blueprint('volunteer', __name__)
+
+@volunteer.route('/api/dashboard-stats')
+@login_required
+def api_dashboard_stats():
+    """Estatísticas dinâmicas para dashboard do voluntário"""
+    try:
+        stats = {
+            'sessions': 0,
+            'users_helped': 0,
+            'last_session': 'N/A',
+        }
+        recent_activities = []
+        if hasattr(current_user, 'volunteer') and current_user.volunteer:
+            volunteer_id = current_user.volunteer.id
+            # Total de atendimentos
+            stats['sessions'] = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).count()
+            # Usuários únicos atendidos
+            stats['users_helped'] = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).distinct(Chat1a1Session.user_id).count()
+            # Último atendimento
+            last_session = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).order_by(Chat1a1Session.started_at.desc()).first()
+            if last_session and last_session.started_at:
+                stats['last_session'] = last_session.started_at.strftime('%d/%m/%Y %H:%M')
+            # Atividades recentes (últimas sessões)
+            sessions = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).order_by(Chat1a1Session.started_at.desc()).limit(10).all()
+            for s in sessions:
+                user = s.user
+                recent_activities.append(f"Atendimento a {user.first_name if user else 'Usuário'} em {s.started_at.strftime('%d/%m/%Y %H:%M') if s.started_at else ''}")
+        return jsonify({
+            'stats': stats,
+            'recent_activities': recent_activities
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Erro ao buscar dados do dashboard', 'details': str(e)}), 500
+@volunteer.route('/api/dashboard-stats')
+@login_required
+def api_dashboard_stats():
+    """Estatísticas dinâmicas para dashboard do voluntário"""
+    try:
+        stats = {
+            'sessions': 0,
+            'users_helped': 0,
+            'last_session': 'N/A',
+        }
+        recent_activities = []
+        if hasattr(current_user, 'volunteer') and current_user.volunteer:
+            volunteer_id = current_user.volunteer.id
+            # Total de atendimentos
+            stats['sessions'] = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).count()
+            # Usuários únicos atendidos
+            stats['users_helped'] = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).distinct(Chat1a1Session.user_id).count()
+            # Último atendimento
+            last_session = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).order_by(Chat1a1Session.started_at.desc()).first()
+            if last_session and last_session.started_at:
+                stats['last_session'] = last_session.started_at.strftime('%d/%m/%Y %H:%M')
+            # Atividades recentes (últimas sessões)
+            sessions = Chat1a1Session.query.filter_by(volunteer_id=volunteer_id).order_by(Chat1a1Session.started_at.desc()).limit(10).all()
+            for s in sessions:
+                user = s.user
+                recent_activities.append(f"Atendimento a {user.first_name if user else 'Usuário'} em {s.started_at.strftime('%d/%m/%Y %H:%M') if s.started_at else ''}")
+        return jsonify({
+            'stats': stats,
+            'recent_activities': recent_activities
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Erro ao buscar dados do dashboard', 'details': str(e)}), 500
+
+"""
+Rotas do dashboard do voluntário
+"""
+
+
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
+from flask_login import login_required, current_user
+from app.models import User, Volunteer
+from app.models.chat1a1 import Chat1a1Session, Chat1a1Message
+from app.models.triage import TriageLog
+from app import db
+from datetime import datetime
+from datetime import datetime, timezone
+import sqlalchemy as sa
 
 volunteer = Blueprint('volunteer', __name__)
 

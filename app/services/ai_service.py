@@ -65,6 +65,7 @@ class SimpleRAG:
     
     def get_relevant_context(self, user_message: str, risk_level: str = 'low', 
                            limit: int = 3) -> Optional[str]:
+        print(f"[RAG] Buscando contexto para: '{user_message}' | Risco: {risk_level} | Limite: {limit}")
         """
         Busca contexto relevante de conversas bem-sucedidas
         
@@ -80,27 +81,33 @@ class SimpleRAG:
             # Verificar cache primeiro
             cache_key = f"{hash(user_message)}_{risk_level}_{limit}"
             if cache_key in self.cache:
+                print(f"[RAG] Contexto encontrado no cache.")
                 return self.cache[cache_key]
-            
+
             # Extrair palavras-chave da mensagem
             keywords = self._extract_keywords(user_message)
-            
+            print(f"[RAG] Palavras-chave extraídas: {keywords}")
+
             # Buscar conversas similares
             similar_conversations = self._find_similar_conversations(keywords, risk_level, limit * 2)
-            
+            print(f"[RAG] Conversas similares encontradas: {len(similar_conversations)}")
+
             # Ranquear por relevância
             ranked_conversations = self._rank_conversations(similar_conversations, user_message)
-            
+            print(f"[RAG] Conversas ranqueadas: {len(ranked_conversations)}")
+
             # Construir contexto a partir das melhores
             context = self._build_context(ranked_conversations[:limit])
-            
+            print(f"[RAG] Contexto final gerado: {'Sim' if context else 'Não'}")
+
             # Cachear resultado
             self.cache[cache_key] = context
-            
+
             return context
-            
+
         except Exception as e:
             logger.error(f"Erro no RAG: {e}")
+            print(f"[RAG] Erro: {e}")
             return None
     
     def _extract_keywords(self, text: str) -> List[str]:
@@ -128,16 +135,15 @@ class SimpleRAG:
     
     def _find_similar_conversations(self, keywords: List[str], risk_level: str, 
                                   limit: int = 10) -> List[Dict]:
-        """Busca conversas similares no banco de dados"""
+        print(f"[RAG] Buscando conversas no banco. Keywords: {keywords} | Limite: {limit}")
+        """Busca conversas similares no banco de dados priorizando só palavras-chave e avaliação, sem filtrar por risco"""
         try:
             from app import db
-            
             if keywords:
                 keyword_pattern = '|'.join([k for k in keywords if len(k) > 3])
             else:
                 keyword_pattern = ''
-            
-            # Query otimizada para buscar conversas bem-sucedidas
+            # 1. Busca com keywords (qualquer risco)
             query = text("""
                 SELECT DISTINCT
                     cm_user.content as user_message,
@@ -152,8 +158,7 @@ class SimpleRAG:
                     AND cm_ai.message_type = 'AI'
                     AND cm_ai.id > cm_user.id
                 WHERE 
-                    cs.user_rating >= 4  -- Apenas conversas bem avaliadas
-                    AND (cs.initial_risk_level = :risk_level OR :risk_level = 'any')
+                    cs.user_rating >= 4
                     AND (:keyword_pattern = '' OR cm_user.content ~* :keyword_pattern)
                     AND cm_user.created_at >= NOW() - INTERVAL '6 months'
                     AND LENGTH(cm_user.content) > 10
@@ -161,17 +166,45 @@ class SimpleRAG:
                 ORDER BY cs.user_rating DESC, cm_ai.created_at DESC
                 LIMIT :limit
             """)
-            
             result = db.session.execute(query, {
-                'risk_level': risk_level,
                 'keyword_pattern': keyword_pattern,
                 'limit': limit
             })
-            
-            return [dict(row._mapping) for row in result]
-            
+            rows = [dict(row._mapping) for row in result]
+            print(f"[RAG] Linhas retornadas do banco (keywords): {len(rows)}")
+            if rows:
+                return rows
+            # 2. Última tentativa: pega os últimos registros bem avaliados
+            query = text("""
+                SELECT DISTINCT
+                    cm_user.content as user_message,
+                    cm_ai.content as ai_response,
+                    cs.user_rating,
+                    cs.initial_risk_level,
+                    cm_ai.created_at
+                FROM chat_sessions cs
+                JOIN chat_messages cm_user ON cs.id = cm_user.session_id 
+                    AND cm_user.message_type = 'USER'
+                JOIN chat_messages cm_ai ON cs.id = cm_ai.session_id 
+                    AND cm_ai.message_type = 'AI'
+                    AND cm_ai.id > cm_user.id
+                WHERE 
+                    cs.user_rating >= 4
+                    AND cm_user.created_at >= NOW() - INTERVAL '6 months'
+                    AND LENGTH(cm_user.content) > 10
+                    AND LENGTH(cm_ai.content) > 20
+                ORDER BY cs.user_rating DESC, cm_ai.created_at DESC
+                LIMIT :limit
+            """)
+            result = db.session.execute(query, {
+                'limit': limit
+            })
+            rows = [dict(row._mapping) for row in result]
+            print(f"[RAG] Linhas retornadas do banco (só últimos): {len(rows)}")
+            return rows
         except Exception as e:
             logger.error(f"Erro na busca de conversas: {e}")
+            print(f"[RAG] Erro: {e}")
             return []
     
     def _rank_conversations(self, conversations: List[Dict], user_message: str) -> List[Dict]:
@@ -336,6 +369,7 @@ class SimpleRAG:
             }
     
     def _get_conversation_examples(self, user_message: str, risk_level: str, limit: int) -> List[Dict]:
+        print(f"[RAG] Obtendo exemplos de conversas para: '{user_message}' | Risco: {risk_level} | Limite: {limit}")
         """Obtém exemplos de conversas formatados para o sistema de prompts"""
         try:
             conversations = self._find_similar_conversations(
@@ -353,6 +387,7 @@ class SimpleRAG:
                     'risk_level': conv.get('initial_risk_level', 'moderate')
                 })
             
+            print(f"[RAG] Exemplos de conversas retornados: {len(examples)}")
             return examples
             
         except Exception as e:
@@ -513,39 +548,41 @@ class AIService:
     def analyze_sentiment(self, text: str) -> Dict:
         """
         Analisa o sentimento do texto usando OpenAI com fallback inteligente
-        
-        Args:
-            text: Texto para análise
-            
-        Returns:
-            Dict com score, confidence, emotion e intensity
+        Garante que o prompt peça resposta JSON, faz print do retorno e trata erro de parsing.
         """
         if not self.openai_client:
             return self._basic_sentiment_analysis(text)
-        
+
         try:
-            # Obter prompt do sistema de prompts
-            system_content = self.prompt_manager.get_sentiment_prompt('openai')
-            
+            # Prompt explícito para resposta JSON
+            system_content = (
+                "Você é um analisador de sentimentos. Analise a mensagem do usuário e responda estritamente neste formato JSON: "
+                '{"score": float, "confidence": float, "emotion": "...", "intensity": "..."}'
+                "\nNão adicione explicações, apenas o JSON."
+            )
             response = self.openai_client.chat.completions.create(
                 model=self.openai_model,
                 messages=[
                     {"role": "system", "content": system_content},
-                    {"role": "user", "content": f"Analise: {text}"}
+                    {"role": "user", "content": f"Mensagem: {text}"}
                 ],
                 max_tokens=150,
                 temperature=0.3
             )
-            
             content = response.choices[0].message.content.strip()
-            result = json.loads(content)
-            
+            print(f"[OpenAI Sentiment Raw]: {content}")
+            try:
+                result = json.loads(content)
+            except Exception as e:
+                logger.error(f"Erro ao fazer parse do JSON retornado pela OpenAI: {e} | Conteúdo: {content}")
+                return self._basic_sentiment_analysis(text)
+
             # Validar resultado
             if all(key in result for key in ['score', 'confidence', 'emotion', 'intensity']):
                 return result
             else:
                 return self._basic_sentiment_analysis(text)
-                
+
         except Exception as e:
             logger.error(f"Erro na análise OpenAI: {e}")
             return self._basic_sentiment_analysis(text)
@@ -604,9 +641,9 @@ class AIService:
             return self._basic_risk_assessment(text, sentiment_analysis)
     
     def _basic_risk_assessment(self, text: str, sentiment_analysis: Optional[Dict] = None) -> str:
-        """Avaliação básica de risco como fallback"""
+        """Avaliação básica de risco como fallback, com prints de debug"""
         text_lower = text.lower()
-        
+
         critical_keywords = [
             'me matar', 'suicídio', 'quero morrer', 'acabar com tudo',
             'não quero viver', 'melhor morto',
@@ -632,30 +669,42 @@ class AIService:
             'triste', 'ansioso', 'preocupado', 'difícil', 'problema', 'ajuda'
         ]
 
+        found_critical = [k for k in critical_keywords if k in text_lower]
+        found_high = [k for k in high_keywords if k in text_lower]
+        found_moderate = [k for k in moderate_keywords if k in text_lower]
+
+        print(f"[RISK DEBUG] Texto: '{text}'")
+        print(f"[RISK DEBUG] Palavras críticas encontradas: {found_critical}")
+        print(f"[RISK DEBUG] Palavras high encontradas: {found_high}")
+        print(f"[RISK DEBUG] Palavras moderate encontradas: {found_moderate}")
+
         # Verificar palavras críticas e frases indiretas
-        for keyword in critical_keywords:
-            if keyword in text_lower:
-                return 'critical'
+        if found_critical:
+            print("[RISK DEBUG] Risco atribuído: critical (palavra crítica)")
+            return 'critical'
 
         # Usar análise de sentimento se disponível
         if sentiment_analysis:
             score = sentiment_analysis.get('score', 0)
             emotion = sentiment_analysis.get('emotion', '')
-
+            print(f"[RISK DEBUG] Análise de sentimento: score={score}, emotion={emotion}")
             if emotion == 'desesperado' or score < -0.8:
+                print("[RISK DEBUG] Risco atribuído: critical (sentimento)")
                 return 'critical'
             elif score < -0.5:
+                print("[RISK DEBUG] Risco atribuído: high (sentimento)")
                 return 'high'
 
         # Verificar outras palavras-chave
-        for keyword in high_keywords:
-            if keyword in text_lower:
-                return 'high'
+        if found_high:
+            print("[RISK DEBUG] Risco atribuído: high (palavra high)")
+            return 'high'
 
-        for keyword in moderate_keywords:
-            if keyword in text_lower:
-                return 'moderate'
+        if found_moderate:
+            print("[RISK DEBUG] Risco atribuído: moderate (palavra moderate)")
+            return 'moderate'
 
+        print("[RISK DEBUG] Risco atribuído: low (nenhum match)")
         return 'low'
         
         # Verificar palavras críticas
@@ -903,6 +952,7 @@ class AIService:
                 conversation_examples=rag_result.get('conversation_examples', []) if rag_result else None
             )
 
+
             # 2.1. Adicionar contexto de triagem se disponível
             if user_context:
                 triage_triggered = user_context.get('triage_triggered', False)
@@ -911,22 +961,32 @@ class AIService:
 
                 # Construir contexto de triagem para a IA
                 triage_context_info = ""
+                triage_print_reason = None
                 if triage_triggered:
                     if triage_status == 'declined':
                         triage_context_info = f"\n\nCONTEXTO IMPORTANTE: O usuário recusou participar da triagem psicológica. "
                         if triage_declined_reason:
                             triage_context_info += f"Motivo: {triage_declined_reason}. "
+                            triage_print_reason = f"Usuário recusou triagem. Motivo: {triage_declined_reason}"
+                        else:
+                            triage_print_reason = "Usuário recusou triagem. Sem motivo informado."
                         triage_context_info += "Seja respeitoso com essa decisão, mas mantenha-se atento aos sinais de risco. Não insista na triagem, mas continue oferecendo apoio emocional."
                     elif triage_status == 'initiated':
                         triage_context_info = f"\n\nCONTEXTO: O usuário iniciou o processo de triagem psicológica. Apoie e encoraje a continuidade deste processo."
+                        triage_print_reason = "Usuário iniciou a triagem psicológica."
                     elif triage_status == 'completed':
                         triage_context_info = f"\n\nCONTEXTO: O usuário completou a triagem psicológica. Use essas informações para personalizar melhor suas respostas."
+                        triage_print_reason = "Usuário completou a triagem psicológica."
 
                 # Adicionar ao contexto de treinamento
                 if triage_context_info and prompt_context.training_context:
                     prompt_context.training_context += triage_context_info
                 elif triage_context_info:
                     prompt_context.training_context = triage_context_info
+
+                # Print informativo
+                if triage_print_reason:
+                    print(f"[TRIAGEM ATIVADA] Status: {triage_status} | Motivo: {triage_print_reason}")
 
             # 3. Tentar OpenAI consolidado
             if self.openai_client:

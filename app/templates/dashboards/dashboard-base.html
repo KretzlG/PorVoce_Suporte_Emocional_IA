@@ -90,91 +90,94 @@
 <div class="page-wrapper d-flex" id="main-wrapper">
 	{% if current_user.is_authenticated %}
 		<!-- Sidebar Premium Style -->
-		<aside class="left-sidebar bg-primary text-white d-flex flex-column" style="width:250px;min-height:100vh;">
-			<div class="brand-logo p-3 border-bottom border-light">
+		<aside class="left-sidebar sidebar bg-primary text-white d-flex flex-column" id="sidebar" style="width:250px;min-height:100vh;transition:all 0.3s cubic-bezier(.4,2,.6,1);box-shadow:4px 0 16px rgba(0,0,0,0.07);border-top-right-radius:24px;border-bottom-right-radius:24px;">
+			<div class="brand-logo p-4 border-bottom border-light d-flex align-items-center justify-content-between">
 				<div class="d-flex align-items-center gap-2">
 					<i class="fas fa-heart text-white"></i>
 					<span class="fw-bold fs-5 text-white">Por Você</span>
 				</div>
+				<button id="sidebar-toggle-close" class="btn btn-outline-light btn-sm d-lg-none" type="button" title="Fechar menu">
+					<i class="fas fa-times"></i>
+				</button>
 			</div>
 			<nav class="p-3 flex-grow-1">
 				<ul class="nav flex-column gap-2">
 					{% if current_user.is_admin %}
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('admin.dashboard') }}">
-								<i class="fas fa-tachometer-alt me-2"></i> Dashboard
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('admin.dashboard') }}">
+								<i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('admin.users') }}">
-								<i class="fas fa-users me-2"></i> Usuários
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('admin.users') }}">
+								<i class="fas fa-users"></i> <span>Usuários</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('training.index') }}">
-								<i class="fas fa-robot me-2"></i> Treinar IA
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('training.index') }}">
+								<i class="fas fa-robot"></i> <span>Treinar IA</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('admin.analytics') }}">
-								<i class="fas fa-chart-line me-2"></i> Analytics
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('admin.analytics') }}">
+								<i class="fas fa-chart-line"></i> <span>Analytics</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('chat.chat_interface') }}">
-								<i class="fas fa-comments me-2"></i> Chat
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('chat.chat_interface') }}">
+								<i class="fas fa-comments"></i> <span>Chat</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('admin.settings') }}">
-								<i class="fas fa-cog me-2"></i> Configurações
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('admin.settings') }}">
+								<i class="fas fa-cog"></i> <span>Configurações</span>
 							</a>
 						</li>
 					{% elif current_user.is_client %}
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('main.dashboard') }}">
-								<i class="fas fa-home me-2"></i> Meu Espaço
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('main.dashboard') }}">
+								<i class="fas fa-home"></i> <span>Meu Espaço</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('chat.chat_interface') }}">
-								<i class="fas fa-comments me-2"></i> Conversar
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('chat.chat_interface') }}">
+								<i class="fas fa-comments"></i> <span>Conversar</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('diary.diary_interface') }}">
-								<i class="fas fa-book me-2"></i> Diário Emocional
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('diary.diary_interface') }}">
+								<i class="fas fa-book"></i> <span>Diário Emocional</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('main.help_page') }}">
-								<i class="fas fa-question-circle me-2"></i> Ajuda
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('main.help_page') }}">
+								<i class="fas fa-question-circle"></i> <span>Ajuda</span>
 							</a>
 						</li>
 					{% elif current_user.is_volunteer %}
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('volunteer.dashboard') }}">
-								<i class="fas fa-tachometer-alt me-2"></i> Dashboard
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('volunteer.dashboard') }}">
+								<i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('chat.chat_interface') }}">
-								<i class="fas fa-comments me-2"></i> Chat
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('chat.chat_interface') }}">
+								<i class="fas fa-comments"></i> <span>Chat</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="/volunteer/new_service" title="Iniciar novo atendimento">
-								<i class="fas fa-headset me-2"></i> Novo Atendimento
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="/volunteer/new_service" title="Iniciar novo atendimento">
+								<i class="fas fa-headset"></i> <span>Novo Atendimento</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('training.index') }}">
-								<i class="fas fa-robot me-2"></i> Treinar IA
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('training.index') }}">
+								<i class="fas fa-robot"></i> <span>Treinar IA</span>
 							</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link text-white fw-semibold rounded" href="{{ url_for('main.help_page') }}">
-								<i class="fas fa-question-circle me-2"></i> Ajuda
+							<a class="nav-link text-white fw-semibold rounded-pill px-3 py-2 d-flex align-items-center gap-2" href="{{ url_for('main.help_page') }}">
+								<i class="fas fa-question-circle"></i> <span>Ajuda</span>
 							</a>
 						</li>
 					{% endif %}
@@ -189,9 +192,10 @@
 		{% if current_user.is_authenticated %}
 			<nav class="navbar navbar-expand-lg bg-white shadow-sm px-4 py-3 border-bottom">
 				<div class="container-fluid">
-					<a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="/">
-						<i class="fas fa-heart"></i> Por Você
-					</a>
+					<!-- Botão hamburger para esconder/mostrar sidebar -->
+					<button id="sidebar-toggle" class="btn btn-outline-primary me-3" type="button" style="display:inline-flex;align-items:center;">
+						<i class="fas fa-bars"></i>
+					</button>
 					<div class="navbar-nav ms-auto align-items-center">
 						<div class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle d-flex align-items-center gap-2 text-dark" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

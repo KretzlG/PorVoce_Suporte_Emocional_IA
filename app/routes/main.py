@@ -11,6 +11,40 @@ from app import db
 
 main = Blueprint('main', __name__)
 
+# Endpoint dinâmico para dashboard do cliente
+@main.route('/api/dashboard-stats')
+@login_required
+def api_dashboard_stats():
+    """Estatísticas dinâmicas para dashboard do cliente"""
+    try:
+        total_chats = ChatSession.query.filter_by(user_id=current_user.id).count()
+        last_activity = current_user.last_login or current_user.created_at
+        user_stats = {
+            'total_chats': total_chats,
+            'total_assessments': 0,  # Futuro
+            'last_activity': last_activity.strftime('%d/%m/%Y %H:%M') if last_activity else ''
+        }
+        recent_sessions = ChatSession.query.filter_by(user_id=current_user.id).order_by(ChatSession.created_at.desc()).limit(5).all()
+        recent_entries = []
+        for session in recent_sessions:
+            if session.title:
+                recent_entries.append({
+                    'title': session.title,
+                    'text': f"Conversa realizada em {session.created_at.strftime('%d/%m/%Y')}"
+                })
+            else:
+                recent_entries.append({
+                    'title': f"Conversa de {session.created_at.strftime('%d/%m/%Y')}",
+                    'text': "Sessão de apoio emocional"
+                })
+        return jsonify({
+            'user_stats': user_stats,
+            'recent_entries': recent_entries
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Erro ao buscar dados do dashboard', 'details': str(e)}), 500
+
 
 @main.route('/')
 @main.route('/home')
