@@ -139,11 +139,16 @@ class SimpleRAG:
         """Busca conversas similares no banco de dados priorizando só palavras-chave e avaliação, sem filtrar por risco"""
         try:
             from app import db
+            # Log: total de conversas no banco
+            total_sessions = db.session.execute(
+                text("SELECT COUNT(*) FROM chat_sessions")
+            ).scalar()
+            print(f"[RAG] Total de sessões de chat no banco: {total_sessions}")
             if keywords:
                 keyword_pattern = '|'.join([k for k in keywords if len(k) > 3])
             else:
                 keyword_pattern = ''
-            # 1. Busca com keywords (qualquer risco)
+            # 1. Busca com keywords (qualquer risco, sem filtro de avaliação)
             query = text("""
                 SELECT DISTINCT
                     cm_user.content as user_message,
@@ -158,8 +163,7 @@ class SimpleRAG:
                     AND cm_ai.message_type = 'AI'
                     AND cm_ai.id > cm_user.id
                 WHERE 
-                    cs.user_rating >= 4
-                    AND (:keyword_pattern = '' OR cm_user.content ~* :keyword_pattern)
+                    (:keyword_pattern = '' OR cm_user.content ~* :keyword_pattern)
                     AND cm_user.created_at >= NOW() - INTERVAL '6 months'
                     AND LENGTH(cm_user.content) > 10
                     AND LENGTH(cm_ai.content) > 20
@@ -174,7 +178,7 @@ class SimpleRAG:
             print(f"[RAG] Linhas retornadas do banco (keywords): {len(rows)}")
             if rows:
                 return rows
-            # 2. Última tentativa: pega os últimos registros bem avaliados
+            # 2. Última tentativa: pega os últimos registros (sem filtro de avaliação)
             query = text("""
                 SELECT DISTINCT
                     cm_user.content as user_message,
@@ -189,8 +193,7 @@ class SimpleRAG:
                     AND cm_ai.message_type = 'AI'
                     AND cm_ai.id > cm_user.id
                 WHERE 
-                    cs.user_rating >= 4
-                    AND cm_user.created_at >= NOW() - INTERVAL '6 months'
+                    cm_user.created_at >= NOW() - INTERVAL '6 months'
                     AND LENGTH(cm_user.content) > 10
                     AND LENGTH(cm_ai.content) > 20
                 ORDER BY cs.user_rating DESC, cm_ai.created_at DESC

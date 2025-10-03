@@ -127,15 +127,13 @@ class ChatSession(BaseModel):
             sender_id=sender_id,
             message_metadata=message_metadata
         )
-        
         # OTIMIZAÇÃO: Incrementar contador em vez de recontar
         self.message_count += 1
         self.last_activity = datetime.now(timezone.utc)
-        
         # Adicionar à sessão sem commit automático (permite transações batch)
         db.session.add(message)
         db.session.add(self)
-        
+        print(f"[DB] Mensagem salva: session_id={self.id} | tipo={message_type} | sender_id={sender_id} | content='{content}'")
         return message
     
     def end_session(self, status=ChatSessionStatus.COMPLETED.value):
